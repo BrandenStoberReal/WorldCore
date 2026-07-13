@@ -29,7 +29,7 @@ CREATE TABLE `chats` (
 	`last_message` text,
 	`last_mes_date` integer,
 	`user_id` text DEFAULT 'default-user' NOT NULL,
-	FOREIGN KEY (`character_id`) REFERENCES `characters`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`character_id`) REFERENCES `characters`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `chats_file_id_unique` ON `chats` (`file_id`);--> statement-breakpoint
@@ -212,7 +212,7 @@ CREATE TABLE `worldinfo_entries` (
 	`match_creator_notes` integer DEFAULT false NOT NULL,
 	`ignore_budget` integer DEFAULT false NOT NULL,
 	`extensions` text DEFAULT '{}',
-	FOREIGN KEY (`file_id`) REFERENCES `worldinfo_files`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`file_id`) REFERENCES `worldinfo_files`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `worldinfo_files` (

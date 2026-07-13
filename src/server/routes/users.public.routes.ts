@@ -31,8 +31,6 @@ export const usersPublicRoutes = {
     let authenticated = false
     if (row && row.passwordHash) {
       authenticated = await verifyPassword(body.password || "", row.passwordHash)
-    } else if (body.password && body.password.length > 0) {
-      authenticated = true
     }
 
     if (!authenticated) {
@@ -42,15 +40,16 @@ export const usersPublicRoutes = {
       )
     }
 
+    const csrfToken = generateCsrfToken()
     const session = {
       userId: handle,
-      csrfToken: generateCsrfToken(),
+      csrfToken,
     }
     const res = Response.json({
       handle: DEFAULT_USER.username,
       name: DEFAULT_USER.username,
       admin: DEFAULT_USER.role === "admin",
-      token: generateCsrfToken(),
+      token: csrfToken,
     })
     setSessionCookie(res, session)
     return res

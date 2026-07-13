@@ -5,32 +5,46 @@ export interface StreamingAdapter {
   abort(): void
 }
 
-export class StreamingController {
-  private abortController: AbortController | null = null
+let activeAbortController: AbortController | null = null
 
+export function cancelAllStreams() {
+  if (activeAbortController) {
+    activeAbortController.abort()
+    activeAbortController = null
+  }
+}
+
+export class StreamingController {
   async createStream(
     req: ChatCompletionRequest,
     adapter: StreamingAdapter,
   ): Promise<Response> {
-    this.abortController = new AbortController()
-    const signal = this.abortController.signal
+    cancelAllStreams()
+    const abortController = new AbortController()
+    activeAbortController = abortController
+    const signal = abortController.signal
     ;(req as Record<string, unknown>).signal = signal
 
-    const stream = await adapter.createStream(req)
+    try {
+      const stream = await adapter.createStream(req)
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        "X-Accel-Buffering": "no",
-      },
-    })
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+          "X-Accel-Buffering": "no",
+        },
+      })
+    } finally {
+      if (activeAbortController === abortController) {
+        activeAbortController = null
+      }
+    }
   }
 
   abort(): void {
-    this.abortController?.abort()
-    this.abortController = null
+    cancelAllStreams()
   }
 }
 

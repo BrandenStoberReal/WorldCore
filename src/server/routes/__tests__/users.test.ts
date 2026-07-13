@@ -13,7 +13,7 @@ describe("Users public routes", () => {
     expect(data).toContain("default-user")
   })
 
-  it("login accepts password", async () => {
+  it("login rejects non-existent user", async () => {
     const res = await usersPublicRoutes.login(
       new Request("http://localhost/api/v1/users/login", {
         method: "POST",
@@ -21,10 +21,9 @@ describe("Users public routes", () => {
         body: JSON.stringify({ handle: "default-user", password: "test123" }),
       }),
     )
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(401)
     const data = (await res.json()) as Record<string, unknown>
-    expect(data.handle).toBe("default-user")
-    expect(res.headers.get("Set-Cookie")).toBeDefined()
+    expect(data.error).toBeDefined()
   })
 
   it("logout clears session", async () => {

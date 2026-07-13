@@ -8,7 +8,7 @@ import path from "node:path"
 import fs from "node:fs/promises"
 import { SHARED_CONST } from "@/shared/constants"
 import type { Character, ShallowCharacter, CharacterCreateInput, CharacterData } from "@/shared/types/character"
-import { NotFoundError } from "@/server/errors"
+import { NotFoundError, ValidationError } from "@/server/errors"
 import * as yaml from "yaml"
 import { Jimp } from "jimp"
 
@@ -200,7 +200,16 @@ export class CharacterService {
     const charRow = row[0]!
     const filePath = path.join(paths.characters, charRow.avatar)
 
-    const pngBuffer = typeof avatarData === "string" ? await fs.readFile(avatarData) : avatarData
+    let pngBuffer: Buffer
+    if (typeof avatarData === "string") {
+      const dataUriMatch = avatarData.match(/^data:image\/[a-z]+;base64,(.+)$/)
+      if (!dataUriMatch?.[1]) {
+        throw new ValidationError("Avatar must be a base64 data URI or Buffer")
+      }
+      pngBuffer = Buffer.from(dataUriMatch[1], "base64")
+    } else {
+      pngBuffer = avatarData
+    }
     await writeCharacterCard(pngBuffer, charRow.jsonData, filePath)
   }
 

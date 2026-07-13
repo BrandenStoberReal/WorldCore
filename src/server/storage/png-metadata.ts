@@ -52,13 +52,18 @@ function encodeChunk(keyword: string, data: string): Buffer {
 function parseChunks(pngData: Buffer): { offset: number; length: number; type: string; data: Buffer; crc: number }[] {
   const chunks: { offset: number; length: number; type: string; data: Buffer; crc: number }[] = []
   let offset = 8
-  while (offset < pngData.length) {
+  while (offset + 12 <= pngData.length) {
     const length = pngData.readUInt32BE(offset)
+    const end = offset + 12 + length
+
+    // Bounds check: ensure the full chunk (type + data + crc) fits within the buffer
+    if (end > pngData.length) break
+
     const type = pngData.toString("ascii", offset + 4, offset + 8)
     const data = pngData.subarray(offset + 8, offset + 8 + length)
     const crc = pngData.readUInt32BE(offset + 8 + length)
     chunks.push({ offset, length, type, data, crc })
-    offset += 12 + length
+    offset = end
   }
   return chunks
 }
@@ -95,7 +100,11 @@ export async function readCharacterCard(filePath: string): Promise<string | unde
 export async function readCharacterCardJson(filePath: string): Promise<Record<string, unknown> | undefined> {
   const raw = await readCharacterCard(filePath)
   if (!raw) return undefined
-  return JSON.parse(raw) as Record<string, unknown>
+  try {
+    return JSON.parse(raw) as Record<string, unknown>
+  } catch {
+    return undefined
+  }
 }
 
 export function removePngTextChunk(buffer: Buffer, keyword: string): Buffer {

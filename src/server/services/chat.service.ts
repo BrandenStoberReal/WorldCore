@@ -7,6 +7,7 @@ import { eq, desc } from "drizzle-orm"
 import { paths } from "@/server/storage/paths"
 import { readJsonl, writeJsonl, appendJsonlLine } from "@/server/storage/jsonl"
 import { listFiles, removeFile, exists } from "@/server/storage/fs"
+import { assertValidFileId } from "@/server/util/ids"
 import type { ChatMetadata, ChatMessage, ChatInfo, SearchChatResult, RecentChat } from "@/shared/types/chat"
 
 export class ChatService {
@@ -53,6 +54,7 @@ export class ChatService {
   }
 
   async appendMessage(fileId: string, message: ChatMessage): Promise<void> {
+    assertValidFileId(fileId)
     const filePath = path.join(paths.chats, `${fileId}.jsonl`)
     message.send_date = message.send_date || new Date().toISOString()
     await appendJsonlLine(filePath, message)
@@ -60,6 +62,7 @@ export class ChatService {
   }
 
   async deleteMessage(fileId: string, messageIndex: number): Promise<void> {
+    assertValidFileId(fileId)
     const filePath = path.join(paths.chats, `${fileId}.jsonl`)
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath)
     const metadata = allLines[0] as ChatMetadata
@@ -70,6 +73,7 @@ export class ChatService {
   }
 
   async editMessage(fileId: string, messageIndex: number, updates: Partial<ChatMessage>): Promise<void> {
+    assertValidFileId(fileId)
     const filePath = path.join(paths.chats, `${fileId}.jsonl`)
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath)
     const messages = allLines.slice(1) as ChatMessage[]
@@ -92,6 +96,7 @@ export class ChatService {
   }
 
   async rename(fileId: string, newName: string): Promise<void> {
+    assertValidFileId(fileId)
     const filePath = path.join(paths.chats, `${fileId}.jsonl`)
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath)
     const metadata = allLines[0] as ChatMetadata
@@ -100,6 +105,7 @@ export class ChatService {
   }
 
   async delete(fileId: string): Promise<void> {
+    assertValidFileId(fileId)
     const filePath = path.join(paths.chats, `${fileId}.jsonl`)
     await removeFile(filePath)
     await db.delete(chats).where(eq(chats.fileId, fileId))
@@ -218,12 +224,14 @@ export class ChatService {
   }
 
   async exportJsonl(fileId: string): Promise<{ data: Buffer; fileName: string }> {
+    assertValidFileId(fileId)
     const filePath = path.join(paths.chats, `${fileId}.jsonl`)
     const data = await fs.readFile(filePath)
     return { data: Buffer.from(data), fileName: `${fileId}.jsonl` }
   }
 
   async exportText(fileId: string): Promise<{ data: Buffer; fileName: string }> {
+    assertValidFileId(fileId)
     const messages = await this.getMessages(fileId)
     const text = messages.map((m) => `${m.name}: ${m.mes}`).join("\n\n")
     return { data: Buffer.from(text), fileName: `${fileId}.txt` }

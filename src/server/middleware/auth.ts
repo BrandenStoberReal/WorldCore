@@ -1,5 +1,6 @@
 import { getSession } from "@/server/auth/session"
-import { DEFAULT_USER } from "@/server/auth/users"
+import { getCurrentUser, DEFAULT_USER } from "@/server/auth/users"
+import type { RouteHandler } from "@/server/routes"
 import type { User } from "@/shared/types/user"
 
 export function setUserMiddleware(req: Request): void {
@@ -36,5 +37,25 @@ export function requireAdminMiddleware(
       )
     }
     return handler(typedReq, ctx)
+  }
+}
+
+export function withAdmin(handler: RouteHandler): RouteHandler {
+  return async (req: Request): Promise<Response> => {
+    const session = getSession(req)
+    if (!session) {
+      return Response.json(
+        { error: { code: "UNAUTHORIZED", message: "Authentication required" } },
+        { status: 401 },
+      )
+    }
+    const user = getCurrentUser()
+    if (!user || user.role !== "admin") {
+      return Response.json(
+        { error: { code: "FORBIDDEN", message: "Admin access required" } },
+        { status: 403 },
+      )
+    }
+    return handler(req)
   }
 }

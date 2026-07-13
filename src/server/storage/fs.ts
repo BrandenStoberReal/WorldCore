@@ -19,7 +19,12 @@ export async function writeFileAtomic(filePath: string, data: string | Buffer): 
   await fs.mkdir(dir, { recursive: true })
   const tmpPath = filePath + ".tmp"
   await fs.writeFile(tmpPath, data)
-  await fs.rename(tmpPath, filePath)
+  try {
+    await fs.rename(tmpPath, filePath)
+  } catch (err) {
+    await fs.unlink(tmpPath).catch(() => {})
+    throw err
+  }
 }
 
 export async function removeFile(filePath: string): Promise<void> {

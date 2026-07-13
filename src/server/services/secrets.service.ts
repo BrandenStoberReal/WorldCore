@@ -127,6 +127,21 @@ export class SecretManager {
     return true
   }
 
+  async updateSecrets(updates: Record<string, string>): Promise<void> {
+    const store = await this.load()
+    for (const [key, value] of Object.entries(updates)) {
+      if (store[key]) {
+        store[key] = { ...store[key]!, value }
+      }
+    }
+    await this.save(store)
+    await db.transaction(async (tx) => {
+      for (const [key, value] of Object.entries(updates)) {
+        await tx.update(secrets).set({ value }).where(eq(secrets.key, key))
+      }
+    })
+  }
+
   private mask(entry: SecretValue, key: SecretKey): SecretState {
     const isExportable = EXPORTABLE_KEYS.includes(key as typeof EXPORTABLE_KEYS[number])
     const value = isExportable ? entry.value : this.maskValue(entry.value)

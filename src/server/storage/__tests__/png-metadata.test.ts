@@ -2,6 +2,7 @@ import { describe, it, expect } from "bun:test"
 import {
   readPngTextChunks,
   readCharacterCard,
+  readCharacterCardJson,
   writeCharacterCard,
   removePngTextChunk,
 } from "../png-metadata"
@@ -98,5 +99,32 @@ describe("png-metadata", () => {
     const parsed = JSON.parse(readJson!)
     expect(parsed.version).toBe(2)
     expect(parsed.name).toBe("Updated")
+  })
+
+  it("handles truncated PNG chunks gracefully", async () => {
+    const pngBuffer = await createTestPng()
+
+    const truncated = pngBuffer.subarray(0, pngBuffer.length - 5)
+    const result = readPngTextChunks(truncated)
+    expect(result).toBeInstanceOf(Map)
+
+    const veryTruncated = pngBuffer.subarray(0, 12)
+    const result2 = readPngTextChunks(veryTruncated)
+    expect(result2).toBeInstanceOf(Map)
+
+    const empty = Buffer.alloc(8)
+    const result3 = readPngTextChunks(empty)
+    expect(result3.size).toBe(0)
+  })
+
+  it("returns undefined for PNG with non-JSON chara chunk data", async () => {
+    const pngBuffer = await createTestPng()
+    const invalidData = "this is not valid json"
+    const outputPath = path.join(testDir, "invalid_json.png")
+    await fs.mkdir(testDir, { recursive: true })
+    await writeCharacterCard(pngBuffer, invalidData, outputPath)
+
+    const result = await readCharacterCardJson(outputPath)
+    expect(result).toBeUndefined()
   })
 })

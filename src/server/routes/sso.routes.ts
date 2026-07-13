@@ -137,9 +137,12 @@ export const ssoRoutes = {
     }
 
     if (req.method === "POST") {
-      const body = (await req.json()) as Record<string, unknown>
-      await saveSSOSettings(body as Record<string, unknown>)
-      return Response.json({ ok: true })
+      const { withAdmin } = await import("@/server/middleware/auth")
+      return withAdmin(async (req: Request): Promise<Response> => {
+        const body = (await req.json()) as Record<string, unknown>
+        await saveSSOSettings(body as Record<string, unknown>)
+        return Response.json({ ok: true })
+      })(req)
     }
 
     return Response.json(

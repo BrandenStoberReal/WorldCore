@@ -4,6 +4,7 @@ import { importCharacter } from "@/server/importers/character.importer"
 import { exportCharacter, type ExportFormat } from "@/server/exporters/character.exporter"
 import { paths } from "@/server/storage/paths"
 import path from "node:path"
+import { randomUUID } from "node:crypto"
 import type { CharacterCreateInput } from "@/shared/types/character"
 
 export const characterRoutes = {
@@ -109,7 +110,7 @@ export const characterRoutes = {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const tempPath = `/tmp/slopforge_import_${Date.now()}_${file.name}`
+    const tempPath = `/tmp/slopforge_import_${Date.now()}_${randomUUID()}`
     await Bun.write(tempPath, buffer)
 
     const id = await importCharacter(tempPath, file.name)

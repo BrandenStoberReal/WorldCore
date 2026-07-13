@@ -3,6 +3,8 @@ import path from "node:path"
 import { buildApiRoutes } from "./routes"
 import { ensureUserDirs } from "./storage/paths"
 import { runMigrations } from "./db/migrate"
+import { safePathWithin } from "./util/safePath"
+import { securityHeaders } from "./errors"
 
 runMigrations()
 ensureUserDirs()
@@ -30,14 +32,21 @@ const server = serve({
       }
       return Response.json(
         { error: { code: "NOT_FOUND", message: `Route not found: ${pathname}` } },
-        { status: 404 },
+        { status: 404, headers: securityHeaders },
       )
     }
 
-    const filePath = path.join(distDir, pathname === "/" ? "index.html" : pathname.slice(1))
-    const file = Bun.file(filePath)
+    const userPath = pathname === "/" ? "index.html" : pathname.slice(1)
+    const safePath = safePathWithin(distDir, userPath)
+    if (!safePath) {
+      return new Response(htmlContent, {
+        headers: { "Content-Type": "text/html", ...securityHeaders },
+        status: 404,
+      })
+    }
+    const file = Bun.file(safePath)
     if (await file.exists()) {
-      const ext = path.extname(filePath)
+      const ext = path.extname(safePath)
       const mimeTypes: Record<string, string> = {
         ".html": "text/html",
         ".js": "application/javascript",
@@ -49,12 +58,13 @@ const server = serve({
       return new Response(file.stream(), {
         headers: {
           "Content-Type": mimeTypes[ext] || "application/octet-stream",
+          ...securityHeaders,
         },
       })
     }
 
     return new Response(htmlContent, {
-      headers: { "Content-Type": "text/html" },
+      headers: { "Content-Type": "text/html", ...securityHeaders },
     })
   },
 })

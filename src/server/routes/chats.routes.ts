@@ -1,6 +1,7 @@
 import { errorGuard } from "@/server/middleware/errorGuard"
 import { chatService } from "@/server/services/chat.service"
 import { NotFoundError } from "@/server/errors"
+import { assertValidFileId } from "@/server/util/ids"
 import { importChat } from "@/server/importers/chat.importer"
 import type { ChatMessage } from "@/shared/types/chat"
 
@@ -13,6 +14,7 @@ export const chatsRoutes = {
 
   get: errorGuard(async (req: Request): Promise<Response> => {
     const body = (await req.json().catch(() => ({}))) as { fileId: string }
+    assertValidFileId(body.fileId)
     const messages = await chatService.getMessages(body.fileId)
     const metadata = await chatService.getMetadata(body.fileId)
     if (!metadata) {

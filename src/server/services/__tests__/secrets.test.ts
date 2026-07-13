@@ -59,6 +59,19 @@ describe("SecretManager", () => {
     expect(result!.label).toBe("new-label")
   })
 
+  it("updateSecrets batch-updates values in a transaction", async () => {
+    await secretManager.write(testKey, "original-1")
+    await secretManager.write(testExportKey, "original-2")
+    await secretManager.updateSecrets({
+      [testKey]: "updated-1",
+      [testExportKey]: "updated-2",
+    })
+    const r1 = await secretManager.read(testKey)
+    const r2 = await secretManager.read(testExportKey)
+    expect(r1!.value).toBe("updated-1")
+    expect(r2!.value).toBe("updated-2")
+  })
+
   it("findAll returns all keys", async () => {
     await secretManager.write(testKey, "test")
     const all = await secretManager.findAll()

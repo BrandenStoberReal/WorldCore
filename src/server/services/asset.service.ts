@@ -4,6 +4,7 @@ import { listFiles, removeFile, exists, stat } from "@/server/storage/fs"
 import { handleFileUpload } from "@/server/storage/upload"
 import { generateThumbnail } from "@/server/storage/thumbnail"
 import { NotFoundError, ValidationError } from "@/server/errors"
+import { safePathWithin } from "@/server/util/safePath"
 
 const IMAGE_TYPES = [
   "image/png",
@@ -77,11 +78,14 @@ export class AssetService {
 
   async delete(category: AssetCategory, fileName: string): Promise<void> {
     const dir = CATEGORY_DIR_MAP[category]
-    const filePath = path.join(dir, fileName)
-    if (!(await exists(filePath))) {
+    const safePath = safePathWithin(dir, fileName)
+    if (!safePath) {
+      throw new ValidationError("Invalid file path")
+    }
+    if (!(await exists(safePath))) {
       throw new NotFoundError(`File "${fileName}" in ${category}`)
     }
-    await removeFile(filePath)
+    await removeFile(safePath)
   }
 
   async generateThumbnailFor(

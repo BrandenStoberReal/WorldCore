@@ -1,4 +1,4 @@
-import { ApiError } from "@/server/errors"
+import { ApiError, securityHeaders } from "@/server/errors"
 
 export type GuardedHandler = (req: Request, ctx?: unknown) => Promise<Response>
 
@@ -13,7 +13,7 @@ export function errorGuard(handler: GuardedHandler): GuardedHandler {
       console.error("Unhandled error:", err)
       return Response.json(
         { error: { code: "INTERNAL_ERROR", message: "Internal server error" } },
-        { status: 500 },
+        { status: 500, headers: securityHeaders },
       )
     }
   }

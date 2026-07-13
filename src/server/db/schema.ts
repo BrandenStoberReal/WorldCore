@@ -24,7 +24,7 @@ export const chats = sqliteTable("chats", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   fileId: text("file_id").notNull().unique(),
   fileName: text("file_name").notNull(),
-  characterId: integer("character_id").references(() => characters.id),
+  characterId: integer("character_id").references(() => characters.id, { onDelete: "cascade" }),
   groupId: text("group_id"),
   fileSize: integer("file_size").notNull().default(0),
   messageCount: integer("message_count").notNull().default(0),
@@ -64,7 +64,7 @@ export const worldinfoFiles = sqliteTable("worldinfo_files", {
 
 export const worldinfoEntries = sqliteTable("worldinfo_entries", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  fileId: integer("file_id").references(() => worldinfoFiles.id),
+  fileId: integer("file_id").references(() => worldinfoFiles.id, { onDelete: "cascade" }),
   uid: text("uid").notNull(),
   keys: text("keys", { mode: "json" }).$type<string[]>().notNull().default([]),
   keysecondary: text("keysecondary", { mode: "json" }).$type<string[]>().notNull().default([]),
