@@ -1,0 +1,15 @@
+{
+  "category": "kobold",
+  "data": {
+    "temp": 0.8,
+    "top_p": 0.95,
+    "top_k": 50,
+    "tfs": 0.9,
+    "rep_pen": 1.1,
+    "rep_pen_range": 1024,
+    "rep_pen_slope": 0,
+    "min_length": 0,
+    "typical_p": 1,
+    "max_tokens": 200
+  }
+}

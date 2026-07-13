@@ -1,0 +1,10 @@
+{
+  "category": "novel",
+  "data": {
+    "temperature": 1,
+    "max_length": 150,
+    "min_length": 0,
+    "top_a": 0,
+    "top_k": 0
+  }
+}

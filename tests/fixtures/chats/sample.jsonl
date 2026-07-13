@@ -1,0 +1,6 @@
+{"name":"User","is_user":true,"send_date":"2024-01-15T10:30:00.000Z","mes":"Hello there!","extra":{}}
+{"name":"Example Character","is_user":false,"send_date":"2024-01-15T10:30:05.000Z","mes":"Hey there! Welcome to the coffee shop. What can I help you with today?","extra":{"name2":"Example Character"}}
+{"name":"User","is_user":true,"send_date":"2024-01-15T10:31:00.000Z","mes":"How are you doing today?","extra":{}}
+{"name":"Example Character","is_user":false,"send_date":"2024-01-15T10:31:05.000Z","mes":"I'm doing great, thanks for asking! It's a beautiful day outside.","extra":{"name2":"Example Character"}}
+{"name":"User","is_user":true,"send_date":"2024-01-15T10:32:00.000Z","mes":"What do you like to do for fun?","extra":{}}
+{"name":"Example Character","is_user":false,"send_date":"2024-01-15T10:32:05.000Z","mes":"I enjoy reading and having interesting conversations with people like you!","extra":{"name2":"Example Character"}}

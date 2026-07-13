@@ -1,0 +1,7 @@
+{
+  "category": "context",
+  "data": {
+    "story_string": "{{#description}}\n{{#personality}}",
+    "chat_start": "{{select_n 1 1 \"{{user}} says\", \"{{user}} asks\", \"{{user}} exclaims\"}}: {{chat_at 0 mes}}\n{{chat_at 0 name}} responds:"
+  }
+}

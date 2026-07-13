@@ -1,0 +1,7 @@
+{
+  "category": "sysprompt",
+  "data": {
+    "name": "Default System Prompt",
+    "content": "You are {{char}}. Respond in character at all times."
+  }
+}

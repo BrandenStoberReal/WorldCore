@@ -1,0 +1,22 @@
+{
+  "category": "openai",
+  "data": {
+    "chat_completion_source": "openai",
+    "max_tokens": 400,
+    "max_tokens_second": 0,
+    "min_tokens_second": 0,
+    "temperature": 0.7,
+    "frequency_penalty": 0,
+    "presence_penalty": 0,
+    "top_p": 1,
+    "top_k": 0,
+    "openai_min_free_slots": 0,
+    "seed": -1,
+    "stream_openai": true,
+    "wrap_in_quotes": false,
+    "send_if_empty": "",
+    "prompt_note": "",
+    "names": [],
+    "names_behavior": "prepend"
+  }
+}
