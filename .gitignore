@@ -40,3 +40,4 @@ data/
 *.sqlite-shm
 *.sqlite-wal
 src/server/db/migrations/meta/
+/.omo/
