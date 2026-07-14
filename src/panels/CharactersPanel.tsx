@@ -15,7 +15,7 @@ import type { ShallowCharacter, Character, CharacterCreateInput } from "@/shared
 
 type CharacterWithId = Character & { id: number };
 
-export function Component() {
+export function CharactersPanel() {
   const queryClient = useQueryClient();
   const setActiveCharacter = useChatStore((s) => s.setActiveCharacter);
   const [search, setSearch] = useState("");
@@ -131,7 +131,7 @@ export function Component() {
   const fCount = filtered?.length ?? 0;
 
   return (
-    <div className="relative isolate section-rhythm">
+    <div data-panel="characters" className="flex flex-col gap-3 h-full">
       {/* Section header */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
