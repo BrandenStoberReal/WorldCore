@@ -1,11 +1,12 @@
 import { createRootRoute, createRoute } from "@tanstack/react-router";
 import { Component as LayoutComponent } from "@/routes/_layout";
-import { Component as IndexComponent } from "@/routes/index";
-import { Component as CharactersComponent } from "@/routes/_layout/characters";
-import { Component as ChatsComponent } from "@/routes/_layout/chats";
-import { Component as WorldinfoComponent } from "@/routes/_layout/worldinfo";
-import { Component as SettingsComponent } from "@/routes/_layout/settings";
-import { Component as ExtensionsComponent } from "@/routes/_layout/extensions";
+import { Component as IndexComponent } from "@/panels/WelcomePanel";
+import { Component as CharactersComponent } from "@/panels/CharactersPanel";
+import { Component as ChatsComponent } from "@/panels/ChatsPanel";
+import { Component as WorldinfoComponent } from "@/panels/WorldInfoPanel";
+import { Component as SettingsComponent } from "@/panels/SettingsPanel";
+import { Component as ExtensionsComponent } from "@/panels/ExtensionsPanel";
+import { Component as ConnectionsComponent } from "@/panels/ConnectionsPanel";
 
 const rootRoute = createRootRoute();
 
@@ -51,6 +52,12 @@ const extensionsRoute = createRoute({
   component: ExtensionsComponent,
 });
 
+const connectionsRoute = createRoute({
+  getParentRoute: () => rootLayout,
+  path: "connections",
+  component: ConnectionsComponent,
+});
+
 export const routeTree = rootRoute.addChildren([
   rootLayout.addChildren([
     indexRoute,
@@ -59,5 +66,6 @@ export const routeTree = rootRoute.addChildren([
     worldinfoRoute,
     settingsRoute,
     extensionsRoute,
+    connectionsRoute,
   ]),
 ]);

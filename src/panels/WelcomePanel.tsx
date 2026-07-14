@@ -65,13 +65,13 @@ export function Component() {
   const recent = Array.isArray(characters) ? characters.slice(0, 5) : [];
 
   return (
-    <div className="relative isolate">
+    <div className="relative isolate h-full p-6 md:p-10">
       {/* Forge glow halo behind hero */}
       <div aria-hidden className="pointer-events-none absolute inset-0 ambient-glow" />
 
-      <div className="relative">
+      <div className="relative section-rhythm">
         {/* Hero block */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <div className="flex items-center gap-3 mb-3">
               <span className="mono-tag text-ember">{`// 00 - ATELIER`}</span>
@@ -104,7 +104,7 @@ export function Component() {
         </div>
 
         {/* Stat tiles */}
-        <div className="grid gap-4 md:grid-cols-3 mb-10">
+        <div className="grid gap-4 md:grid-cols-3">
           <StatTile
             number="01"
             label="Characters"
@@ -140,7 +140,7 @@ export function Component() {
           <section
             className={cn(
               surfaceCard,
-              "relative rounded-sm p-6 overflow-hidden",
+              "relative rounded-sm p-6 md:p-7 overflow-hidden",
             )}
           >
             <div className="flex items-center justify-between mb-5">
@@ -179,7 +179,7 @@ export function Component() {
           <section
             className={cn(
               surfaceCard,
-              "relative rounded-sm p-6 overflow-hidden",
+              "relative rounded-sm p-6 md:p-7 overflow-hidden",
             )}
           >
             <div className="flex items-center justify-between mb-5">
@@ -246,7 +246,7 @@ export function Component() {
         </div>
 
         {/* Footer caption strip */}
-        <footer className="mt-10 pt-4 border-t border-border flex items-center justify-between text-muted-foreground/45">
+        <footer className="pt-4 border-t border-border flex items-center justify-between text-muted-foreground/45">
           <span className="mono-tag">WorldCore</span>
           <span className="mono-tag">{`{⌑} in nomine ferri {⌑}`}</span>
         </footer>

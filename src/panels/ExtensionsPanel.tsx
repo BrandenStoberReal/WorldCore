@@ -134,7 +134,7 @@ export function Component() {
   }
 
   return (
-    <div className="relative space-y-7">
+    <div className="relative isolate section-rhythm">
       {/* Section header */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
@@ -264,7 +264,7 @@ export function Component() {
         <Card
           className={cn(
             surfaceCard,
-            "relative overflow-hidden rounded-sm py-16",
+            "relative overflow-hidden rounded-sm py-16 px-6",
           )}
         >
           <CardContent className="flex flex-col items-center justify-center text-center">

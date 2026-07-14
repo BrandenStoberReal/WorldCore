@@ -129,7 +129,7 @@ export function Component() {
   }
 
   return (
-    <div className="relative space-y-7 max-w-5xl">
+    <div className="relative isolate max-w-5xl section-rhythm">
       {/* Section header */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
@@ -183,7 +183,7 @@ export function Component() {
           "relative rounded-sm overflow-hidden py-0",
         )}
       >
-        <CardHeader className="flex-row items-center justify-between border-b border-border/60 px-5 py-3">
+        <CardHeader className="flex-row items-center justify-between border-b border-border/60 px-5 md:px-6 py-3">
           <div className="flex items-center gap-3">
             <Flame className="h-4 w-4 text-ember" />
             <CardTitle className="display-host text-[18px] tracking-tight">
@@ -193,7 +193,7 @@ export function Component() {
           <span className="mono-tag text-muted-foreground/45">{`${fields.length} dials`}</span>
         </CardHeader>
 
-        <CardContent className="p-5">
+        <CardContent className="p-5 md:p-6">
           <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
             {fields.map((f, idx) => (
               <div key={f.key} className="space-y-1.5">
@@ -233,7 +233,7 @@ export function Component() {
           "relative rounded-sm overflow-hidden py-0",
         )}
       >
-        <CardHeader className="flex-row items-center justify-between border-b border-border/60 px-5 py-3">
+        <CardHeader className="flex-row items-center justify-between border-b border-border/60 px-5 md:px-6 py-3">
           <div className="flex items-center gap-3">
             <span className="mono-tag text-ember">{`> raw`}</span>
             <CardTitle className="display-host text-[18px] tracking-tight">
