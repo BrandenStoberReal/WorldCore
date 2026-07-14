@@ -12,7 +12,7 @@ import { apiFetch } from "@/lib/api";
 import { cn, surfaceCard } from "@/lib/utils";
 import type { ConnectionProfile } from "@/shared/schemas/connection-profile";
 
-export function Component() {
+export function ConnectionsPanel() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -82,7 +82,7 @@ export function Component() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64 flex-col gap-3">
+      <div data-panel="connections" className="flex items-center justify-center h-64 flex-col gap-3">
         <Loader2 className="h-7 w-7 animate-spin text-ember" />
         <span className="mono-tag text-muted-foreground/55">
           retrieving connection profiles
@@ -94,6 +94,7 @@ export function Component() {
   if (error) {
     return (
       <div
+        data-panel="connections"
         className={cn(
           surfaceCard,
           "flex items-center justify-center h-64 flex-col gap-2 p-8 border-destructive/40",
@@ -111,7 +112,7 @@ export function Component() {
   const fCount = filtered?.length ?? 0;
 
   return (
-    <div className="relative isolate section-rhythm">
+    <div data-panel="connections" className="relative isolate section-rhythm">
       {/* Section header */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
