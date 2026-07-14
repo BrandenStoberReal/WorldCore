@@ -57,7 +57,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
               value={value}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={isGenerating ? "hamering in progress..." : "transmit text to the forge..."}
+              placeholder={isGenerating ? "generating..." : "type a message..."}
               rows={1}
               className="flex min-h-9 max-h-40 flex-1 resize-none bg-transparent text-[13.5px] leading-relaxed outline-none font-mono placeholder:text-muted-foreground/50 disabled:opacity-50"
               disabled={disabled && !isGenerating}

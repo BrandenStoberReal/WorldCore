@@ -9,7 +9,7 @@ import sanitize from "sanitize-filename"
 import { Jimp } from "jimp"
 import AdmZip from "adm-zip"
 
-const TEMP_UPLOAD_DIR = path.join("/tmp", "slopforge", "uploads")
+const TEMP_UPLOAD_DIR = path.join("/tmp", "WorldCore", "uploads")
 
 async function ensureTempDir(): Promise<void> {
   await fs.mkdir(TEMP_UPLOAD_DIR, { recursive: true })

@@ -160,6 +160,6 @@ export const SHARED_CONST = {
   AVATAR_WIDTH: 400,
   AVATAR_HEIGHT: 600,
   DEFAULT_AVATAR_PATH: "data/default-user/characters/placeholder.png",
-  SESSION_COOKIE_NAME: "slopforge-session",
+  SESSION_COOKIE_NAME: "WorldCore-session",
   API_VERSION_PREFIX: "/api/v1",
 } as const;

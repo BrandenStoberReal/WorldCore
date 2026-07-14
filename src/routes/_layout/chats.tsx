@@ -48,7 +48,7 @@ export function Component() {
       ) : (
         <section className="flex flex-1 items-center justify-center relative min-w-0">
           {/* Ambience */}
-          <div aria-hidden className="pointer-events-none absolute inset-0 forge-glow" />
+          <div aria-hidden className="pointer-events-none absolute inset-0 ambient-glow" />
 
           <div className="relative text-center max-w-md px-8">
             {/* Heat indicator */}
@@ -103,7 +103,7 @@ export function Component() {
               Stoking the <span className="text-ember italic">fire</span>
             </h2>
             <p className="text-[14px] leading-relaxed text-muted-foreground max-w-sm mx-auto mb-6">
-              Select a persona from the rail to begin a forge session. The
+              Select a persona from the rail to begin a conversation. The
               anvil's still warm — your characters are waiting.
             </p>
 

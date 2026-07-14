@@ -5,7 +5,7 @@ import { signSession, type SessionPayload } from "@/server/auth/session"
 function makeRequest(sessionCookie?: string): Request {
   const headers: Record<string, string> = {}
   if (sessionCookie) {
-    headers.Cookie = `slopforge-session=${sessionCookie}`
+    headers.Cookie = `WorldCore-session=${sessionCookie}`
   }
   return new Request("http://localhost/api/test", { headers })
 }

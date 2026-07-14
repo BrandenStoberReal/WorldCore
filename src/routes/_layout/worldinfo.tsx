@@ -19,7 +19,7 @@ import {
   Hash,
   Flame,
 } from "lucide-react";
-import { cn, hammeredPlate } from "@/lib/utils";
+import { cn, surfaceCard } from "@/lib/utils";
 import type { WorldInfo, WorldInfoEntry } from "@/shared/types/worldinfo";
 
 interface FormState {
@@ -239,7 +239,7 @@ export function Component() {
     return (
       <div
         className={cn(
-          hammeredPlate,
+          surfaceCard,
           "flex items-center justify-center h-64",
         )}
       >
@@ -312,7 +312,7 @@ export function Component() {
           <Card
             key={entry.uid}
             className={cn(
-              hammeredPlate,
+              surfaceCard,
               "group relative rounded-sm py-0 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]",
               entry.disable ? "opacity-55" : "",
             )}
@@ -402,7 +402,7 @@ export function Component() {
       {filtered?.length === 0 && (
         <Card
           className={cn(
-            hammeredPlate,
+            surfaceCard,
             "relative overflow-hidden rounded-sm py-16",
           )}
         >

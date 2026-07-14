@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Save, RotateCcw, Check, Flame } from "lucide-react";
-import { cn, hammeredPlate } from "@/lib/utils";
+import { cn, surfaceCard } from "@/lib/utils";
 import type { SettingsObject } from "@/shared/types/settings";
 
 interface SettingsForm {
@@ -119,7 +119,7 @@ export function Component() {
     return (
       <div
         className={cn(
-          hammeredPlate,
+          surfaceCard,
           "flex items-center justify-center h-64",
         )}
       >
@@ -143,7 +143,7 @@ export function Component() {
             Forge Parameters
           </h2>
           <p className="text-sm text-muted-foreground mt-2 max-w-md">
-            Generation dials that shape how the forge strikes. Sliders,
+            Generation dials that shape responses. Sliders,
             penalties, and stop points for the LLM backend.
           </p>
         </div>
@@ -179,7 +179,7 @@ export function Component() {
       {/* Parameters grid */}
       <Card
         className={cn(
-          hammeredPlate,
+          surfaceCard,
           "relative rounded-sm overflow-hidden py-0",
         )}
       >
@@ -229,7 +229,7 @@ export function Component() {
       {/* Raw settings drawer */}
       <Card
         className={cn(
-          hammeredPlate,
+          surfaceCard,
           "relative rounded-sm overflow-hidden py-0",
         )}
       >
@@ -251,7 +251,7 @@ export function Component() {
         <CardContent className="p-0">
           {showRaw && settings ? (
             <pre
-              className="text-[11.5px] leading-snug font-mono p-5 m-0 max-h-72 overflow-auto forge-grid"
+              className="text-[11.5px] leading-snug font-mono p-5 m-0 max-h-72 overflow-auto dot-grid"
               style={{
                 background:
                   "color-mix(in oklch, var(--background) 80%, transparent)",

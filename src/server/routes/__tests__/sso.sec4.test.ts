@@ -31,7 +31,7 @@ describe("SEC-4: SSO settings POST requires admin", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Cookie: `slopforge-session=${cookie}`,
+        Cookie: `WorldCore-session=${cookie}`,
       },
       body: JSON.stringify({ enabled: false }),
     })

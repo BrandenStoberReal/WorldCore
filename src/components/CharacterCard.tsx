@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
-import { cn, hammeredPlate, emberEdge } from "@/lib/utils";
+import { cn, surfaceCard, subtleEdge } from "@/lib/utils";
 import type { ShallowCharacter } from "@/shared/types/character";
 
 interface CharacterCardProps {
@@ -23,8 +23,8 @@ export function CharacterCard({
   return (
     <article
       className={cn(
-        hammeredPlate,
-        emberEdge,
+        surfaceCard,
+        subtleEdge,
         "group relative rounded-sm cursor-pointer p-0 overflow-hidden",
         "transition-all duration-200",
         "hover:-translate-y-1 hover:shadow-[0_14px_36px_-12px_color-mix(in_oklch,var(--ember)_55%,transparent)]",
@@ -101,6 +101,15 @@ export function CharacterCard({
               +{character.tags.length - 3}
             </span>
           )}
+        </div>
+      )}
+
+      {/* Creator + Version */}
+      {(character.creator || character.character_version) && (
+        <div className="px-4 pb-3 flex items-center gap-2 text-[11px] text-muted-foreground/45 mono-tag">
+          {character.creator && <span>by {character.creator}</span>}
+          {character.creator && character.character_version && <span aria-hidden>·</span>}
+          {character.character_version && <span>v{character.character_version}</span>}
         </div>
       )}
 

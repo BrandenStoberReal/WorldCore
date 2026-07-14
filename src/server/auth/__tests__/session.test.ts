@@ -41,7 +41,7 @@ describe("session", () => {
       csrfToken: "abc123",
     }
     const signed = signSession(payload)
-    const cookieHeader = `other=value; slopforge-session=${signed}; another=cookie`
+    const cookieHeader = `other=value; WorldCore-session=${signed}; another=cookie`
     const req = new Request("http://localhost/", {
       headers: { Cookie: cookieHeader },
     })

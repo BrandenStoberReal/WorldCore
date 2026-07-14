@@ -20,6 +20,7 @@ export const CharacterExtensionsSchema = z
     fav: z.boolean().default(false),
     world: z.string().default(""),
     depth_prompt: DepthPromptSchema.optional(),
+    avatar_style: z.number().default(0),
   })
   .catchall(z.unknown());
 
@@ -86,6 +87,8 @@ export const ShallowCharacterSchema = z.object({
   name: z.string(),
   description: z.string().default(""),
   tags: z.array(z.string()).default([]),
+  creator: z.string().default(""),
+  character_version: z.string().default(""),
 });
 
 export const CharacterCreateInputSchema = z.object({

@@ -207,6 +207,15 @@ export const vectorStores = sqliteTable("vector_stores", {
   userId: text("user_id").notNull().default("default-user"),
 })
 
+export const connectionProfiles = sqliteTable("connection_profiles", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  data: text("data").notNull(), // JSON blob of profile settings
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+})
+
 export const extensions = sqliteTable("extensions", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),

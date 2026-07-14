@@ -370,7 +370,7 @@ export function ChatView({ characterId }: ChatViewProps) {
                       <span />
                       <span />
                     </span>
-                    <span className="mono-tag text-ember">hammering</span>
+                    <span className="mono-tag text-ember">generating</span>
                   </span>
                 </>
               )}
@@ -382,7 +382,7 @@ export function ChatView({ characterId }: ChatViewProps) {
           variant="outline"
           size="sm"
           onClick={handleNewChat}
-          title="Open a fresh forge session"
+          title="Start a new conversation"
           className="h-8"
         >
           <MessageSquarePlus className="h-3.5 w-3.5" />

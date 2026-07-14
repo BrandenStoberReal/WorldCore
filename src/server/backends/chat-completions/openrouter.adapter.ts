@@ -18,8 +18,8 @@ export class OpenRouterAdapter implements ChatCompletionAdapter {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.getKey(req)}`,
-        "HTTP-Referer": "http://slopforge.local",
-        "X-Title": "SlopForge",
+        "HTTP-Referer": "http://WorldCore.local",
+        "X-Title": "WorldCore",
       },
       body: JSON.stringify({
         model: req.model,

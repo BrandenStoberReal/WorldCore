@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/bun-sqlite"
 import { Database } from "bun:sqlite"
 import * as schema from "./schema"
 
-const GLOBAL_DB_KEY = "__slopforge_db__" as const
+const GLOBAL_DB_KEY = "__WorldCore_db__" as const
 
 export function createDb(path: string = ":memory:") {
   const sqlite = new Database(path)
@@ -17,6 +17,6 @@ export function createDb(path: string = ":memory:") {
 const g = globalThis as Record<string, unknown>
 export const db =
   (g[GLOBAL_DB_KEY] as ReturnType<typeof createDb>) ??
-  createDb("./data/slopforge.sqlite")
+  createDb("./data/WorldCore.sqlite")
 
 export { schema }

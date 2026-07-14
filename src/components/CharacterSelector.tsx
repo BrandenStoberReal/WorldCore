@@ -36,7 +36,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
           <div className="flex items-baseline gap-2.5">
             <span className="mono-tag text-ember">[02]</span>
             <h3 className="display-host text-[18px] tracking-tight leading-none">
-              Personae
+              Characters
             </h3>
           </div>
           <span className="mono-tag text-sidebar-foreground/45 tabular-nums">
@@ -61,7 +61,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
           <div className="flex flex-col items-center justify-center py-10 gap-2">
             <Loader2 className="h-5 w-5 animate-spin text-ember" />
             <span className="mono-tag text-sidebar-foreground/50">
-              loading personae
+              loading characters
             </span>
           </div>
         ) : sorted && sorted.length === 0 ? (
@@ -70,12 +70,12 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
               <span className="display-host text-ember text-lg">∅</span>
             </div>
             <p className="mono-tag text-sidebar-foreground/60 mb-1">
-              {characters?.length === 0 ? "forge empty" : "no matches"}
+              {characters?.length === 0 ? "no entries" : "no matches"}
             </p>
             <p className="text-[11px] text-sidebar-foreground/40">
               {characters?.length === 0
-                ? "forge a persona first"
-                : "no personae satisfy query"}
+                ? "create a character first"
+                : "no characters match"}
             </p>
           </div>
         ) : (

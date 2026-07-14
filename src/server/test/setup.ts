@@ -15,4 +15,4 @@ migrate(testDb, {
   migrationsFolder: resolve(import.meta.dir, "../db/migrations"),
 })
 
-;(globalThis as Record<string, unknown>).__slopforge_db__ = testDb
+;(globalThis as Record<string, unknown>).__WorldCore_db__ = testDb

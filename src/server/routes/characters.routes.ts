@@ -110,7 +110,7 @@ export const characterRoutes = {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const tempPath = `/tmp/slopforge_import_${Date.now()}_${randomUUID()}`
+    const tempPath = `/tmp/WorldCore_import_${Date.now()}_${randomUUID()}`
     await Bun.write(tempPath, buffer)
 
     const id = await importCharacter(tempPath, file.name)

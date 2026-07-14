@@ -1,4 +1,4 @@
-# SlopForge
+# WorldCore
 
 ## Mandatory precommit commands (all must pass before commit)
 

@@ -18,13 +18,13 @@ const ROUTE_META: Record<
   "/characters": {
     number: "01",
     title: "Characters",
-    sub: "Forge personae & cardinal cards",
+    sub: "Manage characters & lore",
     pathLabel: "~/atelier/characters",
   },
   "/chats": {
     number: "02",
     title: "Chat",
-    sub: "Active forge sessions",
+    sub: "Active chats",
     pathLabel: "~/atelier/chats",
   },
   "/worldinfo": {
@@ -42,7 +42,7 @@ const ROUTE_META: Record<
   "/extensions": {
     number: "05",
     title: "Extensions",
-    sub: "Forge modules & plugins",
+    sub: "Modules & plugins",
     pathLabel: "~/atelier/extensions",
   },
 };
@@ -76,7 +76,7 @@ export function Layout() {
       {/* Subtle crosshair grid behind everything */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 forge-grid opacity-20"
+        className="pointer-events-none fixed inset-0 dot-grid opacity-20"
       />
       {/* Top ember ambient */}
       <div
@@ -115,7 +115,7 @@ export function Layout() {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-ember opacity-50 animate-ping" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ember" />
               </span>
-              <span className="mono-tag">Forge Active</span>
+              <span className="mono-tag">System Ready</span>
             </div>
 
             <button
@@ -153,7 +153,7 @@ export function Layout() {
           className={cn(
             "flex-1 relative overflow",
             isFullHeight ? "overflow-hidden" : "overflow-y-auto",
-            !isFullHeight && "p-6 md:p-8",
+            !isFullHeight && "p-8 md:p-10",
           )}
         >
           <Outlet />

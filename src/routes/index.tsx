@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Users, MessageSquare, Globe, Loader2, ArrowUpRight } from "lucide-react";
-import { cn, hammeredPlate } from "@/lib/utils";
+import { cn, surfaceCard } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import type { ShallowCharacter } from "@/shared/types/character";
 
@@ -67,7 +67,7 @@ export function Component() {
   return (
     <div className="relative isolate">
       {/* Forge glow halo behind hero */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 forge-glow" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 ambient-glow" />
 
       <div className="relative">
         {/* Hero block */}
@@ -81,12 +81,12 @@ export function Component() {
             <h1
               className="display-host text-[82px] md:text-[104px] leading-[0.9] tracking-tighter"
             >
-              Slop
-              <span className="text-ember italic">Forge</span>
+              World
+              <span className="text-ember italic">Core</span>
             </h1>
             <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-foreground/65">
-              Hammer your AI into shape. Manage character cards, lore tablets,
-              extension modules, and live forge sessions — all from one boiler.
+              Manage character cards, lore tablets,
+              extension modules, and live conversations — all from one place.
             </p>
           </div>
 
@@ -98,7 +98,7 @@ export function Component() {
             <div className="grid grid-cols-3 gap-px bg-border border border-border rounded-sm overflow-hidden">
               <MetaCell label="BUILD" value="1a3f" />
               <MetaCell label="UPTIME" value="03:14" />
-              <MetaCell label="FORGE" value="1.42k" />
+              <MetaCell label="CORE" value="1.42k" />
             </div>
           </div>
         </div>
@@ -110,7 +110,7 @@ export function Component() {
             label="Characters"
             count={charCount}
             icon={Users}
-            caption="personae · active"
+            caption="characters · active"
             onClick={() => navigate({ to: "/characters" })}
             loading={statsLoading}
           />
@@ -139,7 +139,7 @@ export function Component() {
           {/* Quick actions */}
           <section
             className={cn(
-              hammeredPlate,
+              surfaceCard,
               "relative rounded-sm p-6 overflow-hidden",
             )}
           >
@@ -156,7 +156,7 @@ export function Component() {
             <div className="space-y-px">
               <ActionRow
                 title="Browse Characters"
-                caption={`${charCount} personae in forge`}
+                caption={`${charCount} characters`}
                 path="~/atelier/characters"
                 onClick={() => navigate({ to: "/characters" })}
               />
@@ -178,7 +178,7 @@ export function Component() {
           {/* Recent characters */}
           <section
             className={cn(
-              hammeredPlate,
+              surfaceCard,
               "relative rounded-sm p-6 overflow-hidden",
             )}
           >
@@ -201,11 +201,11 @@ export function Component() {
                   <span className="display-host text-ember text-xl">∅</span>
                 </div>
                 <p className="mono-tag text-muted-foreground/55 mb-1">
-                  Forge empty
+                  No entries
                 </p>
                 <p className="text-xs text-muted-foreground/45 max-w-[220px]">
-                  No characters cast yet. Forge your first persona from the
-                  Characters workbench.
+                  No characters yet. Create your first character from the
+                  Characters page.
                 </p>
               </div>
             ) : (
@@ -247,7 +247,7 @@ export function Component() {
 
         {/* Footer caption strip */}
         <footer className="mt-10 pt-4 border-t border-border flex items-center justify-between text-muted-foreground/45">
-          <span className="mono-tag">SlopForge · hammered at 1,420°c</span>
+          <span className="mono-tag">WorldCore</span>
           <span className="mono-tag">{`{⌑} in nomine ferri {⌑}`}</span>
         </footer>
       </div>
@@ -288,7 +288,7 @@ function StatTile({
       type="button"
       onClick={onClick}
       className={cn(
-        hammeredPlate,
+        surfaceCard,
         "group relative text-left p-5 rounded-sm overflow-hidden",
         "transition-all duration-200",
         "hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-12px_color-mix(in_oklch,var(--ember)_55%,transparent)]",

@@ -19,7 +19,7 @@ import {
   Calendar,
   GitBranch,
 } from "lucide-react";
-import { cn, hammeredPlate } from "@/lib/utils";
+import { cn, surfaceCard } from "@/lib/utils";
 import type { ExtensionInfo } from "@/shared/types/extensions";
 
 export function Component() {
@@ -124,7 +124,7 @@ export function Component() {
     return (
       <div
         className={cn(
-          hammeredPlate,
+          surfaceCard,
           "flex items-center justify-center h-64",
         )}
       >
@@ -148,8 +148,8 @@ export function Component() {
             Extensions
           </h2>
           <p className="text-sm text-muted-foreground mt-2 max-w-md">
-            Modular forgings that extend the workspace. Install, update, and
-            toggle whose hammer rings on the anvil.
+            Extend WorldCore with additional functionality. Install, update, and
+            toggle extensions.
           </p>
         </div>
 
@@ -185,7 +185,7 @@ export function Component() {
           <Card
             key={ext.name}
             className={cn(
-              hammeredPlate,
+              surfaceCard,
               "group relative rounded-sm py-0 overflow-hidden transition-all",
               "hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]",
               ext.enabled ? "" : "opacity-55",
@@ -263,7 +263,7 @@ export function Component() {
       {extensions?.length === 0 && (
         <Card
           className={cn(
-            hammeredPlate,
+            surfaceCard,
             "relative overflow-hidden rounded-sm py-16",
           )}
         >
@@ -273,7 +273,7 @@ export function Component() {
             </div>
             <h3 className="display-host text-xl mb-1">No modules</h3>
             <p className="mono-tag text-muted-foreground/55 mb-5">
-              install a module from URL to extend the forge
+              install a module from URL to extend WorldCore
             </p>
             <Button onClick={() => setInstallOpen(true)}>
               <Plus className="h-4 w-4" />

@@ -5,6 +5,6 @@ export default defineConfig({
   out: "./src/server/db/migrations",
   dialect: "sqlite",
   dbCredentials: {
-    url: "./data/slopforge.sqlite",
+    url: "./data/WorldCore.sqlite",
   },
 })

@@ -89,6 +89,8 @@ function buildShallowCharacter(
     name: data.name,
     description: data.description,
     tags: data.tags,
+    creator: data.creator,
+    character_version: data.character_version,
   }
 }
 

@@ -69,5 +69,5 @@ const server = serve({
   },
 })
 
-console.log(`SlopForge running at ${server.url}`)
+console.log(`WorldCore running at ${server.url}`)
 export default server

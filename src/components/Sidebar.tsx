@@ -6,6 +6,7 @@ import {
   Globe,
   Settings,
   Puzzle,
+  Cable,
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { label: "World Info",   number: "03", path: "/worldinfo",   pathLabel: "worldinfo", icon: Globe },
   { label: "Settings",     number: "04", path: "/settings",   pathLabel: "settings",  icon: Settings },
   { label: "Extensions",   number: "05", path: "/extensions", pathLabel: "extensions",icon: Puzzle },
+  { label: "Connections",  number: "06", path: "/connections", pathLabel: "connections",icon: Cable },
 ];
 
 export function Sidebar() {
@@ -52,16 +54,16 @@ export function Sidebar() {
         <Link
           to="/"
           onClick={() => useAppStore.getState().setActiveRoute("/")}
-          className="flex items-center gap-2.5 group/forge-mark min-w-0"
-          aria-label="SlopForge home"
+          className="flex items-center gap-2.5 group/logo-mark min-w-0"
+          aria-label="WorldCore home"
         >
-          <ForgeMark collapsed={!sidebarOpen} />
+          <LogoMark collapsed={!sidebarOpen} />
           {sidebarOpen && (
             <div className="flex flex-col leading-none min-w-0">
               <span
                 className="display-host text-[19px] truncate"
               >
-                Slop<span className="text-ember">Forge</span>
+                World<span className="text-ember">Core</span>
               </span>
               <span className="mono-tag text-sidebar-foreground/45 mt-0.5">
                 v0.1.0 — build 1a3f
@@ -176,7 +178,7 @@ export function Sidebar() {
                   <span className="absolute inline-flex h-full w-full rounded-full bg-ember opacity-60 animate-ping" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ember" />
                 </span>
-                <span className="mono-tag text-sidebar-foreground/75">Forge Hot</span>
+                <span className="mono-tag text-sidebar-foreground/75">System Ready</span>
               </div>
               <p className="mt-1.5 text-[11px] leading-tight text-sidebar-foreground/45">
                 Templates loading · 0 BPM
@@ -208,7 +210,7 @@ export function Sidebar() {
           <div className="px-5 py-3 flex items-center justify-between">
             <span className="mono-tag text-sidebar-foreground/40">
               <span className="text-ember/70 mr-1.5">●</span>
-              Hammered in CA
+              Built with ♥
             </span>
             <span className="mono-tag text-sidebar-foreground/25">{`{ ssx }`}</span>
           </div>
@@ -219,7 +221,7 @@ export function Sidebar() {
 }
 
 /** Logo mark — a square mono-mark with accent color. */
-function ForgeMark({ collapsed }: { collapsed?: boolean }) {
+function LogoMark({ collapsed }: { collapsed?: boolean }) {
   return (
     <div
       className={cn(

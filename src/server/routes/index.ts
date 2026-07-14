@@ -34,6 +34,7 @@ import { backupsRoutes } from "./backups.routes"
 import { datamaidsRoutes } from "./datamaids.routes"
 import { contentRoutes } from "./content.routes"
 import { extensionsRoutes } from "./extensions.routes"
+import { connectionProfilesRoutes } from "./connection-profiles.routes"
 import { vectorsRoutes } from "./vectors.routes"
 import { ssoRoutes } from "./sso.routes"
 import { SHARED_CONST } from "@/shared/constants"
@@ -248,6 +249,13 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/extensions/uninstall`] = extensionsRoutes.uninstall
   routes[`${PREFIX}/extensions/update`] = extensionsRoutes.update
   routes[`${PREFIX}/extensions/updateAll`] = extensionsRoutes.updateAll
+
+  // === Connection Profiles ===
+  routes[`${PREFIX}/connection-profiles/create`] = connectionProfilesRoutes.create
+  routes[`${PREFIX}/connection-profiles/all`] = connectionProfilesRoutes.all
+  routes[`${PREFIX}/connection-profiles/get`] = connectionProfilesRoutes.get
+  routes[`${PREFIX}/connection-profiles/update`] = connectionProfilesRoutes.update
+  routes[`${PREFIX}/connection-profiles/delete`] = connectionProfilesRoutes.delete
 
   return routes
 }
