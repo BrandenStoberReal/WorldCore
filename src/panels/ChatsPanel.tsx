@@ -4,7 +4,7 @@ import { CharacterSelector } from "@/components/CharacterSelector";
 import { ChatView } from "@/components/ChatView";
 import { cn } from "@/lib/utils";
 
-export function Component() {
+export function ChatsPanel() {
   const { activeCharacterId, setActiveCharacter } = useChatStore();
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export function Component() {
   }, [activeCharacterId, setActiveCharacter]);
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-background">
+    <div data-panel="chats" className="flex h-full flex-1 w-full overflow-hidden bg-background">
       {/* Character rail — expands to fill when no chat selected */}
       <aside
         className={cn(

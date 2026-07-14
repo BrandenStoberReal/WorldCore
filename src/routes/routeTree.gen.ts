@@ -1,8 +1,8 @@
 import { createRootRoute, createRoute } from "@tanstack/react-router";
 import { Component as LayoutComponent } from "@/routes/_layout";
-import { Component as IndexComponent } from "@/panels/WelcomePanel";
-import { Component as CharactersComponent } from "@/panels/CharactersPanel";
-import { Component as ChatsComponent } from "@/panels/ChatsPanel";
+import { WelcomePanel as IndexComponent } from "@/panels/WelcomePanel";
+import { CharactersPanel as CharactersComponent } from "@/panels/CharactersPanel";
+import { ChatsPanel as ChatsComponent } from "@/panels/ChatsPanel";
 import { Component as WorldinfoComponent } from "@/panels/WorldInfoPanel";
 import { Component as SettingsComponent } from "@/panels/SettingsPanel";
 import { Component as ExtensionsComponent } from "@/panels/ExtensionsPanel";
