@@ -1,7 +1,7 @@
 import { Outlet, useLocation } from "@tanstack/react-router";
-import { Sidebar } from "@/components/Sidebar";
-import { useAppStore } from "@/lib/stores";
-import { cn, frostedGlass } from "@/lib/utils";
+import { TopBar } from "@/components/TopBar";
+import { GenerationSidebar } from "@/components/GenerationSidebar";
+import { cn } from "@/lib/utils";
 
 const FULL_HEIGHT_ROUTES = ["/chats"];
 
@@ -45,10 +45,15 @@ const ROUTE_META: Record<
     sub: "Modules & plugins",
     pathLabel: "~/atelier/extensions",
   },
+  "/connections": {
+    number: "06",
+    title: "Connections",
+    sub: "Connection profiles",
+    pathLabel: "~/atelier/connections",
+  },
 };
 
 export function Layout() {
-  const { user, theme, setTheme } = useAppStore();
   const { pathname } = useLocation();
   const isFullHeight = FULL_HEIGHT_ROUTES.some((r) =>
     r === "/chats" ? pathname.startsWith("/chats") : pathname === r,
@@ -63,9 +68,6 @@ export function Layout() {
     )?.[1] ??
     fallback));
 
-  const themeNext: "light" | "dark" | "system" =
-    theme === "dark" ? "light" : "dark";
-
   return (
     <div
       className={cn(
@@ -73,119 +75,43 @@ export function Layout() {
         "bg-background",
       )}
     >
-      {/* Subtle crosshair grid behind everything */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 dot-grid opacity-20"
       />
-      {/* Top ember ambient */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-x-0 top-0 h-32 bg-gradient-to-b from-ember/8 to-transparent"
       />
 
-      <Sidebar />
+      <div className="flex flex-col flex-1 min-w-0">
+        <TopBar />
 
-      <div className="flex flex-1 flex-col overflow-hidden relative">
-        {/* Header — frosted glass + breadcrumb + status + theme */}
-        <header
-          className={cn(
-            frostedGlass,
-            "flex h-16 items-center justify-between px-6 shrink-0 z-20 relative",
-          )}
-        >
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="flex items-baseline gap-3 min-w-0">
-              <span className="mono-tag text-ember/80">{meta.number}</span>
-              <span
-                className="display-host text-[22px] leading-none truncate"
-              >
-                {meta.title}
-              </span>
-            </div>
-            <span className="hidden md:block h-4 w-px bg-border" />
-            <span className="hidden md:block mono-tag text-muted-foreground/65 truncate">
-              {meta.pathLabel}
-            </span>
-          </div>
+        <div className="flex flex-1 pt-16 overflow-hidden">
+          <GenerationSidebar />
 
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 text-muted-foreground/65">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-ember opacity-50 animate-ping" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ember" />
-              </span>
-              <span className="mono-tag">System Ready</span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setTheme(themeNext)}
-              className={cn(
-                "group flex items-center justify-center h-8 px-2.5 rounded-sm",
-                "border border-border bg-background/60 hover:bg-accent/40 transition-colors",
-              )}
-              aria-label={`Switch to ${themeNext} theme`}
-              title={`Theme: ${theme}`}
-            >
-              <ThemeGlyph theme={theme} />
-            </button>
-
-            <div className="flex items-center gap-2 pl-4 border-l border-border">
-              <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-muted/60 border border-border">
-                <span className="display-host text-[14px] text-foreground/80">
-                  {user ? user.name[0]?.toUpperCase() ?? "G" : "G"}
+          <main
+            className={cn(
+              "flex-1 relative min-w-0 transition-[flex-basis] duration-300",
+              isFullHeight ? "overflow-hidden" : "overflow-y-auto",
+              !isFullHeight && pathname !== "/" && "p-6 md:p-10",
+            )}
+          >
+            <div className="mb-6 md:mb-8 hidden md:block">
+              <div className="flex items-baseline gap-3">
+                <span className="mono-tag text-ember/80">{meta.number}</span>
+                <span className="display-host text-[22px] leading-none truncate">
+                  {meta.title}
                 </span>
               </div>
-              <div className="hidden md:flex flex-col leading-none">
-                <span className="text-xs font-medium">
-                  {user ? user.name : "Guest"}
-                </span>
-                <span className="mono-tag text-muted-foreground/60 mt-0.5">
-                  {user ? user.role : "anonymous"}
-                </span>
-              </div>
+              <span className="mono-tag text-muted-foreground/45 mt-1 block">
+                {meta.pathLabel}
+              </span>
             </div>
-          </div>
-        </header>
-
-        <main
-          className={cn(
-            "flex-1 relative overflow",
-            isFullHeight ? "overflow-hidden" : "overflow-y-auto",
-            !isFullHeight && "p-8 md:p-10",
-          )}
-        >
-          <Outlet />
-        </main>
+            <Outlet />
+          </main>
+        </div>
       </div>
     </div>
-  );
-}
-
-function ThemeGlyph({ theme }: { theme: "light" | "dark" | "system" }) {
-  const isDark = theme === "dark" || theme === "system";
-  return (
-    <span className="relative inline-flex h-3.5 w-3.5 items-center justify-center">
-      <span
-        className={cn(
-          "absolute inset-0 rounded-full transition-opacity",
-          isDark ? "opacity-0" : "opacity-100 bg-ember",
-        )}
-      />
-      <span
-        className={cn(
-          "absolute inset-0 transition-opacity rounded-full bg-foreground",
-          isDark ? "opacity-80" : "opacity-15",
-        )}
-      />
-      <span
-        className={cn(
-          "absolute h-2 w-2 rounded-full bg-background transition-all",
-          isDark ? "translate-x-1.5 -translate-y-0" : "translate-x-[-2px]",
-        )}
-        style={{ boxShadow: "0 0 0 1px var(--border)" }}
-      />
-    </span>
   );
 }
