@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavStore } from "@/lib/navStore";
 import { useQuery } from "@tanstack/react-query";
 import { Users, MessageSquare, Globe, Loader2, ArrowUpRight } from "lucide-react";
 import { cn, surfaceCard } from "@/lib/utils";
@@ -12,9 +12,7 @@ interface StatsResponse {
   [key: string]: unknown;
 }
 
-export function Component() {
-  const navigate = useNavigate();
-
+export function WelcomePanel() {
   const { data: stats, isLoading: statsLoading } = useQuery<StatsResponse>({
     queryKey: ["/api/v1/stats/get"],
     queryFn: async () => {
@@ -111,7 +109,7 @@ export function Component() {
             count={charCount}
             icon={Users}
             caption="characters · active"
-            onClick={() => navigate({ to: "/characters" })}
+            onClick={() => useNavStore.getState().openLeftDrawer("characters")}
             loading={statsLoading}
           />
           <StatTile
@@ -120,7 +118,7 @@ export function Component() {
             count={chatCount}
             icon={MessageSquare}
             caption="sessions · hot"
-            onClick={() => navigate({ to: "/chats" })}
+            onClick={() => useNavStore.getState().openSection("chats")}
             loading={statsLoading}
           />
           <StatTile
@@ -129,7 +127,7 @@ export function Component() {
             count={wiCount}
             icon={Globe}
             caption="tablets · indexed"
-            onClick={() => navigate({ to: "/worldinfo" })}
+            onClick={() => useNavStore.getState().openLeftDrawer("worldinfo")}
             loading={statsLoading}
           />
         </div>
@@ -158,19 +156,19 @@ export function Component() {
                 title="Browse Characters"
                 caption={`${charCount} characters`}
                 path="~/atelier/characters"
-                onClick={() => navigate({ to: "/characters" })}
+                onClick={() => useNavStore.getState().openLeftDrawer("characters")}
               />
               <ActionRow
                 title="Open Chat Session"
                 caption="Pick a persona and stoke"
                 path="~/atelier/chats"
-                onClick={() => navigate({ to: "/chats" })}
+                onClick={() => useNavStore.getState().openSection("chats")}
               />
               <ActionRow
                 title="Browse World Info"
                 caption={`${wiCount} lore tablets live`}
                 path="~/atelier/worldinfo"
-                onClick={() => navigate({ to: "/worldinfo" })}
+                onClick={() => useNavStore.getState().openLeftDrawer("worldinfo")}
               />
             </div>
           </section>
@@ -191,7 +189,7 @@ export function Component() {
               </div>
               <ArrowUpRight
                 className="h-4 w-4 text-muted-foreground/40 cursor-pointer hover:text-ember"
-                onClick={() => navigate({ to: "/characters" })}
+                onClick={() => useNavStore.getState().openLeftDrawer("characters")}
               />
             </div>
 
@@ -214,7 +212,7 @@ export function Component() {
                   <li
                     key={c.id}
                     className="group flex items-center gap-3 px-2 py-2 -mx-2 rounded-sm hover:bg-accent/30 cursor-pointer transition-colors"
-                    onClick={() => navigate({ to: "/characters" })}
+                    onClick={() => useNavStore.getState().openLeftDrawer("characters")}
                   >
                     <span className="mono-tag text-muted-foreground/45 w-5">
                       {String(idx + 1).padStart(2, "0")}
