@@ -2,22 +2,21 @@ import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
 interface DrawerSlotProps {
-  side: "left" | "right"
+  direction: "top" | "characters"
   open: boolean
   children: ReactNode
 }
 
-export function DrawerSlot({ side, open, children }: DrawerSlotProps) {
+export function DrawerSlot({ direction, open, children }: DrawerSlotProps) {
   return (
-    <aside
-      data-drawer-slot={side}
+    <div
+      data-drawer-slot={direction}
       className={cn(
-        "drawer-slot",
-        side === "left" ? "drawer-left" : "drawer-right",
+        direction === "top" ? "drawer-top" : "drawer-characters",
         open && "drawer-open",
       )}
     >
       {children}
-    </aside>
+    </div>
   )
 }

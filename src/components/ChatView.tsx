@@ -4,7 +4,7 @@ import { Loader2, MessageSquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
-import { useChatStore } from "@/lib/stores";
+import { useChatStore, useGenerationStore } from "@/lib/stores";
 import { apiFetch, streamChat } from "@/lib/api";
 import { cn, frostedGlass } from "@/lib/utils";
 import type { ChatMessage as ChatMessageType } from "@/shared/types/chat";
@@ -39,6 +39,8 @@ export function ChatView({ characterId }: ChatViewProps) {
     setIsGenerating,
     clearChat,
   } = useChatStore();
+
+  const genStore = useGenerationStore();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -222,12 +224,46 @@ export function ChatView({ characterId }: ChatViewProps) {
 
       abortRef.current = new AbortController();
 
+      const genParams: Record<string, unknown> = {
+        temperature: genStore.temperature,
+        top_p: genStore.top_p,
+        top_k: genStore.top_k,
+        max_tokens: genStore.max_tokens,
+        seed: genStore.seed,
+        streaming: genStore.streaming,
+        stop: genStore.stop.length > 0 ? genStore.stop : undefined,
+      };
+
+      if (genStore.mode === "chat") {
+        genParams.frequency_penalty = genStore.frequency_penalty;
+        genParams.presence_penalty = genStore.presence_penalty;
+      } else {
+        genParams.min_p = genStore.min_p;
+        genParams.typical_p = genStore.typical_p;
+        genParams.top_a = genStore.top_a;
+        genParams.tfs = genStore.tfs;
+        genParams.rep_pen = genStore.rep_pen;
+        genParams.rep_pen_range = genStore.rep_pen_range;
+        genParams.rep_pen_slope = genStore.rep_pen_slope;
+        genParams.dry_multiplier = genStore.dry_multiplier;
+        genParams.dry_base = genStore.dry_base;
+        genParams.dry_allowed_length = genStore.dry_allowed_length;
+        genParams.mirostat_mode = genStore.mirostat_mode;
+        genParams.mirostat_tau = genStore.mirostat_tau;
+        genParams.mirostat_eta = genStore.mirostat_eta;
+        genParams.smoothing_factor = genStore.smoothing_factor;
+        genParams.epsilon_cutoff = genStore.epsilon_cutoff;
+        genParams.eta_cutoff = genStore.eta_cutoff;
+        genParams.min_tokens = genStore.min_tokens;
+      }
+
       let fullContent = "";
       try {
         const generator = streamChat({
           chat_completion_source: source,
-          model,
+          model: genStore.model || model,
           messages: promptMessages,
+          ...genParams,
         });
 
         for await (const chunk of generator) {
@@ -271,7 +307,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       }
     },
     [
-      character, activeChatId, isGenerating, settings, messages,
+      character, activeChatId, isGenerating, settings, messages, genStore,
       addMessage, appendMessageMutation,
       setIsGenerating, setStreamingContent, appendStreamingContent,
     ],

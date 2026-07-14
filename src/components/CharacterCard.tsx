@@ -43,7 +43,7 @@ export function CharacterCard({
       </div>
 
       {/* Avatar + name */}
-      <div className="px-4 pt-4 pb-3 flex items-start gap-3 relative">
+      <div className="px-4 md:px-5 pt-4 pb-3 flex items-start gap-3 relative">
         <div className="relative shrink-0">
           <div className="h-14 w-14 rounded-full overflow-hidden border border-border bg-muted/50 flex items-center justify-center">
             <img
@@ -75,7 +75,7 @@ export function CharacterCard({
       </div>
 
       {/* Description */}
-      <div className="px-4 pb-3">
+      <div className="px-4 md:px-5 pb-3">
         <p className="text-[13px] leading-relaxed text-foreground/65 line-clamp-2">
           {character.description || (
             <span className="text-muted-foreground/40 italic">
@@ -87,7 +87,7 @@ export function CharacterCard({
 
       {/* Tags */}
       {character.tags.length > 0 && (
-        <div className="px-4 pb-3 flex flex-wrap gap-1">
+        <div className="px-4 md:px-5 pb-3 flex flex-wrap gap-1">
           {character.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
@@ -106,7 +106,7 @@ export function CharacterCard({
 
       {/* Creator + Version */}
       {(character.creator || character.character_version) && (
-        <div className="px-4 pb-3 flex items-center gap-2 text-[11px] text-muted-foreground/45 mono-tag">
+        <div className="px-4 md:px-5 pb-3 flex items-center gap-2 text-[11px] text-muted-foreground/45 mono-tag">
           {character.creator && <span>by {character.creator}</span>}
           {character.creator && character.character_version && <span aria-hidden>·</span>}
           {character.character_version && <span>v{character.character_version}</span>}

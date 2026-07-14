@@ -102,7 +102,7 @@ export function ConnectionProfileCard({
       </div>
 
       {/* Profile name + API badge */}
-      <div className="px-4 pt-4 pb-3 flex items-start gap-3 relative">
+      <div className="px-4 md:px-5 pt-4 pb-3 flex items-start gap-3 relative">
         <div className="relative shrink-0">
           <div className="h-14 w-14 rounded-full overflow-hidden border border-border bg-muted/50 flex items-center justify-center">
             {isChatSource(profile.api) ? (
@@ -135,7 +135,7 @@ export function ConnectionProfileCard({
       </div>
 
       {/* Model */}
-      <div className="px-4 pb-3">
+      <div className="px-4 md:px-5 pb-3">
         <p className="text-[13px] leading-relaxed text-foreground/65">
           {profile.model ? (
             <>
@@ -150,7 +150,7 @@ export function ConnectionProfileCard({
 
       {/* API URL */}
       {profile.apiUrl && (
-        <div className="px-4 pb-2">
+        <div className="px-4 md:px-5 pb-2">
           <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground/55">
             <Globe className="h-3 w-3 shrink-0" />
             <span className="truncate mono-tag">{profile.apiUrl}</span>
@@ -160,7 +160,7 @@ export function ConnectionProfileCard({
 
       {/* Preset */}
       {profile.preset && (
-        <div className="px-4 pb-3">
+        <div className="px-4 md:px-5 pb-3">
           <span className="mono-tag px-1.5 py-0.5 rounded-sm bg-muted/50 border border-border/60 text-foreground/65">
             preset: {profile.preset}
           </span>

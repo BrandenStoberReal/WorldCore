@@ -1,41 +1,47 @@
-import { Users, MessageSquare, BookOpen, Puzzle, Plug, Settings } from "lucide-react"
+import { Users, BookOpen, Puzzle, Plug, Settings, FileText } from "lucide-react"
 import { DrawerIcon } from "./DrawerIcon"
-import { useNavStore, type SectionId } from "@/lib/navStore"
+import { useNavStore, type SectionId, type TopDrawerId } from "@/lib/navStore"
 
-interface SectionConfig {
+interface NavItem {
   id: SectionId
   icon: React.ReactNode
   label: string
-  slot: "left" | "right" | "center"
+  behavior: "section" | "top-drawer" | "characters"
 }
 
-const SECTIONS: SectionConfig[] = [
-  { id: "characters", icon: <Users size={20} />, label: "Characters", slot: "left" },
-  { id: "worldinfo", icon: <BookOpen size={20} />, label: "World Info", slot: "left" },
-  { id: "extensions", icon: <Puzzle size={20} />, label: "Extensions", slot: "left" },
-  { id: "connections", icon: <Plug size={20} />, label: "Connections", slot: "left" },
-  { id: "chats", icon: <MessageSquare size={20} />, label: "Chats", slot: "center" },
-  { id: "settings", icon: <Settings size={20} />, label: "Settings", slot: "right" },
+const NAV_ITEMS: NavItem[] = [
+  { id: "characters", icon: <Users size={18} />, label: "Characters", behavior: "characters" },
+  { id: "worldinfo", icon: <BookOpen size={18} />, label: "World Info", behavior: "top-drawer" },
+  { id: "extensions", icon: <Puzzle size={18} />, label: "Extensions", behavior: "top-drawer" },
+  { id: "connections", icon: <Plug size={18} />, label: "Connections", behavior: "top-drawer" },
+  { id: "settings", icon: <Settings size={18} />, label: "Settings", behavior: "top-drawer" },
+  { id: "textoptions", icon: <FileText size={18} />, label: "Text Options", behavior: "top-drawer" },
 ]
 
 export function NavRail() {
   return (
-    <nav data-nav-rail className="flex flex-col items-center gap-1 w-14 py-3 border-r border-border bg-background flex-shrink-0">
-      {/* Logo / brand mark at top */}
-      <div className="mb-4 text-lg font-bold text-primary">W</div>
+    <header
+      data-topbar
+      className="flex items-center justify-between h-12 px-3 border-b border-border bg-background flex-shrink-0 z-30"
+    >
+      <div className="flex items-center gap-1">
+        <span className="text-lg font-bold text-primary">W</span>
+        <span className="text-sm font-medium text-muted-foreground hidden sm:block">WorldCore</span>
+      </div>
 
-      {/* Section icons */}
-      <div className="flex flex-col gap-1">
-        {SECTIONS.map((section) => (
+      <nav className="flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+        {NAV_ITEMS.map((item) => (
           <DrawerIcon
-            key={section.id}
-            icon={section.icon}
-            label={section.label}
-            sectionId={section.id}
-            slot={section.slot}
+            key={item.id}
+            icon={item.icon}
+            label={item.label}
+            sectionId={item.id}
+            behavior={item.behavior}
           />
         ))}
-      </div>
-    </nav>
+      </nav>
+
+      <div />
+    </header>
   )
 }

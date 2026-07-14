@@ -19,6 +19,30 @@ export interface StreamChatRequest {
   messages: Array<{ role: string; content: string; name?: string }>;
   temperature?: number;
   max_tokens?: number;
+  top_p?: number;
+  top_k?: number;
+  min_p?: number;
+  typical_p?: number;
+  top_a?: number;
+  tfs?: number;
+  frequency_penalty?: number;
+  presence_penalty?: number;
+  rep_pen?: number;
+  rep_pen_range?: number;
+  rep_pen_slope?: number;
+  dry_multiplier?: number;
+  dry_base?: number;
+  dry_allowed_length?: number;
+  mirostat_mode?: number;
+  mirostat_tau?: number;
+  mirostat_eta?: number;
+  smoothing_factor?: number;
+  epsilon_cutoff?: number;
+  eta_cutoff?: number;
+  seed?: number;
+  min_tokens?: number;
+  stop?: string[];
+  streaming?: boolean;
   [key: string]: unknown;
 }
 

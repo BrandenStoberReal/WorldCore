@@ -7,6 +7,26 @@ type DrizzleDb = ReturnType<typeof createDb>
 
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "./migrations")
 
+const SEED_SQL = [
+  `CREATE TABLE IF NOT EXISTS connection_profiles (
+    id text PRIMARY KEY NOT NULL,
+    user_id text NOT NULL,
+    name text NOT NULL,
+    data text NOT NULL,
+    created_at integer NOT NULL,
+    updated_at integer NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE no action ON DELETE no action
+  )`,
+]
+
 export function runMigrations(dbInstance?: DrizzleDb) {
-  migrate(dbInstance ?? db, { migrationsFolder: MIGRATIONS_FOLDER })
+  const instance = dbInstance ?? db
+  migrate(instance, { migrationsFolder: MIGRATIONS_FOLDER })
+  for (const sql of SEED_SQL) {
+    try {
+      instance.$client.exec(sql)
+    } catch {
+      // table already exists — ignore
+    }
+  }
 }

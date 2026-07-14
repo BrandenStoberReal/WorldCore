@@ -109,7 +109,7 @@ export function WelcomePanel() {
             count={charCount}
             icon={Users}
             caption="characters · active"
-            onClick={() => useNavStore.getState().openLeftDrawer("characters")}
+            onClick={() => useNavStore.getState().toggleCharacters()}
             loading={statsLoading}
           />
           <StatTile
@@ -127,7 +127,7 @@ export function WelcomePanel() {
             count={wiCount}
             icon={Globe}
             caption="tablets · indexed"
-            onClick={() => useNavStore.getState().openLeftDrawer("worldinfo")}
+            onClick={() => useNavStore.getState().openTopDrawer("worldinfo")}
             loading={statsLoading}
           />
         </div>
@@ -156,7 +156,7 @@ export function WelcomePanel() {
                 title="Browse Characters"
                 caption={`${charCount} characters`}
                 path="~/atelier/characters"
-                onClick={() => useNavStore.getState().openLeftDrawer("characters")}
+                onClick={() => useNavStore.getState().toggleCharacters()}
               />
               <ActionRow
                 title="Open Chat Session"
@@ -168,7 +168,7 @@ export function WelcomePanel() {
                 title="Browse World Info"
                 caption={`${wiCount} lore tablets live`}
                 path="~/atelier/worldinfo"
-                onClick={() => useNavStore.getState().openLeftDrawer("worldinfo")}
+                onClick={() => useNavStore.getState().openTopDrawer("worldinfo")}
               />
             </div>
           </section>
@@ -189,7 +189,7 @@ export function WelcomePanel() {
               </div>
               <ArrowUpRight
                 className="h-4 w-4 text-muted-foreground/40 cursor-pointer hover:text-ember"
-                onClick={() => useNavStore.getState().openLeftDrawer("characters")}
+                onClick={() => useNavStore.getState().toggleCharacters()}
               />
             </div>
 
@@ -212,7 +212,7 @@ export function WelcomePanel() {
                   <li
                     key={c.id}
                     className="group flex items-center gap-3 px-2 py-2 -mx-2 rounded-sm hover:bg-accent/30 cursor-pointer transition-colors"
-                    onClick={() => useNavStore.getState().openLeftDrawer("characters")}
+                    onClick={() => useNavStore.getState().toggleCharacters()}
                   >
                     <span className="mono-tag text-muted-foreground/45 w-5">
                       {String(idx + 1).padStart(2, "0")}

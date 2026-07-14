@@ -60,7 +60,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
         </div>
 
         {/* Body */}
-        <div className="px-5 py-5">{children}</div>
+        <div className="px-5 md:px-6 py-5">{children}</div>
 
         {/* Bottom rivet rail */}
         <div className="flex items-center justify-between px-5 py-2.5 border-t border-border/60 bg-background/40">

@@ -1,39 +1,44 @@
 import { create } from "zustand";
 
 export type SectionId =
-  | "welcome"
   | "characters"
   | "chats"
   | "worldinfo"
   | "settings"
   | "extensions"
-  | "connections";
+  | "connections"
+  | "textoptions";
 
-export type DrawerSlot = "left" | "right";
+/** Top drawers fold down from the top bar */
+export type TopDrawerId = "worldinfo" | "extensions" | "connections" | "settings" | "textoptions";
 
 export interface NavState {
   sectionId: SectionId;
-  leftDrawer: SectionId | null;
-  rightDrawer: SectionId | null;
+  topDrawer: TopDrawerId | null;
+  charactersOpen: boolean;
   inlineDrawers: Record<string, boolean>;
   openSection: (id: SectionId) => void;
-  openLeftDrawer: (id: SectionId) => void;
-  openRightDrawer: (id: SectionId) => void;
-  closeLeftDrawer: () => void;
-  closeRightDrawer: () => void;
+  openTopDrawer: (id: TopDrawerId) => void;
+  closeTopDrawer: () => void;
+  toggleCharacters: () => void;
+  closeCharacters: () => void;
   toggleInline: (panelId: string, sectionId: string) => void;
 }
 
 export const useNavStore = create<NavState>((set) => ({
-  sectionId: "welcome",
-  leftDrawer: null,
-  rightDrawer: null,
+  sectionId: "chats",
+  topDrawer: null,
+  charactersOpen: false,
   inlineDrawers: {},
-  openSection: (id) => set({ sectionId: id }),
-  openLeftDrawer: (id) => set({ leftDrawer: id }),
-  openRightDrawer: (id) => set({ rightDrawer: id }),
-  closeLeftDrawer: () => set({ leftDrawer: null }),
-  closeRightDrawer: () => set({ rightDrawer: null }),
+  openSection: (id) => set({ sectionId: id, topDrawer: null }),
+  openTopDrawer: (id) =>
+    set((state) => ({
+      topDrawer: state.topDrawer === id ? null : id,
+      sectionId: id,
+    })),
+  closeTopDrawer: () => set({ topDrawer: null }),
+  toggleCharacters: () => set((state) => ({ charactersOpen: !state.charactersOpen })),
+  closeCharacters: () => set({ charactersOpen: false }),
   toggleInline: (panelId, sectionId) =>
     set((state) => {
       const key = `${panelId}/${sectionId}`;

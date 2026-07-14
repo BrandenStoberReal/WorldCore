@@ -22,6 +22,18 @@ export const GenSettingsSchema = z.object({
   dry_penalty_last_n: z.number().int().default(0),
   mimic_example: z.string().default(""),
   mimic_color: z.string().default(""),
+  mirostat_mode: z.number().int().default(0),
+  mirostat_tau: z.number().default(0),
+  mirostat_eta: z.number().default(0),
+  smoothing_factor: z.number().default(0),
+  smoothing_curve: z.number().default(0),
+  seed: z.number().int().default(-1),
+  max_tokens: z.number().int().default(4096),
+  min_tokens: z.number().int().default(0),
+  frequency_penalty: z.number().default(0),
+  presence_penalty: z.number().default(0),
+  stop: z.array(z.string()).default([]),
+  streaming: z.boolean().default(true),
 });
 
 export const GenParamsSchema = z.object({

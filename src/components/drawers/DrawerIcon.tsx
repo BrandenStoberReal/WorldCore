@@ -1,46 +1,36 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
-import { useNavStore, type SectionId, type DrawerSlot } from "@/lib/navStore"
+import { useNavStore, type SectionId, type TopDrawerId } from "@/lib/navStore"
 
 interface DrawerIconProps {
   icon: ReactNode
   label: string
   sectionId: SectionId
-  slot: DrawerSlot | "center"
+  behavior: "section" | "top-drawer" | "characters"
 }
 
-export function DrawerIcon({ icon, label, sectionId, slot }: DrawerIconProps) {
+export function DrawerIcon({ icon, label, sectionId, behavior }: DrawerIconProps) {
   const activeSection = useNavStore((s) => s.sectionId)
-  const leftDrawer = useNavStore((s) => s.leftDrawer)
-  const rightDrawer = useNavStore((s) => s.rightDrawer)
+  const topDrawer = useNavStore((s) => s.topDrawer)
+  const charactersOpen = useNavStore((s) => s.charactersOpen)
   const openSection = useNavStore((s) => s.openSection)
-  const openLeftDrawer = useNavStore((s) => s.openLeftDrawer)
-  const openRightDrawer = useNavStore((s) => s.openRightDrawer)
-  const closeLeftDrawer = useNavStore((s) => s.closeLeftDrawer)
-  const closeRightDrawer = useNavStore((s) => s.closeRightDrawer)
+  const openTopDrawer = useNavStore((s) => s.openTopDrawer)
+  const toggleCharacters = useNavStore((s) => s.toggleCharacters)
 
   const isActive =
-    slot === "center"
+    behavior === "section"
       ? activeSection === sectionId
-      : slot === "left"
-        ? leftDrawer === sectionId
-        : rightDrawer === sectionId
+      : behavior === "top-drawer"
+        ? topDrawer === sectionId
+        : charactersOpen
 
   function handleClick() {
-    if (slot === "center") {
+    if (behavior === "section") {
       openSection(sectionId)
-    } else if (slot === "left") {
-      if (leftDrawer === sectionId) {
-        closeLeftDrawer()
-      } else {
-        openLeftDrawer(sectionId)
-      }
+    } else if (behavior === "top-drawer") {
+      openTopDrawer(sectionId as TopDrawerId)
     } else {
-      if (rightDrawer === sectionId) {
-        closeRightDrawer()
-      } else {
-        openRightDrawer(sectionId)
-      }
+      toggleCharacters()
     }
   }
 
@@ -51,9 +41,11 @@ export function DrawerIcon({ icon, label, sectionId, slot }: DrawerIconProps) {
       aria-pressed={isActive}
       title={label}
       className={cn(
-        "flex items-center justify-center w-10 h-10 rounded-md transition-colors",
+        "flex items-center justify-center p-2 rounded-md transition-all duration-200",
         "hover:bg-accent hover:text-accent-foreground",
-        isActive && "bg-accent text-accent-foreground"
+        isActive
+          ? "text-accent-foreground bg-accent"
+          : "text-muted-foreground hover:text-foreground"
       )}
     >
       {icon}

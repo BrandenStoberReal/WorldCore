@@ -1,25 +1,27 @@
 import { useNavStore, type SectionId } from "@/lib/navStore"
+import { ChatsPanel } from "@/panels/ChatsPanel"
 
-const SECTION_LABELS: Record<SectionId, string> = {
-  welcome: "Welcome",
-  characters: "Characters",
-  chats: "Chats",
-  worldinfo: "World Info",
-  settings: "Settings",
-  extensions: "Extensions",
-  connections: "Connections",
+const CENTER_SECTIONS: Partial<Record<SectionId, React.ComponentType>> = {
+  chats: ChatsPanel,
 }
 
 export function CenterPageHost() {
   const sectionId = useNavStore((s) => s.sectionId)
+  const Panel = CENTER_SECTIONS[sectionId]
+
+  if (!Panel) {
+    return (
+      <main data-center-host className="flex-1 overflow-auto">
+        <div className="flex items-center justify-center h-full text-muted-foreground/45">
+          Select a section from the top bar
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main data-center-host className="flex-1 overflow-auto">
-      <div className="flex items-center justify-center h-full">
-        <span className="mono-tag text-muted-foreground/45">
-          {SECTION_LABELS[sectionId] ?? sectionId}
-        </span>
-      </div>
+      <Panel />
     </main>
   )
 }

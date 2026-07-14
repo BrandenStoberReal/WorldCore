@@ -178,7 +178,7 @@ export function ConnectionProfileForm({
           />
         </CardContent>
         {openSections.basic && (
-          <CardContent className="px-4 pb-4 pt-0 space-y-3 border-t border-border/40">
+          <CardContent className="px-4 md:px-5 pb-4 pt-0 space-y-3 border-t border-border/40">
             <div className="space-y-2 pt-3">
               <Label>
                 Profile Name <span className="text-destructive">*</span>
@@ -231,7 +231,7 @@ export function ConnectionProfileForm({
           />
         </CardContent>
         {openSections.connection && (
-          <CardContent className="px-4 pb-4 pt-0 space-y-3 border-t border-border/40">
+          <CardContent className="px-4 md:px-5 pb-4 pt-0 space-y-3 border-t border-border/40">
             <div className="space-y-2 pt-3">
               <Label>Model</Label>
               <Input
@@ -271,7 +271,7 @@ export function ConnectionProfileForm({
           />
         </CardContent>
         {openSections.presets && (
-          <CardContent className="px-4 pb-4 pt-0 space-y-3 border-t border-border/40">
+          <CardContent className="px-4 md:px-5 pb-4 pt-0 space-y-3 border-t border-border/40">
             <div className="space-y-2 pt-3">
               <Label>Preset Name</Label>
               <Input
@@ -311,7 +311,7 @@ export function ConnectionProfileForm({
           />
         </CardContent>
         {openSections.sysprompt && (
-          <CardContent className="px-4 pb-4 pt-0 space-y-3 border-t border-border/40">
+          <CardContent className="px-4 md:px-5 pb-4 pt-0 space-y-3 border-t border-border/40">
             <div className="space-y-2 pt-3">
               <Label>System Prompt Name</Label>
               <Input
@@ -383,7 +383,7 @@ export function ConnectionProfileForm({
           />
         </CardContent>
         {openSections.generation && (
-          <CardContent className="px-4 pb-4 pt-0 space-y-3 border-t border-border/40">
+          <CardContent className="px-4 md:px-5 pb-4 pt-0 space-y-3 border-t border-border/40">
             <div className="space-y-2 pt-3">
               <Label>Stop Strings</Label>
               <Textarea
@@ -424,7 +424,7 @@ export function ConnectionProfileForm({
           />
         </CardContent>
         {openSections.advanced && (
-          <CardContent className="px-4 pb-4 pt-0 space-y-3 border-t border-border/40">
+          <CardContent className="px-4 md:px-5 pb-4 pt-0 space-y-3 border-t border-border/40">
             <div className="space-y-2 pt-3">
               <Label>Tokenizer</Label>
               <Select

@@ -62,6 +62,8 @@
 
 :root {
   --radius: 0.75rem;
+  --topbar-height: 48px;
+  --drawer-width: 280px;
 
   --background: oklch(0.97 0.003 260);
   --foreground: oklch(0.15 0.005 260);
@@ -114,6 +116,12 @@
   --sidebar-accent-foreground: oklch(0.2 0.008 260);
   --sidebar-border: oklch(0.88 0.006 260);
   --sidebar-ring: oklch(0.54 0.18 265);
+
+  /* Drawer & accordion animation tokens */
+  --drawer-width: 280px;
+  --drawer-duration: 250ms;
+  --drawer-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --accordion-duration: 200ms;
 }
 
 .dark {
@@ -192,6 +200,16 @@
     background-size: 24px 24px;
   }
 
+  /* Section spacing rhythm — consistent vertical gap between major blocks */
+  .section-rhythm > * + * {
+    margin-top: 2.5rem;
+  }
+  @media (min-width: 1024px) {
+    .section-rhythm > * + * {
+      margin-top: 3rem;
+    }
+  }
+
   /* Soft ambient glow */
   .ambient-glow {
     background:
@@ -267,5 +285,107 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: var(--ember);
+  }
+
+  .top-bar {
+    @apply fixed top-0 left-0 right-0 z-50 h-16;
+    @apply backdrop-blur-xl border-b;
+    background: color-mix(in oklch, var(--background) 70%, transparent);
+    border-color: color-mix(in oklch, var(--border) 60%, transparent);
+  }
+  .top-bar[data-tinted="true"] {
+    background: color-mix(in oklch, var(--background) 85%, transparent);
+  }
+
+  .generation-sidebar {
+    @apply shrink-0 overflow-y-auto;
+    width: 280px;
+    backdrop-filter: blur(24px);
+    background: color-mix(in oklch, var(--background) 90%, transparent);
+    border-right: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+    transition: width 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
+  }
+  .generation-sidebar.closed {
+    width: 0;
+    border-right: none;
+    opacity: 0;
+    overflow: hidden;
+  }
+
+  input[type="range"].gen-slider {
+    @apply w-full h-1.5 rounded-full appearance-none cursor-pointer;
+    background: var(--border);
+  }
+  input[type="range"].gen-slider::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 rounded-full cursor-pointer;
+    background: var(--ember);
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--ember) 30%, transparent);
+  }
+  input[type="range"].gen-slider::-moz-range-thumb {
+    @apply w-4 h-4 rounded-full cursor-pointer border-0;
+    background: var(--ember);
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--ember) 30%, transparent);
+  }
+  input[type="range"].gen-slider:focus-visible {
+    @apply outline-none;
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--ember) 50%, transparent);
+  }
+
+  .drawer-top {
+    position: absolute;
+    top: var(--topbar-height, 48px);
+    left: 0;
+    right: 0;
+    max-height: calc(100vh - var(--topbar-height, 48px));
+    z-index: 20;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: color-mix(in oklch, var(--background) 85%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(-100%);
+    opacity: 0;
+    transition: transform var(--drawer-duration) var(--drawer-easing),
+                opacity var(--drawer-duration) var(--drawer-easing);
+    pointer-events: none;
+  }
+  .drawer-top.drawer-open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .drawer-characters {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 320px;
+    z-index: 20;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: color-mix(in oklch, var(--background) 85%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-left: 1px solid var(--border);
+    border-radius: 10px 0 0 10px;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+    transform: translateX(100%);
+    transition: transform var(--drawer-duration) var(--drawer-easing);
+  }
+  .drawer-characters.drawer-open {
+    transform: translateX(0);
+  }
+
+  .accordion-content {
+    overflow: hidden;
+    height: 0;
+    transition: height var(--accordion-duration) var(--drawer-easing);
+  }
+  .accordion-content.accordion-open {
+    height: auto;
   }
 }

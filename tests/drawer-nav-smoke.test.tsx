@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useNavStore } from "../src/lib/navStore";
 import { DrawerShell } from "../src/components/drawers/DrawerShell";
 import { CenterPageHost } from "../src/components/drawers/CenterPageHost";
@@ -10,19 +11,26 @@ import { DrawerSlot } from "../src/components/drawers/DrawerSlot";
 /*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
 
+const testQueryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
 /** Reset the store to its initial state before every test. */
 function resetStore() {
   useNavStore.setState({
     sectionId: "welcome",
-    leftDrawer: null,
-    rightDrawer: null,
-    inlineDrawers: {},
+    topDrawer: null,
+    charactersOpen: false,
   });
 }
 
 /** Render DrawerShell to static markup and return the HTML string. */
 function shellHtml(): string {
-  return renderToStaticMarkup(<DrawerShell />);
+  return renderToStaticMarkup(
+    <QueryClientProvider client={testQueryClient}>
+      <DrawerShell />
+    </QueryClientProvider>,
+  );
 }
 
 /** Render NavRail to static markup. */
@@ -41,16 +49,12 @@ describe("Drawer navigation smoke — default state", () => {
     expect(useNavStore.getState().sectionId).toBe("welcome");
   });
 
-  it("no left drawer is open", () => {
-    expect(useNavStore.getState().leftDrawer).toBeNull();
+  it("no top drawer is open", () => {
+    expect(useNavStore.getState().topDrawer).toBeNull();
   });
 
-  it("no right drawer is open", () => {
-    expect(useNavStore.getState().rightDrawer).toBeNull();
-  });
-
-  it("inlineDrawers is empty", () => {
-    expect(useNavStore.getState().inlineDrawers).toEqual({});
+  it("characters sidebar is closed", () => {
+    expect(useNavStore.getState().charactersOpen).toBe(false);
   });
 
   it("DrawerShell renders data-drawer-shell root element", () => {
@@ -58,25 +62,26 @@ describe("Drawer navigation smoke — default state", () => {
     expect(html).toContain("data-drawer-shell");
   });
 
-  it("NavRail renders data-nav-rail element", () => {
+  it("NavRail renders in header element", () => {
     const html = railHtml();
-    expect(html).toContain("data-nav-rail");
+    expect(html).toContain("<header");
+    expect(html).toContain("data-topbar");
   });
 
   it("NavRail renders all 6 section icons with correct data attributes", () => {
     const html = railHtml();
+    expect(html).toContain('data-drawer-icon="welcome"');
     expect(html).toContain('data-drawer-icon="characters"');
     expect(html).toContain('data-drawer-icon="worldinfo"');
     expect(html).toContain('data-drawer-icon="extensions"');
     expect(html).toContain('data-drawer-icon="connections"');
-    expect(html).toContain('data-drawer-icon="chats"');
     expect(html).toContain('data-drawer-icon="settings"');
   });
 
-  it("DrawerShell has both left and right drawer slots", () => {
+  it("DrawerShell has top drawer and characters sidebar slots", () => {
     const html = shellHtml();
-    expect(html).toContain('data-drawer-slot="left"');
-    expect(html).toContain('data-drawer-slot="right"');
+    expect(html).toContain('data-drawer-slot="top"');
+    expect(html).toContain('data-drawer-slot="characters"');
   });
 
   it("no drawer-open class when drawers are closed (static default render)", () => {
@@ -90,9 +95,9 @@ describe("Drawer navigation smoke — default state", () => {
 /* ------------------------------------------------------------------ */
 
 describe("Drawer navigation smoke — DrawerSlot open/close rendering", () => {
-  it("applies drawer-open class when open={true}", () => {
+  it("applies drawer-open class when open={true} for top direction", () => {
     const html = renderToStaticMarkup(
-      <DrawerSlot side="left" open={true}>
+      <DrawerSlot direction="top" open={true}>
         <span>content</span>
       </DrawerSlot>,
     );
@@ -102,118 +107,118 @@ describe("Drawer navigation smoke — DrawerSlot open/close rendering", () => {
 
   it("does not apply drawer-open class when open={false}", () => {
     const html = renderToStaticMarkup(
-      <DrawerSlot side="left" open={false}>
+      <DrawerSlot direction="top" open={false}>
         <span>content</span>
       </DrawerSlot>,
     );
     expect(html).not.toContain("drawer-open");
   });
 
-  it("right drawer applies drawer-open class when open={true}", () => {
+  it("characters sidebar applies drawer-open class when open={true}", () => {
     const html = renderToStaticMarkup(
-      <DrawerSlot side="right" open={true}>
-        <span>settings-panel</span>
+      <DrawerSlot direction="characters" open={true}>
+        <span>characters-panel</span>
       </DrawerSlot>,
     );
     expect(html).toContain("drawer-open");
-    expect(html).toContain("settings-panel");
+    expect(html).toContain("characters-panel");
   });
 });
 
 /* ------------------------------------------------------------------ */
-/*  3. Clicking Characters icon opens left drawer (store level)        */
+/*  3. Clicking Characters icon toggles sidebar (store level)          */
 /* ------------------------------------------------------------------ */
 
-describe("Drawer navigation smoke — open Characters left drawer", () => {
+describe("Drawer navigation smoke — Characters sidebar toggle", () => {
   beforeEach(resetStore);
 
-  it("openLeftDrawer('characters') sets leftDrawer to 'characters'", () => {
-    useNavStore.getState().openLeftDrawer("characters");
-    expect(useNavStore.getState().leftDrawer).toBe("characters");
+  it("toggleCharacters() sets charactersOpen to true", () => {
+    useNavStore.getState().toggleCharacters();
+    expect(useNavStore.getState().charactersOpen).toBe(true);
   });
 
-  it("sectionId remains 'welcome' when only left drawer opens", () => {
-    useNavStore.getState().openLeftDrawer("characters");
+  it("sectionId remains 'welcome' when only characters sidebar opens", () => {
+    useNavStore.getState().toggleCharacters();
     expect(useNavStore.getState().sectionId).toBe("welcome");
   });
 
-  it("rightDrawer is unaffected by opening left drawer", () => {
-    useNavStore.getState().openLeftDrawer("characters");
-    expect(useNavStore.getState().rightDrawer).toBeNull();
+  it("topDrawer is unaffected by opening characters sidebar", () => {
+    useNavStore.getState().toggleCharacters();
+    expect(useNavStore.getState().topDrawer).toBeNull();
   });
 });
 
 /* ------------------------------------------------------------------ */
-/*  4. Mutual exclusivity: WorldInfo closes Characters                 */
+/*  4. Mutual exclusivity: WorldInfo closes other top drawers          */
 /* ------------------------------------------------------------------ */
 
-describe("Drawer navigation smoke — mutual exclusivity", () => {
+describe("Drawer navigation smoke — mutual exclusivity for top drawers", () => {
   beforeEach(resetStore);
 
-  it("opening WorldInfo replaces Characters in left drawer", () => {
-    useNavStore.getState().openLeftDrawer("characters");
-    expect(useNavStore.getState().leftDrawer).toBe("characters");
+  it("opening WorldInfo replaces any existing top drawer", () => {
+    useNavStore.getState().openTopDrawer("worldinfo");
+    expect(useNavStore.getState().topDrawer).toBe("worldinfo");
 
-    useNavStore.getState().openLeftDrawer("worldinfo");
-    expect(useNavStore.getState().leftDrawer).toBe("worldinfo");
+    useNavStore.getState().openTopDrawer("extensions");
+    expect(useNavStore.getState().topDrawer).toBe("extensions");
   });
 
-  it("opening Extensions replaces WorldInfo in left drawer", () => {
-    useNavStore.getState().openLeftDrawer("worldinfo");
-    useNavStore.getState().openLeftDrawer("extensions");
-    expect(useNavStore.getState().leftDrawer).toBe("extensions");
+  it("opening Connections replaces Extensions", () => {
+    useNavStore.getState().openTopDrawer("extensions");
+    useNavStore.getState().openTopDrawer("connections");
+    expect(useNavStore.getState().topDrawer).toBe("connections");
   });
 
-  it("opening Connections replaces Extensions in left drawer", () => {
-    useNavStore.getState().openLeftDrawer("extensions");
-    useNavStore.getState().openLeftDrawer("connections");
-    expect(useNavStore.getState().leftDrawer).toBe("connections");
+  it("opening Settings replaces Connections", () => {
+    useNavStore.getState().openTopDrawer("connections");
+    useNavStore.getState().openTopDrawer("settings");
+    expect(useNavStore.getState().topDrawer).toBe("settings");
   });
 
-  it("only one left drawer can be open at a time (rapid succession)", () => {
-    useNavStore.getState().openLeftDrawer("characters");
-    useNavStore.getState().openLeftDrawer("worldinfo");
-    useNavStore.getState().openLeftDrawer("extensions");
-    useNavStore.getState().openLeftDrawer("connections");
-    expect(useNavStore.getState().leftDrawer).toBe("connections");
+  it("only one top drawer can be open at a time (rapid succession)", () => {
+    useNavStore.getState().openTopDrawer("worldinfo");
+    useNavStore.getState().openTopDrawer("extensions");
+    useNavStore.getState().openTopDrawer("connections");
+    useNavStore.getState().openTopDrawer("settings");
+    expect(useNavStore.getState().topDrawer).toBe("settings");
     // Verify only one value (not an array or merged state)
-    expect(typeof useNavStore.getState().leftDrawer).toBe("string");
+    expect(typeof useNavStore.getState().topDrawer).toBe("string");
   });
 });
 
 /* ------------------------------------------------------------------ */
-/*  5. Settings opens right drawer                                     */
+/*  5. Settings opens top drawer (not right drawer anymore)            */
 /* ------------------------------------------------------------------ */
 
-describe("Drawer navigation smoke — Settings right drawer", () => {
+describe("Drawer navigation smoke — Settings top drawer", () => {
   beforeEach(resetStore);
 
-  it("openRightDrawer('settings') sets rightDrawer to 'settings'", () => {
-    useNavStore.getState().openRightDrawer("settings");
-    expect(useNavStore.getState().rightDrawer).toBe("settings");
+  it("openTopDrawer('settings') sets topDrawer to 'settings'", () => {
+    useNavStore.getState().openTopDrawer("settings");
+    expect(useNavStore.getState().topDrawer).toBe("settings");
   });
 
-  it("left and right drawers are independent", () => {
-    useNavStore.getState().openLeftDrawer("characters");
-    useNavStore.getState().openRightDrawer("settings");
-    expect(useNavStore.getState().leftDrawer).toBe("characters");
-    expect(useNavStore.getState().rightDrawer).toBe("settings");
+  it("top drawer and characters sidebar are independent", () => {
+    useNavStore.getState().toggleCharacters();
+    useNavStore.getState().openTopDrawer("settings");
+    expect(useNavStore.getState().charactersOpen).toBe(true);
+    expect(useNavStore.getState().topDrawer).toBe("settings");
   });
 
-  it("closing left does not affect right drawer", () => {
-    useNavStore.getState().openLeftDrawer("characters");
-    useNavStore.getState().openRightDrawer("settings");
-    useNavStore.getState().closeLeftDrawer();
-    expect(useNavStore.getState().leftDrawer).toBeNull();
-    expect(useNavStore.getState().rightDrawer).toBe("settings");
+  it("closing top drawer does not affect characters sidebar", () => {
+    useNavStore.getState().toggleCharacters();
+    useNavStore.getState().openTopDrawer("settings");
+    useNavStore.getState().closeTopDrawer();
+    expect(useNavStore.getState().topDrawer).toBeNull();
+    expect(useNavStore.getState().charactersOpen).toBe(true);
   });
 
-  it("closing right does not affect left drawer", () => {
-    useNavStore.getState().openLeftDrawer("characters");
-    useNavStore.getState().openRightDrawer("settings");
-    useNavStore.getState().closeRightDrawer();
-    expect(useNavStore.getState().rightDrawer).toBeNull();
-    expect(useNavStore.getState().leftDrawer).toBe("characters");
+  it("closing characters sidebar does not affect top drawer", () => {
+    useNavStore.getState().toggleCharacters();
+    useNavStore.getState().openTopDrawer("settings");
+    useNavStore.getState().toggleCharacters();
+    expect(useNavStore.getState().charactersOpen).toBe(false);
+    expect(useNavStore.getState().topDrawer).toBe("settings");
   });
 });
 
@@ -224,49 +229,49 @@ describe("Drawer navigation smoke — Settings right drawer", () => {
 describe("Drawer navigation smoke — toggle close", () => {
   beforeEach(resetStore);
 
-  it("closeLeftDrawer clears the left drawer", () => {
-    useNavStore.getState().openLeftDrawer("characters");
-    expect(useNavStore.getState().leftDrawer).toBe("characters");
+  it("closeTopDrawer clears the top drawer", () => {
+    useNavStore.getState().openTopDrawer("worldinfo");
+    expect(useNavStore.getState().topDrawer).toBe("worldinfo");
 
-    useNavStore.getState().closeLeftDrawer();
-    expect(useNavStore.getState().leftDrawer).toBeNull();
+    useNavStore.getState().closeTopDrawer();
+    expect(useNavStore.getState().topDrawer).toBeNull();
   });
 
-  it("closeRightDrawer clears the right drawer", () => {
-    useNavStore.getState().openRightDrawer("settings");
-    expect(useNavStore.getState().rightDrawer).toBe("settings");
+  it("toggleCharacters twice clears the characters sidebar", () => {
+    useNavStore.getState().toggleCharacters();
+    expect(useNavStore.getState().charactersOpen).toBe(true);
 
-    useNavStore.getState().closeRightDrawer();
-    expect(useNavStore.getState().rightDrawer).toBeNull();
+    useNavStore.getState().toggleCharacters();
+    expect(useNavStore.getState().charactersOpen).toBe(false);
   });
 
-  it("open → close → open again cycle works for left", () => {
-    useNavStore.getState().openLeftDrawer("characters");
-    expect(useNavStore.getState().leftDrawer).toBe("characters");
+  it("open → close → open again cycle works for top drawer", () => {
+    useNavStore.getState().openTopDrawer("worldinfo");
+    expect(useNavStore.getState().topDrawer).toBe("worldinfo");
 
-    useNavStore.getState().closeLeftDrawer();
-    expect(useNavStore.getState().leftDrawer).toBeNull();
+    useNavStore.getState().closeTopDrawer();
+    expect(useNavStore.getState().topDrawer).toBeNull();
 
-    useNavStore.getState().openLeftDrawer("worldinfo");
-    expect(useNavStore.getState().leftDrawer).toBe("worldinfo");
+    useNavStore.getState().openTopDrawer("extensions");
+    expect(useNavStore.getState().topDrawer).toBe("extensions");
   });
 
-  it("open → close → open again cycle works for right", () => {
-    useNavStore.getState().openRightDrawer("settings");
-    expect(useNavStore.getState().rightDrawer).toBe("settings");
+  it("open → close → open again cycle works for characters sidebar", () => {
+    useNavStore.getState().toggleCharacters();
+    expect(useNavStore.getState().charactersOpen).toBe(true);
 
-    useNavStore.getState().closeRightDrawer();
-    expect(useNavStore.getState().rightDrawer).toBeNull();
+    useNavStore.getState().toggleCharacters();
+    expect(useNavStore.getState().charactersOpen).toBe(false);
 
-    useNavStore.getState().openRightDrawer("settings");
-    expect(useNavStore.getState().rightDrawer).toBe("settings");
+    useNavStore.getState().toggleCharacters();
+    expect(useNavStore.getState().charactersOpen).toBe(true);
   });
 
   it("double close is idempotent", () => {
-    useNavStore.getState().openLeftDrawer("characters");
-    useNavStore.getState().closeLeftDrawer();
-    useNavStore.getState().closeLeftDrawer(); // second close should be no-op
-    expect(useNavStore.getState().leftDrawer).toBeNull();
+    useNavStore.getState().openTopDrawer("worldinfo");
+    useNavStore.getState().closeTopDrawer();
+    useNavStore.getState().closeTopDrawer(); // second close should be no-op
+    expect(useNavStore.getState().topDrawer).toBeNull();
   });
 });
 
@@ -285,10 +290,6 @@ describe("Drawer navigation smoke — center page host sections", () => {
     "welcome",
     "characters",
     "chats",
-    "worldinfo",
-    "settings",
-    "extensions",
-    "connections",
   ] as const;
 
   for (const section of sections) {
@@ -308,7 +309,7 @@ describe("Drawer navigation smoke — center page host sections", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  8. All 7 sections reachable — full navigation round-trip           */
+/*  8. All sections reachable — full navigation round-trip             */
 /* ------------------------------------------------------------------ */
 
 describe("Drawer navigation smoke — full navigation round-trip", () => {
@@ -320,47 +321,49 @@ describe("Drawer navigation smoke — full navigation round-trip", () => {
     // Start at welcome
     expect(store.sectionId).toBe("welcome");
 
-    // Visit every section
+    // Visit center sections
     store.openSection("characters");
     expect(useNavStore.getState().sectionId).toBe("characters");
-
-    store.openLeftDrawer("worldinfo");
-    expect(useNavStore.getState().leftDrawer).toBe("worldinfo");
 
     store.openSection("chats");
     expect(useNavStore.getState().sectionId).toBe("chats");
 
-    store.openLeftDrawer("extensions");
-    expect(useNavStore.getState().leftDrawer).toBe("extensions");
+    // Open top drawers
+    store.openTopDrawer("worldinfo");
+    expect(useNavStore.getState().topDrawer).toBe("worldinfo");
 
-    store.openSection("settings");
-    expect(useNavStore.getState().sectionId).toBe("settings");
+    store.openTopDrawer("extensions");
+    expect(useNavStore.getState().topDrawer).toBe("extensions");
 
-    store.openRightDrawer("settings");
-    expect(useNavStore.getState().rightDrawer).toBe("settings");
+    store.openTopDrawer("connections");
+    expect(useNavStore.getState().topDrawer).toBe("connections");
 
-    store.openSection("connections");
-    expect(useNavStore.getState().sectionId).toBe("connections");
+    store.openTopDrawer("settings");
+    expect(useNavStore.getState().topDrawer).toBe("settings");
+
+    // Toggle characters sidebar
+    store.toggleCharacters();
+    expect(useNavStore.getState().charactersOpen).toBe(true);
 
     // Return to welcome
     store.openSection("welcome");
     expect(useNavStore.getState().sectionId).toBe("welcome");
 
-    // Close all drawers
-    store.closeLeftDrawer();
-    store.closeRightDrawer();
-    expect(useNavStore.getState().leftDrawer).toBeNull();
-    expect(useNavStore.getState().rightDrawer).toBeNull();
+    // Close all
+    store.closeTopDrawer();
+    store.toggleCharacters();
+    expect(useNavStore.getState().topDrawer).toBeNull();
+    expect(useNavStore.getState().charactersOpen).toBe(false);
   });
 
-  it("left drawer can cycle through all 4 left-section icons", () => {
-    const leftSections = ["characters", "worldinfo", "extensions", "connections"] as const;
-    for (const section of leftSections) {
-      useNavStore.getState().openLeftDrawer(section);
-      expect(useNavStore.getState().leftDrawer).toBe(section);
+  it("top drawer can cycle through all 4 top-section icons", () => {
+    const topSections = ["worldinfo", "extensions", "connections", "settings"] as const;
+    for (const section of topSections) {
+      useNavStore.getState().openTopDrawer(section);
+      expect(useNavStore.getState().topDrawer).toBe(section);
     }
-    // Last one should still be connections
-    expect(useNavStore.getState().leftDrawer).toBe("connections");
+    // Last one should still be settings
+    expect(useNavStore.getState().topDrawer).toBe("settings");
   });
 });
 
@@ -372,61 +375,35 @@ describe("Drawer navigation smoke — DrawerIcon click behavior", () => {
   beforeEach(resetStore);
 
   it("center icon (chats) calls openSection", () => {
-    // Simulate what DrawerIcon.handleClick does for center slot
     useNavStore.getState().openSection("chats");
     expect(useNavStore.getState().sectionId).toBe("chats");
   });
 
-  it("left icon (characters) when closed calls openLeftDrawer", () => {
-    // Simulate DrawerIcon.handleClick for left slot when not open
-    const { leftDrawer, openLeftDrawer, closeLeftDrawer } = useNavStore.getState();
-    const sectionId = "characters" as const;
-
-    if (leftDrawer === sectionId) {
-      closeLeftDrawer();
-    } else {
-      openLeftDrawer(sectionId);
-    }
-    expect(useNavStore.getState().leftDrawer).toBe("characters");
+  it("characters icon toggles sidebar open", () => {
+    useNavStore.getState().toggleCharacters();
+    expect(useNavStore.getState().charactersOpen).toBe(true);
   });
 
-  it("left icon (characters) when open calls closeLeftDrawer (toggle)", () => {
-    useNavStore.getState().openLeftDrawer("characters");
-
-    const { leftDrawer, openLeftDrawer, closeLeftDrawer } = useNavStore.getState();
-    const sectionId = "characters" as const;
-
-    if (leftDrawer === sectionId) {
-      closeLeftDrawer();
-    } else {
-      openLeftDrawer(sectionId);
-    }
-    expect(useNavStore.getState().leftDrawer).toBeNull();
+  it("characters icon toggles sidebar closed when already open", () => {
+    useNavStore.getState().toggleCharacters();
+    useNavStore.getState().toggleCharacters();
+    expect(useNavStore.getState().charactersOpen).toBe(false);
   });
 
-  it("right icon (settings) when closed calls openRightDrawer", () => {
-    const { rightDrawer, openRightDrawer, closeRightDrawer } = useNavStore.getState();
-    const sectionId = "settings" as const;
-
-    if (rightDrawer === sectionId) {
-      closeRightDrawer();
-    } else {
-      openRightDrawer(sectionId);
-    }
-    expect(useNavStore.getState().rightDrawer).toBe("settings");
+  it("top drawer icon (worldinfo) opens top drawer", () => {
+    useNavStore.getState().openTopDrawer("worldinfo");
+    expect(useNavStore.getState().topDrawer).toBe("worldinfo");
   });
 
-  it("right icon (settings) when open calls closeRightDrawer (toggle)", () => {
-    useNavStore.getState().openRightDrawer("settings");
-
-    const { rightDrawer, openRightDrawer, closeRightDrawer } = useNavStore.getState();
-    const sectionId = "settings" as const;
-
-    if (rightDrawer === sectionId) {
-      closeRightDrawer();
+  it("top drawer icon (worldinfo) closes top drawer when same drawer open", () => {
+    useNavStore.getState().openTopDrawer("worldinfo");
+    // Simulate toggle behavior
+    const { topDrawer, closeTopDrawer, openTopDrawer } = useNavStore.getState();
+    if (topDrawer === "worldinfo") {
+      closeTopDrawer();
     } else {
-      openRightDrawer(sectionId);
+      openTopDrawer("worldinfo");
     }
-    expect(useNavStore.getState().rightDrawer).toBeNull();
+    expect(useNavStore.getState().topDrawer).toBeNull();
   });
 });
