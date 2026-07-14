@@ -5,8 +5,8 @@ import { CharactersPanel as CharactersComponent } from "@/panels/CharactersPanel
 import { ChatsPanel as ChatsComponent } from "@/panels/ChatsPanel";
 import { Component as WorldinfoComponent } from "@/panels/WorldInfoPanel";
 import { Component as SettingsComponent } from "@/panels/SettingsPanel";
-import { Component as ExtensionsComponent } from "@/panels/ExtensionsPanel";
-import { Component as ConnectionsComponent } from "@/panels/ConnectionsPanel";
+import { ExtensionsPanel as ExtensionsComponent } from "@/panels/ExtensionsPanel";
+import { ConnectionsPanel as ConnectionsComponent } from "@/panels/ConnectionsPanel";
 
 const rootRoute = createRootRoute();
 

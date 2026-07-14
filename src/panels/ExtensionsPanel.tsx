@@ -22,7 +22,7 @@ import {
 import { cn, surfaceCard } from "@/lib/utils";
 import type { ExtensionInfo } from "@/shared/types/extensions";
 
-export function Component() {
+export function ExtensionsPanel() {
   const queryClient = useQueryClient();
   const [installOpen, setInstallOpen] = useState(false);
   const [installUrl, setInstallUrl] = useState("");
@@ -134,7 +134,7 @@ export function Component() {
   }
 
   return (
-    <div className="relative isolate section-rhythm">
+    <div className="relative isolate section-rhythm" data-panel="extensions">
       {/* Section header */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
