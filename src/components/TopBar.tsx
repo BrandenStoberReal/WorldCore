@@ -1,6 +1,4 @@
-import { Link } from "@tanstack/react-router";
-import { PanelLeft } from "lucide-react";
-import { useAppStore, useGenerationStore } from "@/lib/stores";
+import { useAppStore } from "@/lib/stores";
 import { cn } from "@/lib/utils";
 
 function LogoMark() {
@@ -18,35 +16,15 @@ function LogoMark() {
 
 export function TopBar() {
   const { user, theme, setTheme } = useAppStore();
-  const toggleGenSidebar = useGenerationStore((s) => s.toggleSidebar);
-  const genSidebarOpen = useGenerationStore((s) => s.isOpen);
 
   const themeNext: "light" | "dark" | "system" = theme === "dark" ? "light" : "dark";
 
   return (
     <header className="top-bar flex items-center justify-between px-4" role="banner">
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={toggleGenSidebar}
-          className={cn(
-            "hidden md:flex items-center justify-center h-8 w-8 rounded-sm",
-            "border border-border bg-background/60 hover:bg-accent/40 transition-colors",
-            genSidebarOpen && "border-ember/30 bg-ember/10",
-          )}
-          aria-label="Toggle generation sidebar"
-          title="Generation settings"
-        >
-          <PanelLeft
-            className={cn("h-4 w-4", genSidebarOpen ? "text-ember" : "text-foreground/60")}
-            strokeWidth={2}
-          />
-        </button>
-
         <div className="flex items-center gap-3">
-          <Link
-            to="/"
-            onClick={() => useAppStore.getState().setActiveRoute("/")}
+          <a
+            href="/"
             className="flex items-center gap-2 group"
             aria-label="WorldCore home"
           >
@@ -54,7 +32,7 @@ export function TopBar() {
             <span className="hidden sm:inline display-host text-[17px]">
               World<span className="text-ember">Core</span>
             </span>
-          </Link>
+          </a>
         </div>
       </div>
 
