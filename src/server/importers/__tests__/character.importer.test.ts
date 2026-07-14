@@ -1,10 +1,11 @@
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect, afterEach } from "bun:test"
 import { detectImportFormat, normalizeToV3, importFromJson, importFromYaml } from "../character.importer"
 import fs from "node:fs/promises"
 import path from "node:path"
 import { characterService } from "@/server/services/character.service"
 
 const testDir = path.join("./data", "_test_importer")
+const createdIds: number[] = []
 
 describe("detectImportFormat", () => {
   it("detects PNG formats", () => {
@@ -166,6 +167,7 @@ describe("importFromJson", () => {
     await fs.writeFile(filePath, JSON.stringify(charData))
 
     const id = await importFromJson(filePath)
+    createdIds.push(id)
     expect(id).toBeGreaterThan(0)
 
     const char = await characterService.get(id)
@@ -193,6 +195,7 @@ tags:
     await fs.writeFile(filePath, yamlContent)
 
     const id = await importFromYaml(filePath)
+    createdIds.push(id)
     expect(id).toBeGreaterThan(0)
 
     const char = await characterService.get(id)
@@ -202,4 +205,20 @@ tags:
     expect(char!.first_mes).toContain("coffee")
     expect(char!.tags).toEqual(["yaml", "test"])
   })
+})
+
+afterEach(async () => {
+  for (const id of createdIds) {
+    try {
+      await characterService.delete(id)
+    } catch {
+      // Already deleted
+    }
+  }
+  createdIds.length = 0
+  try {
+    await fs.rm(testDir, { recursive: true, force: true })
+  } catch {
+    // Directory may not exist
+  }
 })

@@ -351,7 +351,6 @@ export function ChatView({ characterId }: ChatViewProps) {
           <div className="min-w-0">
             <h3
               className="display-host text-[22px] leading-none tracking-tight truncate"
-              style={{ fontVariationSettings: "'opsz' 90, 'SOFT' 30" }}
             >
               {character.name}
             </h3>
@@ -417,7 +416,6 @@ export function ChatView({ characterId }: ChatViewProps) {
                 <div className="absolute inset-1.5 rounded-full border border-border/60 flex items-center justify-center ember-pulse">
                   <span
                     className="display-host text-[32px] leading-none text-ember italic"
-                    style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 100, 'WONK' 1'" }}
                     aria-hidden
                   >
                     ⌑
@@ -426,7 +424,6 @@ export function ChatView({ characterId }: ChatViewProps) {
               </div>
               <h4
                 className="display-host text-[22px] mb-1 tracking-tight"
-                style={{ fontVariationSettings: "'opsz' 90, 'SOFT' 40" }}
               >
                 Forge {character.name}
               </h4>

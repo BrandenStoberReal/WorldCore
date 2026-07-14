@@ -69,9 +69,6 @@ export function Component() {
               >
                 <span
                   className="display-host text-[64px] leading-none text-ember italic"
-                  style={{
-                    fontVariationSettings: "'opsz' 144, 'SOFT' 100, 'WONK' 1'",
-                  }}
                   aria-hidden
                 >
                   ⌑
@@ -102,7 +99,6 @@ export function Component() {
             </div>
             <h2
               className="display-host text-[38px] leading-tight tracking-tight mb-3"
-              style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 20, 'WONK' 0'" }}
             >
               Stoking the <span className="text-ember italic">fire</span>
             </h2>

@@ -65,7 +65,6 @@ export function CharacterCard({
         <div className="min-w-0 flex-1">
           <h3
             className="display-host text-[20px] leading-tight tracking-tight truncate"
-            style={{ fontVariationSettings: "'opsz' 90, 'SOFT' 30" }}
           >
             {character.name}
           </h3>

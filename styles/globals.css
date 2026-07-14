@@ -7,7 +7,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Forge surfaces */
+  /* Surface tokens */
   --color-iron: var(--iron);
   --color-iron-foreground: var(--iron-foreground);
   --color-slag: var(--slag);
@@ -55,120 +55,118 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  --font-sans: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-display: "Fraunces", "Times New Roman", serif;
+  --font-display: "DM Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  /* Forge — light variant (hammered metalwork in daylight) */
-  --radius: 0.25rem;
+  --radius: 0.75rem;
 
-  --background: oklch(0.96 0.005 75);
-  --foreground: oklch(0.18 0.008 60);
+  --background: oklch(0.97 0.003 260);
+  --foreground: oklch(0.15 0.005 260);
 
-  --card: oklch(0.99 0.002 75);
-  --card-foreground: oklch(0.18 0.008 60);
-  --popover: oklch(0.99 0.002 75);
-  --popover-foreground: oklch(0.18 0.008 60);
+  --card: oklch(0.99 0.002 260);
+  --card-foreground: oklch(0.15 0.005 260);
+  --popover: oklch(0.99 0.002 260);
+  --popover-foreground: oklch(0.15 0.005 260);
 
-  --primary: oklch(0.22 0.012 55);
-  --primary-foreground: oklch(0.97 0.005 75);
+  --primary: oklch(0.2 0.008 260);
+  --primary-foreground: oklch(0.97 0.003 260);
 
-  --secondary: oklch(0.92 0.006 70);
-  --secondary-foreground: oklch(0.22 0.012 55);
+  --secondary: oklch(0.93 0.004 260);
+  --secondary-foreground: oklch(0.2 0.008 260);
 
-  --muted: oklch(0.91 0.006 70);
-  --muted-foreground: oklch(0.48 0.008 60);
+  --muted: oklch(0.93 0.004 260);
+  --muted-foreground: oklch(0.45 0.008 260);
 
-  --accent: oklch(0.62 0.18 38);
-  --accent-foreground: oklch(0.99 0.005 75);
+  --accent: oklch(0.54 0.18 265);
+  --accent-foreground: oklch(0.98 0.003 260);
 
   --destructive: oklch(0.55 0.22 25);
 
-  --border: oklch(0.78 0.01 65);
-  --input: oklch(0.88 0.008 70);
-  --ring: oklch(0.62 0.18 38);
+  --border: oklch(0.88 0.006 260);
+  --input: oklch(0.9 0.005 260);
+  --ring: oklch(0.54 0.18 265);
 
-  --chart-1: oklch(0.62 0.18 38);
-  --chart-2: oklch(0.55 0.14 60);
-  --chart-3: oklch(0.45 0.08 220);
-  --chart-4: oklch(0.78 0.12 80);
-  --chart-5: oklch(0.68 0.16 12);
+  --chart-1: oklch(0.54 0.18 265);
+  --chart-2: oklch(0.6 0.14 300);
+  --chart-3: oklch(0.5 0.12 200);
+  --chart-4: oklch(0.65 0.15 160);
+  --chart-5: oklch(0.58 0.16 340);
 
-  /* Forge surface tokens */
-  --iron: oklch(0.85 0.004 70);   /* worked metal surface */
-  --iron-foreground: oklch(0.2 0.01 60);
-  --slag: oklch(0.9 0.006 75);     /* mid tone panel */
-  --slag-foreground: oklch(0.25 0.01 60);
-  --ash: oklch(0.95 0.004 75);     /* pale cool light */
-  --ash-foreground: oklch(0.22 0.012 55);
-  --ember: oklch(0.62 0.18 38);    /* orange hammer-strike */
-  --ember-foreground: oklch(0.99 0.005 75);
-  --rivet: oklch(0.42 0.02 55);    /* oxidized steel */
+  /* Surface tokens — cool neutral */
+  --iron: oklch(0.88 0.005 260);
+  --iron-foreground: oklch(0.2 0.008 260);
+  --slag: oklch(0.92 0.004 260);
+  --slag-foreground: oklch(0.25 0.006 260);
+  --ash: oklch(0.96 0.003 260);
+  --ash-foreground: oklch(0.22 0.007 260);
+  --ember: oklch(0.54 0.18 265);
+  --ember-foreground: oklch(0.98 0.003 260);
+  --rivet: oklch(0.4 0.01 260);
 
-  --sidebar: oklch(0.93 0.005 75);
-  --sidebar-foreground: oklch(0.22 0.012 55);
-  --sidebar-primary: oklch(0.62 0.18 38);
-  --sidebar-primary-foreground: oklch(0.99 0.005 75);
-  --sidebar-accent: oklch(0.88 0.01 70);
-  --sidebar-accent-foreground: oklch(0.22 0.012 55);
-  --sidebar-border: oklch(0.78 0.01 65);
-  --sidebar-ring: oklch(0.62 0.18 38);
+  --sidebar: oklch(0.95 0.004 260);
+  --sidebar-foreground: oklch(0.2 0.008 260);
+  --sidebar-primary: oklch(0.54 0.18 265);
+  --sidebar-primary-foreground: oklch(0.98 0.003 260);
+  --sidebar-accent: oklch(0.9 0.005 260);
+  --sidebar-accent-foreground: oklch(0.2 0.008 260);
+  --sidebar-border: oklch(0.88 0.006 260);
+  --sidebar-ring: oklch(0.54 0.18 265);
 }
 
 .dark {
-  /* Forge — dark variant (smoldering pit after dark) */
-  --background: oklch(0.18 0.008 60);
-  --foreground: oklch(0.94 0.004 75);
+  --background: oklch(0.15 0.006 260);
+  --foreground: oklch(0.93 0.003 260);
 
-  --card: oklch(0.22 0.01 60);
-  --card-foreground: oklch(0.94 0.004 75);
-  --popover: oklch(0.22 0.01 60);
-  --popover-foreground: oklch(0.94 0.004 75);
+  --card: oklch(0.19 0.008 260);
+  --card-foreground: oklch(0.93 0.003 260);
+  --popover: oklch(0.19 0.008 260);
+  --popover-foreground: oklch(0.93 0.003 260);
 
-  --primary: oklch(0.94 0.005 75);
-  --primary-foreground: oklch(0.2 0.01 60);
+  --primary: oklch(0.93 0.003 260);
+  --primary-foreground: oklch(0.18 0.007 260);
 
-  --secondary: oklch(0.26 0.01 60);
-  --secondary-foreground: oklch(0.94 0.004 75);
+  --secondary: oklch(0.24 0.008 260);
+  --secondary-foreground: oklch(0.93 0.003 260);
 
-  --muted: oklch(0.26 0.01 60);
-  --muted-foreground: oklch(0.62 0.01 70);
+  --muted: oklch(0.24 0.008 260);
+  --muted-foreground: oklch(0.58 0.01 260);
 
-  --accent: oklch(0.7 0.18 42);
-  --accent-foreground: oklch(0.12 0.008 60);
+  --accent: oklch(0.65 0.18 265);
+  --accent-foreground: oklch(0.12 0.006 260);
 
   --destructive: oklch(0.65 0.22 22);
 
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.7 0.18 42);
+  --ring: oklch(0.65 0.18 265);
 
-  --chart-1: oklch(0.7 0.18 42);
-  --chart-2: oklch(0.62 0.14 65);
-  --chart-3: oklch(0.55 0.2 250);
-  --chart-4: oklch(0.78 0.18 85);
-  --chart-5: oklch(0.68 0.22 12);
+  --chart-1: oklch(0.65 0.18 265);
+  --chart-2: oklch(0.62 0.16 300);
+  --chart-3: oklch(0.55 0.18 200);
+  --chart-4: oklch(0.7 0.15 160);
+  --chart-5: oklch(0.6 0.2 340);
 
-  --iron: oklch(0.26 0.01 60);
-  --iron-foreground: oklch(0.94 0.004 75);
-  --slag: oklch(0.22 0.01 60);
-  --slag-foreground: oklch(0.94 0.004 75);
-  --ash: oklch(0.16 0.008 60);
-  --ash-foreground: oklch(0.92 0.004 75);
-  --ember: oklch(0.7 0.18 42);
-  --ember-foreground: oklch(0.12 0.008 60);
-  --rivet: oklch(0.55 0.015 60);
+  --iron: oklch(0.24 0.008 260);
+  --iron-foreground: oklch(0.93 0.003 260);
+  --slag: oklch(0.19 0.008 260);
+  --slag-foreground: oklch(0.93 0.003 260);
+  --ash: oklch(0.13 0.006 260);
+  --ash-foreground: oklch(0.9 0.003 260);
+  --ember: oklch(0.65 0.18 265);
+  --ember-foreground: oklch(0.12 0.006 260);
+  --rivet: oklch(0.5 0.01 260);
 
-  --sidebar: oklch(0.15 0.008 60);
-  --sidebar-foreground: oklch(0.94 0.004 75);
-  --sidebar-primary: oklch(0.7 0.18 42);
-  --sidebar-primary-foreground: oklch(0.12 0.008 60);
-  --sidebar-accent: oklch(0.22 0.01 60);
-  --sidebar-accent-foreground: oklch(0.94 0.004 75);
+  --sidebar: oklch(0.12 0.006 260);
+  --sidebar-foreground: oklch(0.93 0.003 260);
+  --sidebar-primary: oklch(0.65 0.18 265);
+  --sidebar-primary-foreground: oklch(0.12 0.006 260);
+  --sidebar-accent: oklch(0.19 0.008 260);
+  --sidebar-accent-foreground: oklch(0.93 0.003 260);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.7 0.18 42);
+  --sidebar-ring: oklch(0.65 0.18 265);
 }
 
 @layer base {
@@ -182,68 +180,41 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "ss01", "ss02", "cv01", "cv11";
-    font-variation-settings: "opsz" 14, "SOFT" 50, "WONK" 0;
     min-height: 100vh;
     position: relative;
     margin: 0;
   }
 
-  /* Forge grain — sub-pixel noise that does not interfere with text */
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 50;
-    opacity: 0.4;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-
-  /* Crosshair registration marks — used on dashboard +.Parameter backgrounds */
+  /* Subtle dot pattern for depth */
   .forge-grid {
     background-image:
-      linear-gradient(to right, color-mix(in oklch, var(--foreground) 8%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 8%, transparent) 1px, transparent 1px);
-    background-size: 56px 56px;
-    background-position: -1px -1px;
+      radial-gradient(circle, color-mix(in oklch, var(--foreground) 6%, transparent) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 
-  /* Ember peer into forge — radial used on dashboard hero */
+  /* Soft ambient glow */
   .forge-glow {
     background:
-      radial-gradient(circle at 78% 18%, color-mix(in oklch, var(--ember) 22%, transparent) 0%, transparent 42%),
-      radial-gradient(circle at 18% 84%, color-mix(in oklch, var(--ember) 14%, transparent) 0%, transparent 56%);
+      radial-gradient(circle at 78% 18%, color-mix(in oklch, var(--ember) 18%, transparent) 0%, transparent 42%),
+      radial-gradient(circle at 18% 84%, color-mix(in oklch, var(--ember) 10%, transparent) 0%, transparent 56%);
   }
 
-  /* Smolder pulse for active state — soft breathing ember */
+  /* Accent pulse for active state — subtle breathing glow */
   @keyframes ember-pulse {
     0%, 100% {
-      box-shadow: 0 0 0 0 color-mix(in oklch, var(--ember) 50%, transparent),
-                  inset 2px 0 0 0 var(--ember);
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--ember) 40%, transparent);
       opacity: 1;
     }
     50% {
-      box-shadow: 0 0 14px 1px color-mix(in oklch, var(--ember) 35%, transparent),
-                  inset 2px 0 0 0 var(--ember);
-      opacity: 0.85;
+      box-shadow: 0 0 12px 1px color-mix(in oklch, var(--ember) 25%, transparent);
+      opacity: 0.9;
     }
   }
   .ember-pulse {
     animation: ember-pulse 2.4s ease-in-out infinite;
   }
 
-  /* Smolder hover — slow brightening under cursor */
-  @keyframes smolder {
-    0% { background-color: color-mix(in oklch, var(--slag) 40%, transparent); }
-    100% { background-color: color-mix(in oklch, var(--ember) 18%, transparent); }
-  }
-  .smolder-hover:hover {
-    animation: smolder 0.5s ease-out forwards;
-  }
-
-  /* Smoldered text reveal — used for stream-indicator */
+  /* Stream indicator dots — animated typing indicator */
   @keyframes dot-hot {
     0%, 100% { opacity: 0.3; transform: translateY(0); }
     50% { opacity: 1; transform: translateY(-2px); }
@@ -260,29 +231,11 @@
   .dot-hot > span:nth-child(2) { animation-delay: 0.2s; }
   .dot-hot > span:nth-child(3) { animation-delay: 0.4s; }
 
-  /* Rivet decoration */
-  .forge-rivet {
-    position: relative;
-  }
-  .forge-rivet::before,
-  .forge-rivet::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    width: 5px;
-    height: 5px;
-    border-radius: 9999px;
-    background: var(--rivet);
-    box-shadow: 0 0 0 1px color-mix(in oklch, var(--rivet) 60%, transparent);
-    transform: translateY(-50%);
-  }
-
-  /* Page chrome utility — section heading numbering */
+  /* Page chrome utility — section heading */
   .display-host {
     font-family: var(--font-display);
-    font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 0;
     font-weight: 600;
-    letter-spacing: -0.04em;
+    letter-spacing: -0.03em;
   }
 
   /* Mono caption (tech / tag / version) */
@@ -299,7 +252,7 @@
     color: var(--foreground);
   }
 
-  /* Custom scrollbar — forged */
+  /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;

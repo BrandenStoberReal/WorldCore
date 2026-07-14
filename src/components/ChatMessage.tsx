@@ -75,7 +75,6 @@ export function ChatMessage({ msg, index = 0, characterAvatar }: ChatMessageProp
             )}
             style={{
               fontFamily: "var(--font-display)",
-              fontVariationSettings: "'opsz' 14, 'SOFT' 30",
             }}
           >
             {msg.name}

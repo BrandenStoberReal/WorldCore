@@ -80,7 +80,6 @@ export function Component() {
             </div>
             <h1
               className="display-host text-[82px] md:text-[104px] leading-[0.9] tracking-tighter"
-              style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 0, 'WONK' 1'" }}
             >
               Slop
               <span className="text-ember italic">Forge</span>

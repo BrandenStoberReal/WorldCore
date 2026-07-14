@@ -60,7 +60,6 @@ export function Sidebar() {
             <div className="flex flex-col leading-none min-w-0">
               <span
                 className="display-host text-[19px] truncate"
-                style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 30, 'WONK' 0'" }}
               >
                 Slop<span className="text-ember">Forge</span>
               </span>
@@ -163,12 +162,9 @@ export function Sidebar() {
           })}
         </ul>
 
-        {/* Divider with rivets */}
+        {/* Divider */}
         <div className={cn("mt-7 mb-5 px-5", !sidebarOpen && "px-3")}>
-          <div className="forge-rivet relative h-px bg-sidebar-border">
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 h-1 w-1 rounded-full bg-rivet shadow-[0_0_0_1px_var(--sidebar-border)]" />
-            <span className="absolute right-0 top-1/2 -translate-y-1/2 h-1 w-1 rounded-full bg-rivet shadow-[0_0_0_1px_var(--sidebar-border)]" />
-          </div>
+          <div className="relative h-px bg-sidebar-border" />
         </div>
 
         {/* Status pip */}
@@ -222,7 +218,7 @@ export function Sidebar() {
   );
 }
 
-/** Forged logo mark — a square mono-mark with ember accent and rivets. */
+/** Logo mark — a square mono-mark with accent color. */
 function ForgeMark({ collapsed }: { collapsed?: boolean }) {
   return (
     <div
@@ -232,14 +228,8 @@ function ForgeMark({ collapsed }: { collapsed?: boolean }) {
       )}
       aria-hidden
     >
-      {/* rivets at the four corners */}
-      <span className="absolute left-0.5 top-0.5 h-0.5 w-0.5 rounded-full bg-rivet" />
-      <span className="absolute right-0.5 top-0.5 h-0.5 w-0.5 rounded-full bg-rivet" />
-      <span className="absolute left-0.5 bottom-0.5 h-0.5 w-0.5 rounded-full bg-rivet" />
-      <span className="absolute right-0.5 bottom-0.5 h-0.5 w-0.5 rounded-full bg-rivet" />
       <div
         className="display-host leading-none text-sidebar-foreground text-[15px]"
-        style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 100, 'WONK' 1'" }}
       >
         <span className="text-ember">⌑</span>
       </div>

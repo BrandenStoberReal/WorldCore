@@ -43,7 +43,6 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
           {title ? (
             <h2
               className="display-host text-[20px] leading-none tracking-tight"
-              style={{ fontVariationSettings: "'opsz' 90, 'SOFT' 30" }}
             >
               {title}
             </h2>

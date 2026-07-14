@@ -141,7 +141,6 @@ export function Component() {
           </div>
           <h2
             className="display-host text-[42px] leading-none tracking-tight"
-            style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 20, 'WONK' 0'" }}
           >
             Personae
           </h2>

@@ -99,7 +99,6 @@ export function Layout() {
               <span className="mono-tag text-ember/80">{meta.number}</span>
               <span
                 className="display-host text-[22px] leading-none truncate"
-                style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 30, 'WONK' 0'" }}
               >
                 {meta.title}
               </span>
