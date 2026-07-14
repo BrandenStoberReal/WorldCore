@@ -1,56 +1,108 @@
-import { User, Bot } from "lucide-react";
 import type { ChatMessage as ChatMessageType } from "@/shared/types/chat";
+import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
   msg: ChatMessageType;
+  index?: number;
   characterAvatar?: string;
 }
 
-export function ChatMessage({ msg, characterAvatar }: ChatMessageProps) {
+export function ChatMessage({ msg, index = 0, characterAvatar }: ChatMessageProps) {
   const isUser = msg.is_user;
 
+  let ts: string;
+  try {
+    const raw = msg.send_date ?? "";
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) throw new Error("bad");
+    ts = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  } catch {
+    ts = "--:--";
+  }
+
+  const initial =
+    msg.name && msg.name.length > 0 ? msg.name[0]!.toUpperCase() : "?";
+
   return (
-    <div className={`flex gap-2 ${isUser ? "justify-end" : "justify-start"}`}>
-      {!isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-          {characterAvatar ? (
-            <img
-              src={characterAvatar}
-              alt={msg.name}
-              className="h-8 w-8 rounded-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
-          ) : (
-            <Bot className="h-4 w-4 text-muted-foreground" />
-          )}
-        </div>
+    <div
+      className={cn(
+        "group relative flex gap-3",
+        isUser ? "flex-row-reverse" : "flex-row",
       )}
-      <div className="max-w-[75%]">
-        <div className="flex items-center gap-1.5 mb-1">
-          {isUser ? (
-            <User className="h-3 w-3 text-muted-foreground" />
-          ) : (
-            <Bot className="h-3 w-3 text-muted-foreground" />
-          )}
-          <span className="text-xs font-medium text-muted-foreground">{msg.name}</span>
-        </div>
+    >
+      <div
+        className={cn(
+          "shrink-0 h-8 w-8 rounded-full overflow-hidden border flex items-center justify-center",
+          isUser
+            ? "border-ember/40 bg-ember/10"
+            : "border-border bg-muted/40",
+        )}
+      >
+        {isUser ? (
+          <span className="display-host text-ember text-[13px] font-semibold">
+            {initial}
+          </span>
+        ) : characterAvatar ? (
+          <img
+            src={characterAvatar}
+            alt={msg.name}
+            className="h-8 w-8 rounded-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+        ) : (
+          <span className="display-host text-foreground/70 text-[13px] italic">
+            {initial}
+          </span>
+        )}
+      </div>
+
+      <div className={cn("max-w-[78%] min-w-0 flex flex-col", isUser ? "items-end" : "items-start")}>
         <div
-          className={`rounded-lg px-3 py-2 text-sm ${
-            isUser
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted"
-          }`}
+          className={cn(
+            "flex items-center gap-2 mb-1 px-0.5",
+            isUser ? "flex-row-reverse" : "flex-row",
+          )}
         >
-          <p className="whitespace-pre-wrap break-words">{msg.mes}</p>
+          <span className="mono-tag text-muted-foreground/50 tabular-nums">
+            {String(index + 1).padStart(3, "0")}
+          </span>
+          <span
+            className={cn(
+              "text-[12px] font-medium tracking-tight truncate",
+              isUser ? "text-ember/90" : "text-foreground/80",
+            )}
+            style={{
+              fontFamily: "var(--font-display)",
+              fontVariationSettings: "'opsz' 14, 'SOFT' 30",
+            }}
+          >
+            {msg.name}
+          </span>
+          <span className="mono-tag text-muted-foreground/40 tabular-nums">
+            {ts}
+          </span>
+        </div>
+
+        <div
+          className={cn(
+            "relative rounded-sm px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap break-words",
+            isUser
+              ? "bg-ember/15 border border-ember/30 text-foreground"
+              : "bg-card border border-border text-foreground/90 shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_6%,transparent)]",
+          )}
+        >
+          {isUser && (
+            <span
+              aria-hidden
+              className="absolute -left-px top-0 bottom-0 w-px bg-ember"
+            />
+          )}
+          {msg.mes}
         </div>
       </div>
-      {isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20">
-          <User className="h-4 w-4 text-primary" />
-        </div>
-      )}
     </div>
   );
 }
+

@@ -19,6 +19,7 @@ import {
   Calendar,
   GitBranch,
 } from "lucide-react";
+import { cn, hammeredPlate } from "@/lib/utils";
 import type { ExtensionInfo } from "@/shared/types/extensions";
 
 export function Component() {
@@ -110,91 +111,149 @@ export function Component() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center h-64 flex-col gap-3">
+        <Loader2 className="h-7 w-7 animate-spin text-ember" />
+        <span className="mono-tag text-muted-foreground/55">
+          indexing modules
+        </span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-destructive">Error: {error.message}</p>
+      <div
+        className={cn(
+          hammeredPlate,
+          "flex items-center justify-center h-64",
+        )}
+      >
+        <span className="mono-tag text-destructive">{error.message}</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="relative space-y-7">
+      {/* Section header */}
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Extensions</h2>
-          <p className="text-muted-foreground">
-            {extensions?.length ?? 0} extensions installed
+          <div className="flex items-center gap-3 mb-2">
+            <span className="mono-tag text-ember">{`[05] — MODULES`}</span>
+            <span className="h-px w-10 bg-ember/40" />
+          </div>
+          <h2
+            className="display-host text-[42px] leading-none tracking-tight"
+            style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 20, 'WONK' 0'" }}
+          >
+            Extensions
+          </h2>
+          <p className="text-sm text-muted-foreground mt-2 max-w-md">
+            Modular forgings that extend the workspace. Install, update, and
+            toggle whose hammer rings on the anvil.
           </p>
         </div>
+
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             onClick={() => updateAllMutation.mutate()}
             disabled={updateAllMutation.isPending || !extensions?.length}
+            className="h-9"
           >
-            <RefreshCw className="h-4 w-4" />
-            Update All
+            <RefreshCw className={cn("h-3.5 w-3.5", updateAllMutation.isPending && "animate-spin")} />
+            <span className="mono-tag">UPDATE ALL</span>
           </Button>
-          <Button onClick={() => setInstallOpen(true)}>
-            <Download className="h-4 w-4" />
-            Install
+          <Button
+            onClick={() => setInstallOpen(true)}
+            className="h-9 ember-pulse"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span className="mono-tag font-bold">INSTALL</span>
           </Button>
         </div>
+      </header>
+
+      <div className="flex items-center gap-1.5 h-9 px-3 border border-border bg-background/40 rounded-sm self-start">
+        <span className="mono-tag text-muted-foreground/55">modules</span>
+        <span className="mono-tag text-ember tabular-nums">
+          {String(extensions?.length ?? 0).padStart(2, "0")}
+        </span>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {extensions?.map((ext) => (
-          <Card key={ext.name} className={ext.enabled ? "" : "opacity-60"}>
-            <CardHeader className="flex-row items-center justify-between pb-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <Package className="h-5 w-5 text-muted-foreground shrink-0" />
-                <CardTitle className="truncate text-base">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {extensions?.map((ext, idx) => (
+          <Card
+            key={ext.name}
+            className={cn(
+              hammeredPlate,
+              "group relative rounded-sm py-0 overflow-hidden transition-all",
+              "hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]",
+              ext.enabled ? "" : "opacity-55",
+            )}
+          >
+            {/* Top rail */}
+            <div className="flex items-center justify-between px-4 py-2.5 bg-background/30 border-b border-border/60">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="mono-tag text-muted-foreground/45 tabular-nums">
+                  {`#${String(idx + 1).padStart(2, "0")}`}
+                </span>
+                <Package className="h-3.5 w-3.5 text-ember/70 shrink-0" />
+                <span className="mono-tag text-ember/80 truncate">
                   {ext.displayName}
-                </CardTitle>
+                </span>
               </div>
-              <ToggleSwitch
+              <ForgeToggle
                 enabled={ext.enabled}
                 onToggle={() =>
                   toggleMutation.mutate({ name: ext.name, enable: !ext.enabled })
                 }
               />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {ext.description}
+            </div>
+
+            <CardContent className="p-4 space-y-3">
+              <p className="text-[13px] leading-relaxed text-foreground/75 line-clamp-2">
+                {ext.description || (
+                  <span className="italic text-muted-foreground/40">
+                    no description supplied
+                  </span>
+                )}
               </p>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
+
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="inline-flex items-center gap-1 mono-tag text-muted-foreground/65">
                   <GitBranch className="h-3 w-3" />
                   v{ext.version}
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 mono-tag text-muted-foreground/65">
                   <User className="h-3 w-3" />
-                  {ext.author}
+                  {ext.author || "anon"}
                 </span>
                 {ext.lastUpdated && (
-                  <span className="flex items-center gap-1">
+                  <span className="inline-flex items-center gap-1 mono-tag text-muted-foreground/65">
                     <Calendar className="h-3 w-3" />
                     {new Date(ext.lastUpdated).toLocaleDateString()}
                   </span>
                 )}
               </div>
-              <div className="flex justify-end">
+
+              <div className="flex justify-end pt-1 border-t border-border/40 -mx-4 -mb-1 px-4 pb-1">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => updateMutation.mutate(ext.name)}
                   disabled={updateMutation.isPending}
+                  className="h-7"
                 >
-                  <RefreshCw className="h-3 w-3" />
-                  Update
+                  <RefreshCw
+                    className={cn(
+                      "h-3 w-3",
+                      updateMutation.isPending &&
+                        updateMutation.variables === ext.name &&
+                        "animate-spin",
+                    )}
+                  />
+                  <span className="mono-tag">UPDATE MODULE</span>
                 </Button>
               </div>
             </CardContent>
@@ -203,36 +262,66 @@ export function Component() {
       </div>
 
       {extensions?.length === 0 && (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground">No extensions installed.</p>
+        <Card
+          className={cn(
+            hammeredPlate,
+            "relative overflow-hidden rounded-sm py-16",
+          )}
+        >
+          <CardContent className="flex flex-col items-center justify-center text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-sm border border-border bg-muted/40 mb-4">
+              <Package className="h-6 w-6 text-ember/60" />
+            </div>
+            <h3 className="display-host text-xl mb-1">No modules</h3>
+            <p className="mono-tag text-muted-foreground/55 mb-5">
+              install a module from URL to extend the forge
+            </p>
+            <Button onClick={() => setInstallOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Install Module
+            </Button>
           </CardContent>
         </Card>
       )}
 
       {/* Install Modal */}
-      <Modal open={installOpen} onClose={() => setInstallOpen(false)} title="Install Extension">
+      <Modal
+        open={installOpen}
+        onClose={() => setInstallOpen(false)}
+        title="Install Module"
+        className="max-w-xl"
+      >
         <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Extension URL</label>
+          <div className="space-y-1.5">
+            <label className="mono-tag text-muted-foreground/70">MODULE URL</label>
             <Input
               value={installUrl}
               onChange={(e) => setInstallUrl(e.target.value)}
               placeholder="https://github.com/..."
+              className="font-mono text-[13px]"
             />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Provide a Git repository URL or direct download link.
+          <p className="mono-tag text-muted-foreground/55">
+            git repository or direct download link accepted
           </p>
-          <div className="flex justify-end gap-2">
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-border/60">
             <Button variant="outline" onClick={() => setInstallOpen(false)}>
-              Cancel
+              <span className="mono-tag">cancel</span>
             </Button>
             <Button
               onClick={() => installMutation.mutate(installUrl)}
               disabled={!installUrl.trim() || installMutation.isPending}
+              className="ember-pulse"
             >
-              {installMutation.isPending ? "Installing..." : "Install"}
+              {installMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              <span className="mono-tag font-bold">
+                {installMutation.isPending ? "FORGING..." : "INSTALL"}
+              </span>
             </Button>
           </div>
         </div>
@@ -241,7 +330,7 @@ export function Component() {
   );
 }
 
-function ToggleSwitch({
+function ForgeToggle({
   enabled,
   onToggle,
 }: {
@@ -253,15 +342,17 @@ function ToggleSwitch({
       role="switch"
       aria-checked={enabled}
       onClick={onToggle}
-      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-        enabled ? "bg-green-500" : "bg-input"
-      }`}
+      className={cn(
+        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+        enabled ? "bg-ember" : "bg-muted",
+      )}
     >
-      <span className="sr-only">Toggle</span>
+      <span className="sr-only">Toggle module</span>
       <span
-        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform ${
-          enabled ? "translate-x-4" : "translate-x-0"
-        }`}
+        className={cn(
+          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow ring-0 transition-transform",
+          enabled ? "translate-x-4" : "translate-x-0",
+        )}
       />
     </button>
   );

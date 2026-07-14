@@ -1,13 +1,69 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="SlopForge — character cards, chat, world info, extensions. Hammer your AI into shape." />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#1a1818" />
     <link rel="icon" type="image/svg+xml" href="./logo.svg" />
-    <title>SlopForge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap"
+    />
+    <title>SlopForge — Hammer Your AI</title>
+    <style>
+      html, body { background-color: #1a1815; color: #efe9e0; margin: 0; }
+      #root { min-height: 100vh; }
+      #boot-flare {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 78% 18%, rgba(220, 90, 30, 0.18) 0%, transparent 42%),
+          radial-gradient(circle at 18% 84%, rgba(220, 90, 30, 0.12) 0%, transparent 56%);
+        opacity: 1;
+        transition: opacity 0.6s ease;
+      }
+      #boot-flare .flare-mark {
+        font-family: "Times New Roman", serif;
+        font-size: 64px;
+        font-weight: 600;
+        letter-spacing: -0.04em;
+        color: #efe9e0;
+        opacity: 0.85;
+        animation: ember-glow 2.4s ease-in-out infinite;
+      }
+      @keyframes ember-glow {
+        0%, 100% { text-shadow: 0 0 12px rgba(220, 90, 30, 0.4); }
+        50% { text-shadow: 0 0 24px rgba(220, 90, 30, 0.7), 0 0 60px rgba(220, 90, 30, 0.25); }
+      }
+    </style>
     <script type="module" src="./frontend.tsx" async></script>
   </head>
   <body>
+    <div id="boot-flare">
+      <span class="flare-mark">SlopForge</span>
+    </div>
     <div id="root"></div>
+    <script type="module">
+      // Retire the boot flare once React has hydrated.
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const flare = document.getElementById("boot-flare");
+          if (flare) {
+            flare.style.opacity = "0";
+            setTimeout(() => flare.remove(), 700);
+          }
+        }, 240);
+      });
+    </script>
   </body>
 </html>

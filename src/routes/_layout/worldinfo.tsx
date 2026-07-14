@@ -3,13 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/Modal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
@@ -18,10 +15,11 @@ import {
   Trash2,
   Search,
   Pencil,
-  Hash,
   Layers,
-  GripVertical,
+  Hash,
+  Flame,
 } from "lucide-react";
+import { cn, hammeredPlate } from "@/lib/utils";
 import type { WorldInfo, WorldInfoEntry } from "@/shared/types/worldinfo";
 
 interface FormState {
@@ -210,7 +208,7 @@ export function Component() {
     }
   };
 
-  const openEdit = (entry: (WorldInfoEntry & { uid: string }) & { wiName: string; wiFileId: string }) => {
+  const openEdit = (entry: WorldInfoEntry & { uid: string; wiName: string; wiFileId: string }) => {
     setEditUid(entry.uid);
     setForm({
       key: entry.key,
@@ -228,100 +226,195 @@ export function Component() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center h-64 flex-col gap-3">
+        <Loader2 className="h-7 w-7 animate-spin text-ember" />
+        <span className="mono-tag text-muted-foreground/55">
+          scanning tablets
+        </span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-destructive">Error: {error.message}</p>
+      <div
+        className={cn(
+          hammeredPlate,
+          "flex items-center justify-center h-64",
+        )}
+      >
+        <span className="mono-tag text-destructive">{error.message}</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="relative space-y-7">
+      {/* Section header */}
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">World Info</h2>
-          <p className="text-muted-foreground">
-            {filtered?.length ?? 0} of {allEntries?.length ?? 0} entries
+          <div className="flex items-center gap-3 mb-2">
+            <span className="mono-tag text-ember">{`[03] — ARCHIVE`}</span>
+            <span className="h-px w-10 bg-ember/40" />
+          </div>
+          <h2
+            className="display-host text-[42px] leading-none tracking-tight"
+            style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 20, 'WONK' 0'" }}
+          >
+            Lore Tablets
+          </h2>
+          <p className="text-sm text-muted-foreground mt-2 max-w-md">
+            Triggered knowledge fragments: keys, secondary keywords, depth, and
+            probability gating the lore the model can summon mid-conversation.
           </p>
         </div>
+
         <Button
           onClick={() => {
             setEditUid(null);
             setForm(emptyForm());
             setModalOpen(true);
           }}
+          className="h-9 ember-pulse"
         >
-          <Plus className="h-4 w-4" />
-          New Entry
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
+          <span className="text-[13px] font-semibold tracking-tight">
+            New Tablet
+          </span>
         </Button>
+      </header>
+
+      {/* Search rail */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[260px]">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/55" />
+          <Input
+            placeholder="query · key, secondary, or content fragment..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9 font-mono text-[13px] tracking-tight"
+          />
+        </div>
+        <div className="flex items-center gap-1.5 h-9 px-3 border border-border bg-background/40 rounded-sm">
+          <span className="mono-tag text-muted-foreground/55">tablets</span>
+          <span className="mono-tag text-ember tabular-nums">
+            {String(filtered?.length ?? 0).padStart(2, "0")}
+          </span>
+          <span className="mono-tag text-muted-foreground/40">/</span>
+          <span className="mono-tag text-foreground/70 tabular-nums">
+            {String(allEntries?.length ?? 0).padStart(2, "0")}
+          </span>
+        </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search by keyword or content..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
+      {/* Entry list */}
       <div className="grid gap-3">
-        {filtered?.map((entry) => (
-          <Card key={entry.uid} className="transition-shadow hover:shadow-md">
-            <CardHeader className="flex-row items-center gap-3 pb-2">
-              <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
-              <div className="min-w-0 flex-1">
-                <CardTitle className="truncate text-base">{entry.key}</CardTitle>
+        {filtered?.map((entry, idx) => (
+          <Card
+            key={entry.uid}
+            className={cn(
+              hammeredPlate,
+              "group relative rounded-sm py-0 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]",
+              entry.disable ? "opacity-55" : "",
+            )}
+          >
+            {/* Top rail */}
+            <div className="flex items-center justify-between px-4 py-2 bg-background/30 border-b border-border/60">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="mono-tag text-muted-foreground/55 tabular-nums">
+                  {`#${String(idx + 1).padStart(3, "0")}`}
+                </span>
+                <span className="mono-tag text-ember/70 truncate">
+                  {entry.key || "{no_key}"}
+                </span>
+                {!entry.disable && (
+                  <span className="mono-tag px-1.5 py-0.5 rounded-sm bg-ember/15 text-ember">
+                    ON
+                  </span>
+                )}
+                {entry.disable && (
+                  <span className="mono-tag px-1.5 py-0.5 rounded-sm bg-muted/50 text-muted-foreground/55">
+                    OFF
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Layers className="h-3 w-3" />
-                  Depth: {entry.depth}
-                </span>
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Hash className="h-3 w-3" />
-                  {entry.keysecondary.length} keywords
-                </span>
+
+              <div className="flex items-center gap-1 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => openEdit(entry)}
+                  className="h-7 w-7 hover:text-ember"
                 >
                   <Pencil className="h-3 w-3" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="text-destructive"
-                  onClick={() =>
-                    setDeleteUid(entry.uid)
-                  }
+                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                  onClick={() => setDeleteUid(entry.uid)}
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              <p className="line-clamp-2 text-sm text-muted-foreground">
-                {entry.content || "No content"}
+            </div>
+
+            <CardContent className="px-4 py-3 space-y-3">
+              {/* Card body */}
+              <p className="text-[13.5px] leading-relaxed text-foreground/80 line-clamp-2">
+                {entry.content || (
+                  <span className="italic text-muted-foreground/40">
+                    no content inscribed
+                  </span>
+                )}
               </p>
+
+              {/* Badges */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge label="DEPTH" value={String(entry.depth)} icon={Layers} />
+                <Badge
+                  label="PROB"
+                  value={entry.probability.toFixed(2)}
+                  icon={Flame}
+                  accent
+                />
+                <Badge
+                  label="KEYS"
+                  value={String(entry.keysecondary.length)}
+                  icon={Hash}
+                />
+                <Badge
+                  label="MODE"
+                  value={
+                    entry.constant ? "CONST" : entry.selective ? "SELECT" : "TRIG"
+                  }
+                />
+                {entry.comment && (
+                  <span className="mono-tag text-muted-foreground/55 truncate min-w-0 ml-auto">
+                    {entry.comment}
+                  </span>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {filtered?.length === 0 && (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground">No world info entries found.</p>
+        <Card
+          className={cn(
+            hammeredPlate,
+            "relative overflow-hidden rounded-sm py-16",
+          )}
+        >
+          <CardContent className="flex flex-col items-center justify-center text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-sm border border-border bg-muted/40 mb-4">
+              <span className="display-host text-ember text-2xl">∅</span>
+            </div>
+            <h3 className="display-host text-xl mb-1">Archive empty</h3>
+            <p className="mono-tag text-muted-foreground/55">
+              inscribe your first lore tablet
+            </p>
           </CardContent>
         </Card>
       )}
@@ -334,57 +427,58 @@ export function Component() {
           setEditUid(null);
           setForm(emptyForm());
         }}
-        title={editUid ? "Edit Entry" : "New Entry"}
+        title={editUid ? "Reinscribe Tablet" : "Inscribe Tablet"}
+        className="max-w-2xl"
       >
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Keywords (comma separated)</Label>
+          <FieldRow label="KEYWORDS">
             <Input
               value={form.key}
               onChange={(e) => setForm({ ...form, key: e.target.value })}
-              placeholder="Main keyword"
+              placeholder="primary trigger key"
+              className="font-mono text-[13px]"
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Secondary Keywords (comma separated)</Label>
+          </FieldRow>
+          <FieldRow label="SECONDARY (comma sep)">
             <Input
               value={form.keysecondary}
               onChange={(e) =>
                 setForm({ ...form, keysecondary: e.target.value })
               }
-              placeholder="Secondary keywords"
+              placeholder="secondary keys"
+              className="font-mono text-[13px]"
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Content</Label>
+          </FieldRow>
+          <FieldRow label="CONTENT">
             <Textarea
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
-              placeholder="Entry content"
-              rows={4}
+              placeholder="the lore this tablet will inject when triggered"
+              rows={5}
+              className="text-[13px]"
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Comment</Label>
+          </FieldRow>
+          <FieldRow label="COMMENT">
             <Input
               value={form.comment}
               onChange={(e) => setForm({ ...form, comment: e.target.value })}
-              placeholder="Optional comment"
+              placeholder="optional note"
+              className="text-[13px]"
             />
-          </div>
+          </FieldRow>
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Depth</Label>
+            <FieldRow label="DEPTH">
               <Input
                 type="number"
                 value={form.depth}
                 onChange={(e) =>
                   setForm({ ...form, depth: parseInt(e.target.value, 10) || 0 })
                 }
+                className="font-mono"
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Probability</Label>
+            </FieldRow>
+            <FieldRow label="PROBABILITY">
               <Input
                 type="number"
                 step="0.1"
@@ -397,42 +491,34 @@ export function Component() {
                     probability: parseFloat(e.target.value) ?? 1,
                   })
                 }
+                className="font-mono"
               />
-            </div>
+            </FieldRow>
           </div>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.constant}
-                onChange={(e) =>
-                  setForm({ ...form, constant: e.target.checked })
-                }
-              />
-              Constant (always active)
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.selective}
-                onChange={(e) =>
-                  setForm({ ...form, selective: e.target.checked })
-                }
-              />
-              Selective
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.enabled}
-                onChange={(e) =>
-                  setForm({ ...form, enabled: e.target.checked })
-                }
-              />
-              Enabled
-            </label>
+
+          <div className="space-y-2 pt-1">
+            <ToggleRow
+              label="Constant"
+              caption="always injected regardless of triggers"
+              checked={form.constant}
+              onChange={(v) => setForm({ ...form, constant: v })}
+            />
+            <ToggleRow
+              label="Selective"
+              caption="requires secondary keys to match"
+              checked={form.selective}
+              onChange={(v) => setForm({ ...form, selective: v })}
+            />
+            <ToggleRow
+              label="Enabled"
+              caption="tablet is active and available"
+              checked={form.enabled}
+              onChange={(v) => setForm({ ...form, enabled: v })}
+              ember
+            />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-border/60">
             <Button
               variant="outline"
               onClick={() => {
@@ -441,13 +527,15 @@ export function Component() {
                 setForm(emptyForm());
               }}
             >
-              Cancel
+              <span className="mono-tag">cancel</span>
             </Button>
             <Button
               onClick={handleSave}
               disabled={!form.key.trim()}
             >
-              {editUid ? "Update" : "Create"}
+              <span className="mono-tag">
+                {editUid ? "UPDATE" : "INSCRIBE"}
+              </span>
             </Button>
           </div>
         </div>
@@ -468,10 +556,100 @@ export function Component() {
             }
           }
         }}
-        title="Delete Entry"
-        message="Are you sure you want to delete this world info entry?"
-        confirmLabel="Delete"
+        title="Condemn Tablet"
+        message="Cast this lore tablet into the slag heap? This action cannot be undone."
+        confirmLabel="Condemn"
       />
     </div>
+  );
+}
+
+function FieldRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="mono-tag text-muted-foreground/70">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function ToggleRow({
+  label,
+  caption,
+  checked,
+  onChange,
+  ember,
+}: {
+  label: string;
+  caption?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  ember?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="flex items-center justify-between w-full px-3 py-2 rounded-sm border border-border bg-background/40 hover:bg-accent/30 transition-colors text-left"
+    >
+      <div className="flex flex-col">
+        <span className="text-[13px] font-medium">{label}</span>
+        {caption && (
+          <span className="mono-tag text-muted-foreground/55 mt-0.5">
+            {caption}
+          </span>
+        )}
+      </div>
+      <span
+        className={cn(
+          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+          checked
+            ? ember
+              ? "bg-ember"
+              : "bg-foreground/70"
+            : "bg-muted",
+        )}
+      >
+        <span
+          className={cn(
+            "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow ring-0 transition-transform",
+            checked ? "translate-x-4" : "translate-x-0",
+          )}
+        />
+      </span>
+    </button>
+  );
+}
+
+function Badge({
+  label,
+  value,
+  icon: Icon,
+  accent,
+}: {
+  label: string;
+  value: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  accent?: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 px-2 py-1 rounded-sm border text-[11px]",
+        accent
+          ? "border-ember/40 bg-ember/10 text-ember"
+          : "border-border bg-muted/40 text-foreground/70",
+      )}
+    >
+      <span className="mono-tag opacity-70">{label}</span>
+      {Icon && <Icon className="h-3 w-3 opacity-70" />}
+      <span className="mono-tag font-bold tabular-nums">{value}</span>
+    </span>
   );
 }

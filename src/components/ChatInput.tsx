@@ -39,39 +39,64 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
   };
 
   return (
-    <div className="border-t bg-background p-3">
-      <div className="flex items-end gap-2">
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
-          rows={1}
-          className="flex min-h-9 max-h-40 w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 field-sizing-content"
-          disabled={disabled && !isGenerating}
-        />
-        {isGenerating ? (
-          <Button
-            size="icon"
-            variant="outline"
-            onClick={onStop}
-            className="shrink-0 mb-0.5"
-            title="Stop generation"
-          >
-            <Square className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button
-            size="icon"
-            onClick={handleSubmit}
-            disabled={!value.trim() || disabled}
-            className="shrink-0 mb-0.5"
-            title="Send message"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        )}
+    <div className="border-t border-border bg-background/60 backdrop-blur-sm p-3 md:p-4 shrink-0">
+      <div className="relative max-w-3xl mx-auto">
+        {/* Stoker frame — outer ring with ember hairline */}
+        <div className="relative rounded-sm border border-border bg-card/60 focus-within:border-ember/60 transition-colors shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)]">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-px left-6 right-6 h-px bg-gradient-to-r from-transparent via-ember/60 to-transparent opacity-0 focus-within:opacity-100 transition-opacity"
+          />
+          <div className="flex items-end gap-2 px-3 pt-3 pb-3">
+            <div className="flex flex-col gap-1 justify-between shrink-0">
+              <span className="mono-tag text-ember/70">{`>`}</span>
+              <span className="mono-tag text-muted-foreground/40">STOKE</span>
+            </div>
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={isGenerating ? "hamering in progress..." : "transmit text to the forge..."}
+              rows={1}
+              className="flex min-h-9 max-h-40 flex-1 resize-none bg-transparent text-[13.5px] leading-relaxed outline-none font-mono placeholder:text-muted-foreground/50 disabled:opacity-50"
+              disabled={disabled && !isGenerating}
+            />
+          </div>
+        </div>
+
+        {/* Action rail */}
+        <div className="mt-2 flex items-center justify-between">
+          <div className="flex items-center gap-3 mono-tag text-muted-foreground/40">
+            <span>{`{ esc }`} dismiss</span>
+            <span>{`{ ⇧ + ⏎ }`} newline</span>
+            <span>{`{ ⏎ }`} transmit</span>
+          </div>
+
+          {isGenerating ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onStop}
+              className="h-7 gap-1.5 hover:border-destructive/60 hover:text-destructive"
+              title="Stop generation"
+            >
+              <Square className="h-3 w-3 fill-current" />
+              <span className="mono-tag">ABORT</span>
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={handleSubmit}
+              disabled={!value.trim() || disabled}
+              className="h-7 gap-1.5"
+              title="Send message"
+            >
+              <Send className="h-3 w-3" />
+              <span className="mono-tag font-bold">TRANSMIT</span>
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

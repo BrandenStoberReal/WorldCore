@@ -9,7 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save, RotateCcw, Check } from "lucide-react";
+import { Loader2, Save, RotateCcw, Check, Flame } from "lucide-react";
+import { cn, hammeredPlate } from "@/lib/utils";
 import type { SettingsObject } from "@/shared/types/settings";
 
 interface SettingsForm {
@@ -37,21 +38,22 @@ const defaultForm: SettingsForm = {
   stream: "true",
 };
 
-const fields: { key: keyof SettingsForm; label: string; type?: string }[] = [
-  { key: "model", label: "Model" },
-  { key: "temperature", label: "Temperature", type: "number" },
-  { key: "max_tokens", label: "Max Tokens", type: "number" },
-  { key: "top_p", label: "Top P", type: "number" },
-  { key: "top_k", label: "Top K", type: "number" },
-  { key: "repetition_penalty", label: "Repetition Penalty", type: "number" },
-  { key: "presence_penalty", label: "Presence Penalty", type: "number" },
-  { key: "frequency_penalty", label: "Frequency Penalty", type: "number" },
-  { key: "stream", label: "Stream" },
+const fields: { key: keyof SettingsForm; label: string; type?: string; caption: string }[] = [
+  { key: "model",              label: "Model",              caption: "model id · e.g. gpt-4o-mini" },
+  { key: "temperature",        label: "Temperature",        type: "number", caption: "creativity knob (0-2)" },
+  { key: "max_tokens",         label: "Max Tokens",          type: "number", caption: "response upper bound" },
+  { key: "top_p",              label: "Top P",               type: "number", caption: "nucleus sampling cutoff" },
+  { key: "top_k",              label: "Top K",               type: "number", caption: "top-k sampling pool" },
+  { key: "repetition_penalty", label: "Repetition Penalty",  type: "number", caption: "nudge repetition" },
+  { key: "presence_penalty",   label: "Presence Penalty",    type: "number", caption: "encourage new tokens" },
+  { key: "frequency_penalty",  label: "Frequency Penalty",   type: "number", caption: "decay frequent tokens" },
+  { key: "stream",             label: "Stream",             caption: "true or false" },
 ];
 
 export function Component() {
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
+  const [showRaw, setShowRaw] = useState(false);
 
   const { data: settings, isLoading, error } = useQuery<SettingsObject>({
     queryKey: ["/api/v1/settings/get"],
@@ -104,36 +106,109 @@ export function Component() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center h-64 flex-col gap-3">
+        <Loader2 className="h-7 w-7 animate-spin text-ember" />
+        <span className="mono-tag text-muted-foreground/55">
+          tempering parameters
+        </span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-destructive">Error: {error.message}</p>
+      <div
+        className={cn(
+          hammeredPlate,
+          "flex items-center justify-center h-64",
+        )}
+      >
+        <span className="mono-tag text-destructive">{error.message}</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
-        <p className="text-muted-foreground">Application configuration</p>
-      </div>
+    <div className="relative space-y-7 max-w-5xl">
+      {/* Section header */}
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="mono-tag text-ember">{`[04] — TONGS`}</span>
+            <span className="h-px w-10 bg-ember/40" />
+          </div>
+          <h2
+            className="display-host text-[42px] leading-none tracking-tight"
+            style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 20, 'WONK' 0'" }}
+          >
+            Forge Parameters
+          </h2>
+          <p className="text-sm text-muted-foreground mt-2 max-w-md">
+            Generation dials that shape how the forge strikes. Sliders,
+            penalties, and stop points for the LLM backend.
+          </p>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Generation Settings</CardTitle>
+        <div className="flex items-center gap-3">
+          {saved && (
+            <span className="inline-flex items-center gap-2 text-ember">
+              <Check className="h-4 w-4" />
+              <span className="mono-tag">SAVED</span>
+            </span>
+          )}
+          <Button variant="outline" onClick={handleReset} className="h-9">
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span className="mono-tag">RESET</span>
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={saveMutation.isPending}
+            className="h-9 ember-pulse"
+          >
+            {saveMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Save className="h-3.5 w-3.5" />
+            )}
+            <span className="mono-tag font-bold">
+              {saveMutation.isPending ? "TEMPERING..." : "QUENCH"}
+            </span>
+          </Button>
+        </div>
+      </header>
+
+      {/* Parameters grid */}
+      <Card
+        className={cn(
+          hammeredPlate,
+          "relative rounded-sm overflow-hidden py-0",
+        )}
+      >
+        <CardHeader className="flex-row items-center justify-between border-b border-border/60 px-5 py-3">
+          <div className="flex items-center gap-3">
+            <Flame className="h-4 w-4 text-ember" />
+            <CardTitle className="display-host text-[18px] tracking-tight">
+              Generation
+            </CardTitle>
+          </div>
+          <span className="mono-tag text-muted-foreground/45">{`${fields.length} dials`}</span>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            {fields.map((f) => (
-              <div key={f.key} className="space-y-2">
-                <Label>{f.label}</Label>
+
+        <CardContent className="p-5">
+          <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+            {fields.map((f, idx) => (
+              <div key={f.key} className="space-y-1.5">
+                <div className="flex items-baseline justify-between">
+                  <Label className="text-[13px] font-medium">
+                    <span className="mono-tag text-muted-foreground/45 mr-2">
+                      {String(idx + 1).padStart(2, "0")}
+                    </span>
+                    {f.label}
+                  </Label>
+                  <span className="mono-tag text-muted-foreground/45">
+                    {f.type === "number" ? "float" : "string"}
+                  </span>
+                </div>
                 <Input
                   type={f.type ?? "text"}
                   step={f.type === "number" ? "0.01" : undefined}
@@ -141,40 +216,59 @@ export function Component() {
                   onChange={(e) =>
                     setForm({ ...form, [f.key]: e.target.value })
                   }
+                  className="font-mono text-[13px]"
                 />
+                <span className="mono-tag text-muted-foreground/50">
+                  {f.caption}
+                </span>
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
 
-          {settings && (
-            <div className="pt-4 border-t">
-              <h4 className="text-sm font-medium mb-2 text-muted-foreground">
-                Raw Settings
-              </h4>
-              <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-48">
-                {JSON.stringify(settings, null, 2)}
-              </pre>
+      {/* Raw settings drawer */}
+      <Card
+        className={cn(
+          hammeredPlate,
+          "relative rounded-sm overflow-hidden py-0",
+        )}
+      >
+        <CardHeader className="flex-row items-center justify-between border-b border-border/60 px-5 py-3">
+          <div className="flex items-center gap-3">
+            <span className="mono-tag text-ember">{`> raw`}</span>
+            <CardTitle className="display-host text-[18px] tracking-tight">
+              Raw Manifest
+            </CardTitle>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowRaw(!showRaw)}
+            className="mono-tag text-muted-foreground/65 hover:text-ember transition-colors"
+          >
+            {showRaw ? "COLLAPSE" : "EXPAND"}
+          </button>
+        </CardHeader>
+        <CardContent className="p-0">
+          {showRaw && settings ? (
+            <pre
+              className="text-[11.5px] leading-snug font-mono p-5 m-0 max-h-72 overflow-auto forge-grid"
+              style={{
+                background:
+                  "color-mix(in oklch, var(--background) 80%, transparent)",
+              }}
+            >
+              {JSON.stringify(settings, null, 2)}
+            </pre>
+          ) : (
+            <div className="px-5 py-4 text-[12px] text-muted-foreground/55 italic">
+              {showRaw
+                ? "no settings manifest present"
+                : "raw JSON hidden — click expand to expose"}
             </div>
           )}
         </CardContent>
       </Card>
-
-      <div className="flex items-center gap-3">
-        <Button onClick={handleSave} disabled={saveMutation.isPending}>
-          <Save className="h-4 w-4" />
-          {saveMutation.isPending ? "Saving..." : "Save"}
-        </Button>
-        <Button variant="outline" onClick={handleReset}>
-          <RotateCcw className="h-4 w-4" />
-          Reset
-        </Button>
-        {saved && (
-          <span className="flex items-center gap-1 text-sm text-green-600">
-            <Check className="h-4 w-4" />
-            Saved
-          </span>
-        )}
-      </div>
     </div>
   );
 }
