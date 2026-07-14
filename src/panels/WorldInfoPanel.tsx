@@ -20,6 +20,7 @@ import {
   Flame,
 } from "lucide-react";
 import { cn, surfaceCard } from "@/lib/utils";
+import { InlineSection } from "@/components/drawers/InlineSection";
 import type { WorldInfo, WorldInfoEntry } from "@/shared/types/worldinfo";
 
 interface FormState {
@@ -46,7 +47,7 @@ const emptyForm = (): FormState => ({
   enabled: true,
 });
 
-export function Component() {
+export function WorldInfoPanel() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -249,7 +250,7 @@ export function Component() {
   }
 
   return (
-    <div className="relative isolate section-rhythm">
+    <div data-panel="worldinfo" className="relative isolate section-rhythm">
       {/* Section header */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
@@ -284,27 +285,29 @@ export function Component() {
       </header>
 
       {/* Search rail */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[260px]">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/55" />
-          <Input
-            placeholder="query · key, secondary, or content fragment..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9 font-mono text-[13px] tracking-tight"
-          />
+      <InlineSection panelId="worldinfo" sectionId="search" title="Search & Filter">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[260px]">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/55" />
+            <Input
+              placeholder="query · key, secondary, or content fragment..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9 font-mono text-[13px] tracking-tight"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 h-9 px-3 border border-border bg-background/40 rounded-sm">
+            <span className="mono-tag text-muted-foreground/55">tablets</span>
+            <span className="mono-tag text-ember tabular-nums">
+              {String(filtered?.length ?? 0).padStart(2, "0")}
+            </span>
+            <span className="mono-tag text-muted-foreground/40">/</span>
+            <span className="mono-tag text-foreground/70 tabular-nums">
+              {String(allEntries?.length ?? 0).padStart(2, "0")}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 h-9 px-3 border border-border bg-background/40 rounded-sm">
-          <span className="mono-tag text-muted-foreground/55">tablets</span>
-          <span className="mono-tag text-ember tabular-nums">
-            {String(filtered?.length ?? 0).padStart(2, "0")}
-          </span>
-          <span className="mono-tag text-muted-foreground/40">/</span>
-          <span className="mono-tag text-foreground/70 tabular-nums">
-            {String(allEntries?.length ?? 0).padStart(2, "0")}
-          </span>
-        </div>
-      </div>
+      </InlineSection>
 
       {/* Entry list */}
       <div className="grid gap-4">

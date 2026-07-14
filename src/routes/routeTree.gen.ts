@@ -3,8 +3,8 @@ import { Component as LayoutComponent } from "@/routes/_layout";
 import { WelcomePanel as IndexComponent } from "@/panels/WelcomePanel";
 import { CharactersPanel as CharactersComponent } from "@/panels/CharactersPanel";
 import { ChatsPanel as ChatsComponent } from "@/panels/ChatsPanel";
-import { Component as WorldinfoComponent } from "@/panels/WorldInfoPanel";
-import { Component as SettingsComponent } from "@/panels/SettingsPanel";
+import { WorldInfoPanel as WorldinfoComponent } from "@/panels/WorldInfoPanel";
+import { SettingsPanel as SettingsComponent } from "@/panels/SettingsPanel";
 import { ExtensionsPanel as ExtensionsComponent } from "@/panels/ExtensionsPanel";
 import { ConnectionsPanel as ConnectionsComponent } from "@/panels/ConnectionsPanel";
 
