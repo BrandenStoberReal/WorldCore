@@ -1,16 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save, RotateCcw, Check, Flame } from "lucide-react";
+import { Loader2, Save, RotateCcw, Check } from "lucide-react";
 import { cn, surfaceCard } from "@/lib/utils";
+import { InlineSection } from "@/components/drawers/InlineSection";
 import type { SettingsObject } from "@/shared/types/settings";
 
 interface SettingsForm {
@@ -50,10 +45,9 @@ const fields: { key: keyof SettingsForm; label: string; type?: string; caption: 
   { key: "stream",             label: "Stream",             caption: "true or false" },
 ];
 
-export function Component() {
+export function SettingsPanel() {
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
-  const [showRaw, setShowRaw] = useState(false);
 
   const { data: settings, isLoading, error } = useQuery<SettingsObject>({
     queryKey: ["/api/v1/settings/get"],
@@ -129,7 +123,7 @@ export function Component() {
   }
 
   return (
-    <div className="relative isolate max-w-5xl section-rhythm">
+    <div data-panel="settings" className="flex flex-col gap-3 h-full">
       {/* Section header */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
@@ -177,24 +171,13 @@ export function Component() {
       </header>
 
       {/* Parameters grid */}
-      <Card
-        className={cn(
-          surfaceCard,
-          "relative rounded-sm overflow-hidden py-0",
-        )}
+      <InlineSection
+        panelId="settings"
+        sectionId="generation"
+        title="Generation"
+        defaultOpen
       >
-        <CardHeader className="flex-row items-center justify-between border-b border-border/60 px-5 md:px-6 py-3">
-          <div className="flex items-center gap-3">
-            <Flame className="h-4 w-4 text-ember" />
-            <CardTitle className="display-host text-[18px] tracking-tight">
-              Generation
-            </CardTitle>
-          </div>
-          <span className="mono-tag text-muted-foreground/45">{`${fields.length} dials`}</span>
-        </CardHeader>
-
-        <CardContent className="p-5 md:p-6">
-          <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+          <div className="grid gap-x-4 gap-y-4 sm:grid-cols-2">
             {fields.map((f, idx) => (
               <div key={f.key} className="space-y-1.5">
                 <div className="flex items-baseline justify-between">
@@ -223,35 +206,17 @@ export function Component() {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+      </InlineSection>
 
-      {/* Raw settings drawer */}
-      <Card
-        className={cn(
-          surfaceCard,
-          "relative rounded-sm overflow-hidden py-0",
-        )}
+      {/* Raw settings manifest */}
+      <InlineSection
+        panelId="settings"
+        sectionId="raw"
+        title="Raw Manifest"
       >
-        <CardHeader className="flex-row items-center justify-between border-b border-border/60 px-5 md:px-6 py-3">
-          <div className="flex items-center gap-3">
-            <span className="mono-tag text-ember">{`> raw`}</span>
-            <CardTitle className="display-host text-[18px] tracking-tight">
-              Raw Manifest
-            </CardTitle>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowRaw(!showRaw)}
-            className="mono-tag text-muted-foreground/65 hover:text-ember transition-colors"
-          >
-            {showRaw ? "COLLAPSE" : "EXPAND"}
-          </button>
-        </CardHeader>
-        <CardContent className="p-0">
-          {showRaw && settings ? (
+          {settings ? (
             <pre
-              className="text-[11.5px] leading-snug font-mono p-5 m-0 max-h-72 overflow-auto dot-grid"
+              className="text-[11.5px] leading-snug font-mono p-3 m-0 max-h-72 overflow-auto dot-grid rounded-sm"
               style={{
                 background:
                   "color-mix(in oklch, var(--background) 80%, transparent)",
@@ -260,14 +225,11 @@ export function Component() {
               {JSON.stringify(settings, null, 2)}
             </pre>
           ) : (
-            <div className="px-5 py-4 text-[12px] text-muted-foreground/55 italic">
-              {showRaw
-                ? "no settings manifest present"
-                : "raw JSON hidden — click expand to expose"}
+            <div className="py-3 text-[12px] text-muted-foreground/55 italic">
+              no settings manifest present
             </div>
           )}
-        </CardContent>
-      </Card>
+      </InlineSection>
     </div>
   );
 }
