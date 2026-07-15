@@ -1,4 +1,4 @@
-import { Users, BookOpen, Puzzle, Plug, Settings, FileText } from "lucide-react"
+import { Users, BookOpen, Puzzle, Plug, FileText } from "lucide-react"
 import { DrawerIcon } from "./DrawerIcon"
 import { useNavStore, type SectionId, type TopDrawerId } from "@/lib/navStore"
 
@@ -14,7 +14,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: "worldinfo", icon: <BookOpen size={18} />, label: "World Info", behavior: "top-drawer" },
   { id: "extensions", icon: <Puzzle size={18} />, label: "Extensions", behavior: "top-drawer" },
   { id: "connections", icon: <Plug size={18} />, label: "Connections", behavior: "top-drawer" },
-  { id: "settings", icon: <Settings size={18} />, label: "Settings", behavior: "top-drawer" },
   { id: "textoptions", icon: <FileText size={18} />, label: "Text Options", behavior: "top-drawer" },
 ]
 

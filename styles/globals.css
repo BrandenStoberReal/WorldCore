@@ -346,38 +346,32 @@
     border-bottom: 1px solid var(--border);
     border-radius: 0 0 10px 10px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
-    transform: translateY(-100%);
+    transform: translateY(-100%) scale(0.98);
     opacity: 0;
-    transition: transform var(--drawer-duration) var(--drawer-easing),
-                opacity var(--drawer-duration) var(--drawer-easing);
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 200ms ease;
     pointer-events: none;
   }
   .drawer-top.drawer-open {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     opacity: 1;
     pointer-events: auto;
   }
 
   .drawer-characters {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    right: 0;
-    width: 320px;
-    z-index: 20;
-    overflow-y: auto;
-    overflow-x: hidden;
-    background-color: color-mix(in oklch, var(--background) 85%, transparent);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-left: 1px solid var(--border);
-    border-radius: 10px 0 0 10px;
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
-    transform: translateX(100%);
-    transition: transform var(--drawer-duration) var(--drawer-easing);
+    @apply shrink-0 overflow-y-auto;
+    width: 380px;
+    background-color: color-mix(in oklch, var(--background) 90%, transparent);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-left: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+    transition: width 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
   }
-  .drawer-characters.drawer-open {
-    transform: translateX(0);
+  .drawer-characters.drawer-closed {
+    width: 0;
+    border-left: none;
+    opacity: 0;
+    overflow: hidden;
   }
 
   .accordion-content {

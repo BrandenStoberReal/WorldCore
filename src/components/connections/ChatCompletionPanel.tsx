@@ -1,0 +1,486 @@
+import { useCallback, useState } from "react";
+import {
+  ChevronDown,
+  Loader2,
+  MessageSquare,
+  Plug,
+  Send,
+  TestTube2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { OnlineStatus } from "@/components/connections/OnlineStatus";
+import { ReverseProxySection } from "@/components/connections/ReverseProxySection";
+import { AzureOpenAIForm } from "@/components/connections/AzureOpenAIForm";
+import { VertexAIForm } from "@/components/connections/VertexAIForm";
+import { OpenRouterForm } from "@/components/connections/OpenRouterForm";
+import { cn } from "@/lib/utils";
+
+/* ── Types ── */
+
+/** Identifiers that map to the SillyTavern chat_completion_source values. */
+export type ChatSourceId =
+  | "openai"
+  | "custom"
+  | "ai21"
+  | "aimlapi"
+  | "azure_openai"
+  | "chutes"
+  | "claude"
+  | "workers_ai"
+  | "cohere"
+  | "deepseek"
+  | "electronhub"
+  | "fireworks"
+  | "groq"
+  | "makersuite"
+  | "vertexai"
+  | "mistralai"
+  | "minimax"
+  | "moonshot"
+  | "nanogpt"
+  | "openrouter"
+  | "perplexity"
+  | "pollinations"
+  | "siliconflow"
+  | "xai"
+  | "zai"
+  | "ollama";
+
+export interface ChatCompletionPanelProps {
+  /** Called when the user clicks Connect with the assembled config. */
+  onConnect?: (config: Record<string, unknown>) => void;
+  /** Called when the user clicks "Send Test Message". */
+  onTestMessage?: (source: ChatSourceId) => void;
+  /** Whether the panel is currently connected. */
+  connected?: boolean;
+  /** The currently active source (if any). */
+  activeSource?: ChatSourceId;
+  /** Called when the active source changes. */
+  onSourceChange?: (source: ChatSourceId) => void;
+  className?: string;
+}
+
+/**
+ * Prompt post-processing methods.
+ *
+ * Matches the SillyTavern prompt post-processing dropdown.
+ */
+type PromptPostProcessing =
+  | "none"
+  | "merge"
+  | "semi_strict"
+  | "strict"
+  | "exact";
+
+const PROMPT_POST_PROCESSING_OPTIONS: ReadonlyArray<{
+  value: PromptPostProcessing;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "none",
+    label: "None",
+    description: "No modification to the prompt",
+  },
+  {
+    value: "merge",
+    label: "Merge tools",
+    description: "Merge tool calls into a single prompt",
+  },
+  {
+    value: "semi_strict",
+    label: "Semi-strict",
+    description: "Partially enforce role ordering",
+  },
+  {
+    value: "strict",
+    label: "Strict",
+    description: "Strictly enforce role ordering",
+  },
+  {
+    value: "exact",
+    label: "Exact",
+    description: "Exact prompt reproduction",
+  },
+] as const;
+
+/* ── Source Definitions ── */
+
+interface SourceOption {
+  id: ChatSourceId;
+  label: string;
+}
+
+/** Sources displayed in the primary optgroup. */
+const PRIMARY_SOURCES: SourceOption[] = [
+  { id: "openai", label: "OpenAI" },
+  { id: "custom", label: "Custom (OpenAI-compatible)" },
+];
+
+/** Sources displayed in the secondary optgroup. */
+const SECONDARY_SOURCES: SourceOption[] = [
+  { id: "ai21", label: "AI21" },
+  { id: "aimlapi", label: "AI/ML API" },
+  { id: "azure_openai", label: "Azure OpenAI" },
+  { id: "chutes", label: "Chutes" },
+  { id: "claude", label: "Claude" },
+  { id: "workers_ai", label: "Cloudflare Workers AI" },
+  { id: "cohere", label: "Cohere" },
+  { id: "deepseek", label: "DeepSeek" },
+  { id: "electronhub", label: "Electron Hub" },
+  { id: "fireworks", label: "Fireworks AI" },
+  { id: "groq", label: "Groq" },
+  { id: "makersuite", label: "Google AI Studio" },
+  { id: "vertexai", label: "Google Vertex AI" },
+  { id: "mistralai", label: "MistralAI" },
+  { id: "minimax", label: "MiniMax" },
+  { id: "moonshot", label: "Moonshot AI" },
+  { id: "nanogpt", label: "NanoGPT" },
+  { id: "ollama", label: "Ollama" },
+  { id: "openrouter", label: "OpenRouter" },
+  { id: "perplexity", label: "Perplexity" },
+  { id: "pollinations", label: "Pollinations" },
+  { id: "siliconflow", label: "SiliconFlow" },
+  { id: "xai", label: "xAI (Grok)" },
+  { id: "zai", label: "Z.AI (GLM)" },
+];
+
+/** Sources that support reverse proxy configuration. */
+const REVERSE_PROXY_SOURCES: ReadonlySet<ChatSourceId> = new Set([
+  "openai",
+  "claude",
+  "mistralai",
+  "makersuite",
+  "vertexai",
+  "deepseek",
+  "xai",
+  "zai",
+  "moonshot",
+]);
+
+/** Sources that use the dedicated Azure OpenAI form. */
+const COMPLEX_SOURCES: ReadonlySet<ChatSourceId> = new Set([
+  "azure_openai",
+  "vertexai",
+  "openrouter",
+]);
+
+/* ── Component ── */
+
+/**
+ * Chat Completion API panel.
+ *
+ * Orchestrates source selection, provider-specific forms, reverse proxy
+ * configuration, prompt post-processing, connection controls, and status
+ * display.
+ */
+export function ChatCompletionPanel({
+  onConnect,
+  onTestMessage,
+  connected = false,
+  activeSource,
+  onSourceChange,
+  className,
+}: ChatCompletionPanelProps) {
+  const [source, setSource] = useState<ChatSourceId>(
+    activeSource ?? "openai",
+  );
+  const [connecting, setConnecting] = useState(false);
+  const [testMessage, setTestMessage] = useState("Hello, this is a test message.");
+  const [promptPostProcessing, setPromptPostProcessing] =
+    useState<PromptPostProcessing>("none");
+
+  // Reverse proxy state
+  const [proxyPreset, setProxyPreset] = useState<string>("none");
+  const [proxyName, setProxyName] = useState("");
+  const [proxyUrl, setProxyUrl] = useState("");
+  const [proxyPassword, setProxyPassword] = useState("");
+
+  const handleSourceChange = useCallback(
+    (value: string) => {
+      const next = value as ChatSourceId;
+      setSource(next);
+      onSourceChange?.(next);
+    },
+    [onSourceChange],
+  );
+
+  const handleConnect = useCallback(async () => {
+    setConnecting(true);
+    try {
+      onConnect?.({
+        chat_completion_source: source,
+        prompt_post_processing: promptPostProcessing,
+        proxy: proxyPreset !== "none" ? proxyPreset : undefined,
+        proxy_name: proxyName || undefined,
+        proxy_url: proxyUrl || undefined,
+        proxy_password: proxyPassword || undefined,
+      });
+    } finally {
+      // Keep connecting visual for a moment so the user sees feedback
+      setTimeout(() => setConnecting(false), 800);
+    }
+  }, [
+    source,
+    promptPostProcessing,
+    proxyPreset,
+    proxyName,
+    proxyUrl,
+    proxyPassword,
+    onConnect,
+  ]);
+
+  const handleTestMessage = useCallback(() => {
+    onTestMessage?.(source);
+  }, [source, onTestMessage]);
+
+  const showReverseProxy = REVERSE_PROXY_SOURCES.has(source);
+
+  return (
+    <div className={cn("space-y-5", className)}>
+      {/* ── Header ── */}
+      <div className="flex items-center gap-2">
+        <MessageSquare className="h-4 w-4 text-ember/70" />
+        <h3 className="text-[15px] font-semibold leading-none tracking-tight">
+          Chat Completion Source
+        </h3>
+      </div>
+
+      {/* ── Source Selector ── */}
+      <div className="space-y-2">
+        <Label>Source</Label>
+        <Select value={source} onValueChange={handleSourceChange}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Recommended</SelectLabel>
+              {PRIMARY_SOURCES.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel>All Providers</SelectLabel>
+              {SECONDARY_SOURCES.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* ── Dynamic Provider Form ── */}
+      <div className="space-y-2">
+        <ProviderFormArea source={source} />
+      </div>
+
+      {/* ── Reverse Proxy Section ── */}
+      <ReverseProxySection
+        visible={showReverseProxy}
+        preset={proxyPreset}
+        onPresetChange={setProxyPreset}
+        name={proxyName}
+        onNameChange={setProxyName}
+        url={proxyUrl}
+        onUrlChange={setProxyUrl}
+        password={proxyPassword}
+        onPasswordChange={setProxyPassword}
+      />
+
+      {/* ── Prompt Post-Processing ── */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Label>Prompt Post-Processing</Label>
+        </div>
+        <Select
+          value={promptPostProcessing}
+          onValueChange={(v) =>
+            setPromptPostProcessing(v as PromptPostProcessing)
+          }
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PROMPT_POST_PROCESSING_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                <span className="flex flex-col">
+                  <span>{opt.label}</span>
+                  <span className="text-[11px] text-muted-foreground/60">
+                    {opt.description}
+                  </span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* ── Connect + Test Message Buttons ── */}
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          onClick={() => void handleConnect()}
+          disabled={connecting}
+          className="flex-1"
+        >
+          {connecting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Connecting...
+            </>
+          ) : (
+            <>
+              <Plug className="h-4 w-4" />
+              Connect
+            </>
+          )}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleTestMessage}
+          disabled={!connected}
+          title={
+            connected
+              ? "Send a test message to verify the connection"
+              : "Connect first before sending a test message"
+          }
+        >
+          <Send className="h-4 w-4" />
+          Test Message
+        </Button>
+      </div>
+
+      {/* ── Test Message Input ── */}
+      {connected && (
+        <div className="space-y-2">
+          <Label>Test Message</Label>
+          <div className="flex items-center gap-2">
+            <textarea
+              value={testMessage}
+              onChange={(e) => setTestMessage(e.target.value)}
+              placeholder="Enter a test message..."
+              rows={2}
+              className="flex min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] dark:bg-input/30 md:text-sm resize-none"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Online Status ── */}
+      <OnlineStatus connected={connected} />
+    </div>
+  );
+}
+
+/* ── Internal: Dynamic Provider Form Area ── */
+
+/**
+ * Renders the appropriate form based on the selected source.
+ *
+ * - Complex sources (azure_openai, vertexai, openrouter) → dedicated form components
+ * - Featherless → dedicated model browser form
+ * - All others → simple API key + model selector (inline)
+ */
+function ProviderFormArea({ source }: { source: ChatSourceId }) {
+  // Complex providers with dedicated forms
+  if (source === "azure_openai") {
+    return <AzureOpenAIForm />;
+  }
+  if (source === "vertexai") {
+    return <VertexAIForm />;
+  }
+  if (source === "openrouter") {
+    return <OpenRouterForm />;
+  }
+
+  // All other sources use the simple provider form
+  return <SimpleProviderForm source={source} />;
+}
+
+/**
+ * Simple provider form for sources that just need an API key + model selector.
+ * Used for: OpenAI, Claude, Groq, DeepSeek, MistralAI, Cohere, AI21, xAI, etc.
+ */
+function SimpleProviderForm({ source }: { source: ChatSourceId }) {
+  const [apiKey, setApiKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+
+  const sourceLabel = getSourceLabel(source);
+
+  return (
+    <div className="space-y-3 rounded-md border border-border/40 bg-muted/10 p-3">
+      <p className="text-[12px] text-muted-foreground/60">
+        Configure your <span className="font-medium text-foreground/70">{sourceLabel}</span> API credentials below.
+      </p>
+
+      {/* API Key */}
+      <div className="space-y-2">
+        <Label>{sourceLabel} API Key</Label>
+        <div className="flex items-center gap-2">
+          <input
+            type={showKey ? "text" : "password"}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder={`Enter your ${sourceLabel} API key`}
+            autoComplete="off"
+            className="flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] dark:bg-input/30 md:text-sm flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setShowKey((v) => !v)}
+            aria-label={showKey ? "Hide key" : "Show key"}
+            title={showKey ? "Hide key" : "Show key"}
+          >
+            {showKey ? (
+              <ChevronDown className="h-4 w-4 rotate-180" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Model Selector — uses native select with fetch-on-connect semantics */}
+      <div className="space-y-2">
+        <Label>Model</Label>
+        <select
+          className="flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] dark:bg-input/30 md:text-sm"
+          defaultValue=""
+        >
+          <option value="" disabled>
+            Click &quot;Connect&quot; to load models
+          </option>
+        </select>
+        <p className="text-[12px] text-muted-foreground/60">
+          Models are loaded automatically when you connect.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Helpers ── */
+
+function getSourceLabel(source: ChatSourceId): string {
+  const all = [...PRIMARY_SOURCES, ...SECONDARY_SOURCES];
+  return all.find((s) => s.id === source)?.label ?? source;
+}

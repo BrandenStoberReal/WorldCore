@@ -9,7 +9,6 @@ import { InlineSection } from "@/components/drawers/InlineSection";
 import type { SettingsObject } from "@/shared/types/settings";
 
 interface SettingsForm {
-  model: string;
   temperature: string;
   max_tokens: string;
   top_p: string;
@@ -22,7 +21,6 @@ interface SettingsForm {
 }
 
 const defaultForm: SettingsForm = {
-  model: "",
   temperature: "0.7",
   max_tokens: "4096",
   top_p: "1",
@@ -34,7 +32,6 @@ const defaultForm: SettingsForm = {
 };
 
 const fields: { key: keyof SettingsForm; label: string; type?: string; caption: string }[] = [
-  { key: "model",              label: "Model",              caption: "model id · e.g. gpt-4o-mini" },
   { key: "temperature",        label: "Temperature",        type: "number", caption: "creativity knob (0-2)" },
   { key: "max_tokens",         label: "Max Tokens",          type: "number", caption: "response upper bound" },
   { key: "top_p",              label: "Top P",               type: "number", caption: "nucleus sampling cutoff" },

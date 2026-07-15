@@ -1,3 +1,4 @@
+// Used in modals for profile CRUD (create/edit). Not a standalone panel.
 import { useState, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";

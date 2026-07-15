@@ -53,62 +53,6 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <InlineSection panelId="generation" sectionId="model" title="Model" defaultOpen>
-            <div className="space-y-2">
-              <div>
-                <label className="mono-tag text-foreground/50 block mb-1">Preset</label>
-                <div className="flex gap-1.5">
-                  <select
-                    value={store.preset}
-                    onChange={(e) => update("preset", e.target.value)}
-                    className={cn(
-                      "flex-1 h-7 rounded-sm border border-border bg-background/60 px-2",
-                      "text-xs text-foreground/80 outline-none",
-                      "focus:border-ember/50",
-                    )}
-                    aria-label="Preset selector"
-                  >
-                    <option value="Default">Default</option>
-                    <option value="Creative">Creative</option>
-                    <option value="Balanced">Balanced</option>
-                    <option value="Precise">Precise</option>
-                  </select>
-                  <button
-                    type="button"
-                    className="p-1 rounded-sm border border-border bg-background/60 text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 transition-colors"
-                    title="Save preset"
-                    aria-label="Save preset"
-                  >
-                    <Save className="h-3 w-3" strokeWidth={2} />
-                  </button>
-                  <button
-                    type="button"
-                    className="p-1 rounded-sm border border-border bg-background/60 text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 transition-colors"
-                    title="Load preset"
-                    aria-label="Load preset"
-                  >
-                    <FolderOpen className="h-3 w-3" strokeWidth={2} />
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="mono-tag text-foreground/50 block mb-1">Model</label>
-                <input
-                  type="text"
-                  value={store.model}
-                  onChange={(e) => update("model", e.target.value)}
-                  placeholder="model name"
-                  className={cn(
-                    "w-full h-7 rounded-sm border border-border bg-background/60 px-2",
-                    "text-xs text-foreground/80 outline-none placeholder:text-foreground/25",
-                    "focus:border-ember/50",
-                  )}
-                  aria-label="Model name"
-                />
-              </div>
-            </div>
-          </InlineSection>
-
           <InlineSection panelId="generation" sectionId="sampling" title="Sampling" defaultOpen>
             <GenerationSlider
               label="Temperature"
