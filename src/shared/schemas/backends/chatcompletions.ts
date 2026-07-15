@@ -1,11 +1,12 @@
-import { z } from "zod";
-import { SHARED_CONST } from "@/shared/constants";
+import { z } from 'zod';
+import { SHARED_CONST } from '@/shared/constants';
 
-export const ChatCompletionSourceSchema = z.enum([
-  ...SHARED_CONST.CHAT_COMPLETION_SOURCES,
-] as [string, ...string[]]);
+export const ChatCompletionSourceSchema = z.enum([...SHARED_CONST.CHAT_COMPLETION_SOURCES] as [
+  string,
+  ...string[],
+]);
 
-export const ChatCompletionRoleSchema = z.enum(["system", "user", "assistant", "tool"]);
+export const ChatCompletionRoleSchema = z.enum(['system', 'user', 'assistant', 'tool']);
 
 export const ChatCompletionMessageSchema = z.object({
   role: ChatCompletionRoleSchema,

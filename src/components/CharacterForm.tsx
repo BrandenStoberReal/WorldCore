@@ -1,12 +1,12 @@
-import { useState, useCallback, useRef, type DragEvent } from "react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Camera, X, Loader2, Plus, GripVertical, Upload } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { Character, CharacterCreateInput } from "@/shared/types/character";
+import { useState, useCallback, useRef, type DragEvent } from 'react';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Camera, X, Loader2, Plus, GripVertical, Upload } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { Character, CharacterCreateInput } from '@/shared/types/character';
 
 type CharacterWithId = Character & { id: number };
 
@@ -18,24 +18,24 @@ interface CharacterFormProps {
 }
 
 const EMPTY_FORM: CharacterCreateInput = {
-  name: "",
-  description: "",
-  personality: "",
-  scenario: "",
-  first_mes: "",
-  mes_example: "",
-  creator_notes: "",
-  system_prompt: "",
-  post_history_instructions: "",
+  name: '',
+  description: '',
+  personality: '',
+  scenario: '',
+  first_mes: '',
+  mes_example: '',
+  creator_notes: '',
+  system_prompt: '',
+  post_history_instructions: '',
   tags: [],
-  creator: "",
-  character_version: "",
+  creator: '',
+  character_version: '',
   alternate_greetings: [],
 };
 
 function CharCounter({ count, max }: { count: number; max?: number }) {
   return (
-    <span className="mono-tag text-[10px] tabular-nums text-muted-foreground/40">
+    <span className="mono-tag text-muted-foreground/40 text-[10px] tabular-nums">
       {max ? `${count} / ${max}` : count}
     </span>
   );
@@ -56,7 +56,7 @@ function FieldLabel({
     <div className="flex items-center justify-between gap-2">
       <Label className="text-sm font-medium">
         {label}
-        {required && <span className="ml-1 text-destructive">*</span>}
+        {required && <span className="text-destructive ml-1">*</span>}
       </Label>
       {count !== undefined && <CharCounter count={count} max={max} />}
     </div>
@@ -67,20 +67,20 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
   const isEdit = !!character;
 
   // ── Basic state ──────────────────────────────────────────
-  const [name, setName] = useState(character?.name ?? "");
-  const [description, setDescription] = useState(character?.description ?? "");
-  const [personality, setPersonality] = useState(character?.personality ?? "");
-  const [scenario, setScenario] = useState(character?.scenario ?? "");
-  const [firstMes, setFirstMes] = useState(character?.first_mes ?? "");
-  const [mesExample, setMesExample] = useState(character?.mes_example ?? "");
-  const [creatorNotes, setCreatorNotes] = useState(character?.creator_notes ?? "");
-  const [systemPrompt, setSystemPrompt] = useState(character?.system_prompt ?? "");
+  const [name, setName] = useState(character?.name ?? '');
+  const [description, setDescription] = useState(character?.description ?? '');
+  const [personality, setPersonality] = useState(character?.personality ?? '');
+  const [scenario, setScenario] = useState(character?.scenario ?? '');
+  const [firstMes, setFirstMes] = useState(character?.first_mes ?? '');
+  const [mesExample, setMesExample] = useState(character?.mes_example ?? '');
+  const [creatorNotes, setCreatorNotes] = useState(character?.creator_notes ?? '');
+  const [systemPrompt, setSystemPrompt] = useState(character?.system_prompt ?? '');
   const [postHistoryInstructions, setPostHistoryInstructions] = useState(
-    character?.post_history_instructions ?? "",
+    character?.post_history_instructions ?? '',
   );
-  const [tagsInput, setTagsInput] = useState(character?.tags?.join(", ") ?? "");
-  const [creator, setCreator] = useState(character?.creator ?? "");
-  const [characterVersion, setCharacterVersion] = useState(character?.character_version ?? "");
+  const [tagsInput, setTagsInput] = useState(character?.tags?.join(', ') ?? '');
+  const [creator, setCreator] = useState(character?.creator ?? '');
+  const [characterVersion, setCharacterVersion] = useState(character?.character_version ?? '');
 
   // ── Alternate greetings ──────────────────────────────────
   const [alternateGreetings, setAlternateGreetings] = useState<string[]>(
@@ -88,7 +88,7 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
   );
 
   const addGreeting = useCallback(() => {
-    setAlternateGreetings((prev) => [...prev, ""]);
+    setAlternateGreetings((prev) => [...prev, '']);
   }, []);
 
   const updateGreeting = useCallback((index: number, value: string) => {
@@ -102,11 +102,10 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
   // ── Extensions ───────────────────────────────────────────
   const existingExtensions = character?.extensions as Record<string, unknown> | undefined;
   const existingDepthPrompt = existingExtensions?.depth_prompt as
-    | { depth?: number; prompt?: string }
-    | undefined;
+    { depth?: number; prompt?: string } | undefined;
 
   const [depthPromptDepth, setDepthPromptDepth] = useState(existingDepthPrompt?.depth ?? 4);
-  const [depthPromptPrompt, setDepthPromptPrompt] = useState(existingDepthPrompt?.prompt ?? "");
+  const [depthPromptPrompt, setDepthPromptPrompt] = useState(existingDepthPrompt?.prompt ?? '');
   const [talkativeness, setTalkativeness] = useState(
     (existingExtensions?.talkativeness as number) ?? 0.5,
   );
@@ -120,7 +119,7 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = useCallback((file: File) => {
-    if (!file.type.startsWith("image/")) return;
+    if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
@@ -141,7 +140,7 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
   const handleClearAvatar = useCallback(() => {
     setAvatarPreview(character ? `/api/v1/characters/avatar?id=${character.id}` : null);
     setAvatarDataUrl(undefined);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }, [character]);
 
   const handleDragOver = useCallback((e: DragEvent) => {
@@ -187,7 +186,7 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
       if (name.trim().length === 0 || firstMes.trim().length === 0) return;
 
       const tags = tagsInput
-        .split(",")
+        .split(',')
         .map((t) => t.trim())
         .filter(Boolean);
 
@@ -225,11 +224,24 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
       onSubmit(data);
     },
     [
-      name, firstMes, description, personality, scenario, mesExample,
-      creatorNotes, systemPrompt, postHistoryInstructions, tagsInput,
-      creator, characterVersion, alternateGreetings,
-      depthPromptDepth, depthPromptPrompt, talkativeness,
-      avatarDataUrl, onSubmit,
+      name,
+      firstMes,
+      description,
+      personality,
+      scenario,
+      mesExample,
+      creatorNotes,
+      systemPrompt,
+      postHistoryInstructions,
+      tagsInput,
+      creator,
+      characterVersion,
+      alternateGreetings,
+      depthPromptDepth,
+      depthPromptPrompt,
+      talkativeness,
+      avatarDataUrl,
+      onSubmit,
     ],
   );
 
@@ -243,34 +255,30 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
           role="button"
           tabIndex={0}
           className={cn(
-            "relative h-28 w-28 rounded-full overflow-hidden border-2 border-dashed transition-all duration-200 cursor-pointer",
+            'relative h-28 w-28 cursor-pointer overflow-hidden rounded-full border-2 border-dashed transition-all duration-200',
             dragOver
-              ? "border-primary bg-primary/5 scale-105"
-              : "border-muted-foreground/25 hover:border-muted-foreground/50",
+              ? 'border-primary bg-primary/5 scale-105'
+              : 'border-muted-foreground/25 hover:border-muted-foreground/50',
           )}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+            if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click();
           }}
         >
           {avatarPreview ? (
-            <img
-              src={avatarPreview}
-              alt="Avatar preview"
-              className="h-full w-full object-cover"
-            />
+            <img src={avatarPreview} alt="Avatar preview" className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
+            <div className="text-muted-foreground flex h-full w-full flex-col items-center justify-center gap-1">
               <Upload className="h-6 w-6" />
               <span className="mono-tag text-[10px]">Drop</span>
             </div>
           )}
           {dragOver && (
-            <div className="absolute inset-0 flex items-center justify-center bg-primary/10 rounded-full">
-              <Camera className="h-6 w-6 text-primary" />
+            <div className="bg-primary/10 absolute inset-0 flex items-center justify-center rounded-full">
+              <Camera className="text-primary h-6 w-6" />
             </div>
           )}
         </div>
@@ -301,29 +309,27 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
       </div>
 
       {/* ── Responsive 2-column grid ─────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {/* ════════════ COLUMN 1 ════════════ */}
 
         {/* ── Basic Info ─────────────────────────────────── */}
         <Card className="gap-4 py-4">
           <CardHeader className="px-4">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">
+            <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
               Basic Info
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 space-y-3">
+          <CardContent className="space-y-3 px-4">
             <div className="space-y-1.5">
               <FieldLabel label="Name" required count={name.length} />
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                onBlur={() => markTouched("name")}
+                onBlur={() => markTouched('name')}
                 placeholder="Character name"
-                className={cn(nameError && "border-destructive focus-visible:ring-destructive")}
+                className={cn(nameError && 'border-destructive focus-visible:ring-destructive')}
               />
-              {nameError && (
-                <p className="text-xs text-destructive">Name is required</p>
-              )}
+              {nameError && <p className="text-destructive text-xs">Name is required</p>}
             </div>
 
             <div className="space-y-1.5">
@@ -361,23 +367,23 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
         {/* ── Greetings ──────────────────────────────────── */}
         <Card className="gap-4 py-4">
           <CardHeader className="px-4">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">
+            <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
               Greetings
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 space-y-3">
+          <CardContent className="space-y-3 px-4">
             <div className="space-y-1.5">
               <FieldLabel label="First Message" required count={firstMes.length} />
               <Textarea
                 value={firstMes}
                 onChange={(e) => setFirstMes(e.target.value)}
-                onBlur={() => markTouched("firstMes")}
+                onBlur={() => markTouched('firstMes')}
                 placeholder="Opening greeting"
                 rows={4}
-                className={cn(firstMesError && "border-destructive focus-visible:ring-destructive")}
+                className={cn(firstMesError && 'border-destructive focus-visible:ring-destructive')}
               />
               {firstMesError && (
-                <p className="text-xs text-destructive">First message is required</p>
+                <p className="text-destructive text-xs">First message is required</p>
               )}
             </div>
 
@@ -385,7 +391,7 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Alternate Greetings</Label>
-                <span className="mono-tag text-[10px] text-muted-foreground/40 tabular-nums">
+                <span className="mono-tag text-muted-foreground/40 text-[10px] tabular-nums">
                   {alternateGreetings.length}
                 </span>
               </div>
@@ -394,9 +400,9 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
                 {alternateGreetings.map((greeting, i) => (
                   <div
                     key={i}
-                    className="group/greeting flex gap-2 animate-in fade-in slide-in-from-top-1 duration-200"
+                    className="group/greeting animate-in fade-in slide-in-from-top-1 flex gap-2 duration-200"
                   >
-                    <div className="shrink-0 pt-2.5 text-muted-foreground/20">
+                    <div className="text-muted-foreground/20 shrink-0 pt-2.5">
                       <GripVertical className="h-4 w-4" />
                     </div>
                     <Textarea
@@ -410,7 +416,7 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="shrink-0 h-auto mt-1 self-start text-muted-foreground/40 hover:text-destructive opacity-0 group-hover/greeting:opacity-100 transition-opacity"
+                      className="text-muted-foreground/40 hover:text-destructive mt-1 h-auto shrink-0 self-start opacity-0 transition-opacity group-hover/greeting:opacity-100"
                       onClick={() => removeGreeting(i)}
                     >
                       <X className="h-4 w-4" />
@@ -438,16 +444,16 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
         {/* ── Example Messages ───────────────────────────── */}
         <Card className="gap-4 py-4">
           <CardHeader className="px-4">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">
+            <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
               Example Messages
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 space-y-1.5">
+          <CardContent className="space-y-1.5 px-4">
             <FieldLabel label="Message Examples" count={mesExample.length} />
             <Textarea
               value={mesExample}
               onChange={(e) => setMesExample(e.target.value)}
-              placeholder={"<start>\n{{user}}: Hello\n{{char}}: Hi there!"}
+              placeholder={'<start>\n{{user}}: Hello\n{{char}}: Hi there!'}
               rows={6}
               className="font-mono text-xs"
             />
@@ -457,11 +463,11 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
         {/* ── System Prompt ──────────────────────────────── */}
         <Card className="gap-4 py-4">
           <CardHeader className="px-4">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">
+            <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
               System Prompt
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 space-y-3">
+          <CardContent className="space-y-3 px-4">
             <div className="space-y-1.5">
               <FieldLabel label="System Prompt" count={systemPrompt.length} />
               <Textarea
@@ -472,7 +478,10 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
               />
             </div>
             <div className="space-y-1.5">
-              <FieldLabel label="Post-History Instructions" count={postHistoryInstructions.length} />
+              <FieldLabel
+                label="Post-History Instructions"
+                count={postHistoryInstructions.length}
+              />
               <Textarea
                 value={postHistoryInstructions}
                 onChange={(e) => setPostHistoryInstructions(e.target.value)}
@@ -486,11 +495,11 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
         {/* ── Metadata ───────────────────────────────────── */}
         <Card className="gap-4 py-4">
           <CardHeader className="px-4">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">
+            <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
               Metadata
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 space-y-3">
+          <CardContent className="space-y-3 px-4">
             <div className="space-y-1.5">
               <FieldLabel label="Creator" count={creator.length} />
               <Input
@@ -526,13 +535,13 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
               {tagsInput.trim().length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-1">
                   {tagsInput
-                    .split(",")
+                    .split(',')
                     .map((t) => t.trim())
                     .filter(Boolean)
                     .map((tag, i) => (
                       <span
                         key={`${tag}-${i}`}
-                        className="mono-tag px-1.5 py-0.5 rounded-sm bg-muted/50 border border-border/60 text-foreground/65"
+                        className="mono-tag bg-muted/50 border-border/60 text-foreground/65 rounded-sm border px-1.5 py-0.5"
                       >
                         #{tag}
                       </span>
@@ -546,18 +555,18 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
         {/* ── Advanced ───────────────────────────────────── */}
         <Card className="gap-4 py-4 md:col-span-2">
           <CardHeader className="px-4">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">
+            <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
               Advanced
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Depth Prompt */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Depth Prompt</Label>
-                <div className="flex gap-2 items-end">
-                  <div className="space-y-1.5 w-20 shrink-0">
-                    <Label className="text-[11px] text-muted-foreground/50">Depth</Label>
+                <div className="flex items-end gap-2">
+                  <div className="w-20 shrink-0 space-y-1.5">
+                    <Label className="text-muted-foreground/50 text-[11px]">Depth</Label>
                     <Input
                       type="number"
                       min={0}
@@ -566,8 +575,8 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
                       onChange={(e) => setDepthPromptDepth(Number(e.target.value))}
                     />
                   </div>
-                  <div className="space-y-1.5 flex-1">
-                    <Label className="text-[11px] text-muted-foreground/50">Prompt</Label>
+                  <div className="flex-1 space-y-1.5">
+                    <Label className="text-muted-foreground/50 text-[11px]">Prompt</Label>
                     <Input
                       value={depthPromptPrompt}
                       onChange={(e) => setDepthPromptPrompt(e.target.value)}
@@ -581,7 +590,7 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Talkativeness</Label>
-                  <span className="mono-tag text-[11px] tabular-nums text-muted-foreground/50">
+                  <span className="mono-tag text-muted-foreground/50 text-[11px] tabular-nums">
                     {talkativeness.toFixed(2)}
                   </span>
                 </div>
@@ -592,13 +601,9 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
                   step={0.01}
                   value={talkativeness}
                   onChange={(e) => setTalkativeness(Number(e.target.value))}
-                  className="w-full h-1.5 rounded-full appearance-none bg-muted cursor-pointer
-                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4
-                    [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-2
-                    [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md
-                    [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-125"
+                  className="bg-muted [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-background h-1.5 w-full cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-125"
                 />
-                <div className="flex justify-between text-[10px] text-muted-foreground/35 mono-tag">
+                <div className="text-muted-foreground/35 mono-tag flex justify-between text-[10px]">
                   <span>Quiet</span>
                   <span>Verbose</span>
                 </div>
@@ -609,7 +614,7 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
       </div>
 
       {/* ── Actions ──────────────────────────────────────── */}
-      <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
+      <div className="border-border/40 flex justify-end gap-2 border-t pt-2">
         <Button variant="outline" type="button" onClick={onCancel}>
           Cancel
         </Button>
@@ -617,15 +622,13 @@ export function CharacterForm({ character, onSubmit, onCancel, isSubmitting }: C
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              {isEdit ? "Saving..." : "Creating..."}
+              {isEdit ? 'Saving...' : 'Creating...'}
             </>
           ) : (
-            <>{isEdit ? "Save Changes" : "Create Character"}</>
+            <>{isEdit ? 'Save Changes' : 'Create Character'}</>
           )}
         </Button>
       </div>
     </form>
   );
 }
-
-

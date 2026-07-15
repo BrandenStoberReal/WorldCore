@@ -1,27 +1,27 @@
-import { useNavStore, type SectionId } from "@/lib/navStore"
-import { ChatsPanel } from "@/panels/ChatsPanel"
+import { useNavStore, type SectionId } from '@/lib/navStore';
+import { ChatsPanel } from '@/panels/ChatsPanel';
 
 const CENTER_SECTIONS: Partial<Record<SectionId, React.ComponentType>> = {
   chats: ChatsPanel,
-}
+};
 
 export function CenterPageHost() {
-  const sectionId = useNavStore((s) => s.sectionId)
-  const Panel = CENTER_SECTIONS[sectionId]
+  const sectionId = useNavStore((s) => s.sectionId);
+  const Panel = CENTER_SECTIONS[sectionId];
 
   if (!Panel) {
     return (
       <main data-center-host className="flex-1 overflow-auto">
-        <div className="flex items-center justify-center h-full text-muted-foreground/45">
+        <div className="text-muted-foreground/45 flex h-full items-center justify-center">
           Select a section from the top bar
         </div>
       </main>
-    )
+    );
   }
 
   return (
     <main data-center-host className="flex-1 overflow-auto">
       <Panel />
     </main>
-  )
+  );
 }

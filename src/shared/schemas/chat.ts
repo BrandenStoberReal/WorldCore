@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const ChatMetadataSchema = z
   .object({
@@ -60,10 +60,10 @@ export const RecentChatSchema = z.object({
 });
 
 export const ChatImportFormatSchema = z.enum([
-  "tavern",
-  "venicewatch",
-  "agitchat",
-  "chathub",
-  "messenger",
-  "unknown",
+  'tavern',
+  'venicewatch',
+  'agitchat',
+  'chathub',
+  'messenger',
+  'unknown',
 ]);

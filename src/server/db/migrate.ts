@@ -1,11 +1,11 @@
-import { migrate } from "drizzle-orm/bun-sqlite/migrator"
-import { db } from "./client"
-import type { createDb } from "./client"
-import { resolve } from "node:path"
+import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
+import { db } from './client';
+import type { createDb } from './client';
+import { resolve } from 'node:path';
 
-type DrizzleDb = ReturnType<typeof createDb>
+type DrizzleDb = ReturnType<typeof createDb>;
 
-const MIGRATIONS_FOLDER = resolve(import.meta.dir, "./migrations")
+const MIGRATIONS_FOLDER = resolve(import.meta.dir, './migrations');
 
 const SEED_SQL = [
   `CREATE TABLE IF NOT EXISTS connection_profiles (
@@ -17,14 +17,14 @@ const SEED_SQL = [
     updated_at integer NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE no action ON DELETE no action
   )`,
-]
+];
 
 export function runMigrations(dbInstance?: DrizzleDb) {
-  const instance = dbInstance ?? db
-  migrate(instance, { migrationsFolder: MIGRATIONS_FOLDER })
+  const instance = dbInstance ?? db;
+  migrate(instance, { migrationsFolder: MIGRATIONS_FOLDER });
   for (const sql of SEED_SQL) {
     try {
-      instance.$client.exec(sql)
+      instance.$client.exec(sql);
     } catch {
       // table already exists — ignore
     }

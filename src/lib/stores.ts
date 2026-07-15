@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import type { ChatMessage } from "@/shared/types/chat";
+import { create } from 'zustand';
+import type { ChatMessage } from '@/shared/types/chat';
 
-export type Theme = "light" | "dark" | "system";
+export type Theme = 'light' | 'dark' | 'system';
 
 export interface User {
   id: number;
@@ -18,13 +18,13 @@ export interface AppStore {
 }
 
 export const useAppStore = create<AppStore>((set) => ({
-  theme: "system",
+  theme: 'system',
   setTheme: (theme) => set({ theme }),
   user: null,
   setUser: (user) => set({ user }),
 }));
 
-export type GenerationMode = "chat" | "text";
+export type GenerationMode = 'chat' | 'text';
 
 const SHARED_DEFAULTS = {
   temperature: 1,
@@ -106,17 +106,17 @@ export interface GenerationState {
 }
 
 export const useGenerationStore = create<GenerationState>((set, get) => ({
-  mode: "chat",
+  mode: 'chat',
 
   ...SHARED_DEFAULTS,
   ...CHAT_DEFAULTS,
   ...TEXT_DEFAULTS,
 
-  model: "",
-  preset: "Default",
+  model: '',
+  preset: 'Default',
 
   setMode: (mode) => {
-    const defaults = mode === "chat" ? CHAT_GEN_DEFAULTS : TEXT_GEN_DEFAULTS;
+    const defaults = mode === 'chat' ? CHAT_GEN_DEFAULTS : TEXT_GEN_DEFAULTS;
     set({ mode, ...defaults });
   },
 
@@ -124,7 +124,7 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
 
   resetDefaults: () => {
     const { mode } = get();
-    const defaults = mode === "chat" ? CHAT_GEN_DEFAULTS : TEXT_GEN_DEFAULTS;
+    const defaults = mode === 'chat' ? CHAT_GEN_DEFAULTS : TEXT_GEN_DEFAULTS;
     set({ ...defaults });
   },
 
@@ -153,24 +153,26 @@ export const useChatStore = create<ChatStore>((set) => ({
   activeCharacterId: null,
   messages: [],
   isGenerating: false,
-  streamingContent: "",
+  streamingContent: '',
   setActiveChat: (id) => set({ activeChatId: id }),
   setActiveCharacter: (id) => set({ activeCharacterId: id }),
   setMessages: (messages) => set({ messages }),
   addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
   setStreamingContent: (content) => set({ streamingContent: content }),
-  appendStreamingContent: (content) => set((state) => ({ streamingContent: state.streamingContent + content })),
-  commitStreaming: (name) => set((state) => {
-    if (!state.streamingContent) return {};
-    const msg: ChatMessage = {
-      name,
-      is_user: false,
-      mes: state.streamingContent,
-      send_date: new Date().toISOString(),
-      extra: {},
-    };
-    return { messages: [...state.messages, msg], streamingContent: "" };
-  }),
+  appendStreamingContent: (content) =>
+    set((state) => ({ streamingContent: state.streamingContent + content })),
+  commitStreaming: (name) =>
+    set((state) => {
+      if (!state.streamingContent) return {};
+      const msg: ChatMessage = {
+        name,
+        is_user: false,
+        mes: state.streamingContent,
+        send_date: new Date().toISOString(),
+        extra: {},
+      };
+      return { messages: [...state.messages, msg], streamingContent: '' };
+    }),
   setIsGenerating: (generating) => set({ isGenerating: generating }),
-  clearChat: () => set({ activeChatId: null, messages: [], streamingContent: "" }),
+  clearChat: () => set({ activeChatId: null, messages: [], streamingContent: '' }),
 }));

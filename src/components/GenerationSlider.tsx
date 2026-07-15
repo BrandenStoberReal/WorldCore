@@ -1,5 +1,5 @@
-import { useCallback } from "react";
-import { cn } from "@/lib/utils";
+import { useCallback } from 'react';
+import { cn } from '@/lib/utils';
 
 interface GenerationSliderProps {
   label: string;
@@ -53,18 +53,18 @@ export function GenerationSlider({
             step={step}
             disabled={disabled}
             className={cn(
-              "w-16 h-6 rounded-sm border border-border bg-background/60 px-1.5",
-              "text-right text-[11px] font-mono text-foreground/80",
-              "focus:border-ember/50 focus:ring-1 focus:ring-ember/20 outline-none",
-              "disabled:opacity-40 disabled:cursor-not-allowed",
-              "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+              'border-border bg-background/60 h-6 w-16 rounded-sm border px-1.5',
+              'text-foreground/80 text-right font-mono text-[11px]',
+              'focus:border-ember/50 focus:ring-ember/20 outline-none focus:ring-1',
+              'disabled:cursor-not-allowed disabled:opacity-40',
+              '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
             )}
             aria-label={`${label} value`}
           />
         </div>
       </div>
       {description && (
-        <p className="text-[10px] leading-tight text-foreground/35 -mt-0.5">{description}</p>
+        <p className="text-foreground/35 -mt-0.5 text-[10px] leading-tight">{description}</p>
       )}
       <input
         type="range"
@@ -74,7 +74,7 @@ export function GenerationSlider({
         value={value}
         onInput={handleSlider}
         disabled={disabled}
-        className={cn("gen-slider", disabled && "opacity-40 cursor-not-allowed")}
+        className={cn('gen-slider', disabled && 'cursor-not-allowed opacity-40')}
         aria-label={`${label} slider`}
       />
     </div>

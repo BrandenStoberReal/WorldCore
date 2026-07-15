@@ -1,9 +1,7 @@
-import { z } from "zod";
-import { SHARED_CONST } from "@/shared/constants";
+import { z } from 'zod';
+import { SHARED_CONST } from '@/shared/constants';
 
-export const SecretKeySchema = z.enum([
-  ...SHARED_CONST.SECRET_KEYS,
-] as [string, ...string[]]);
+export const SecretKeySchema = z.enum([...SHARED_CONST.SECRET_KEYS] as [string, ...string[]]);
 
 export const SecretValueSchema = z.object({
   id: SecretKeySchema,

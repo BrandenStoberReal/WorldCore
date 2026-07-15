@@ -1,11 +1,11 @@
-import type { z } from "zod";
+import type { z } from 'zod';
 import {
   ImageFolderSchema,
   ImageMetadataSchema,
   ImageProviderSchema,
   ImageGenerateRequestSchema,
   ImageGenerateResponseSchema,
-} from "@/shared/schemas/image";
+} from '@/shared/schemas/image';
 
 export type ImageFolder = z.infer<typeof ImageFolderSchema>;
 export type ImageMetadata = z.infer<typeof ImageMetadataSchema>;

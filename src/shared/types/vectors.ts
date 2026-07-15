@@ -1,11 +1,11 @@
-import type { z } from "zod";
+import type { z } from 'zod';
 import {
   VectorSearchRequestSchema,
   VectorEmbeddingRequestSchema,
   VectorEmbeddingResponseSchema,
   VectorDeleteRequestSchema,
   VectorUpsertRequestSchema,
-} from "@/shared/schemas/vectors";
+} from '@/shared/schemas/vectors';
 
 export type VectorSearchRequest = z.infer<typeof VectorSearchRequestSchema>;
 export type VectorEmbeddingRequest = z.infer<typeof VectorEmbeddingRequestSchema>;

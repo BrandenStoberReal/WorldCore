@@ -11,6 +11,8 @@
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
     "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "db:migrate": "bun run src/server/db/migrate.ts",
     "db:generate": "drizzle-kit generate"
   },
@@ -51,6 +53,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.30.0",
+    "prettier": "^3.9.5",
+    "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4.1.11",
     "typescript": "^7.0.2"
   }

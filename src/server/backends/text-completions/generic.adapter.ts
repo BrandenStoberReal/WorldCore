@@ -1,20 +1,24 @@
-import type { TextCompletionAdapter } from "./types"
-import type { TextCompletionRequest, TextCompletionSource } from "@/shared/types/backends/textcompletions"
+import type { TextCompletionAdapter } from './types';
+import type {
+  TextCompletionRequest,
+  TextCompletionSource,
+} from '@/shared/types/backends/textcompletions';
 
 export class GenericAdapter implements TextCompletionAdapter {
-  source: TextCompletionSource
+  source: TextCompletionSource;
 
   constructor(source: TextCompletionSource) {
-    this.source = source
+    this.source = source;
   }
 
   async forwardRequest(req: TextCompletionRequest): Promise<Response> {
-    const url = (req.reverse_proxy as string | undefined) || "https://api.openai.com/v1/completions"
+    const url =
+      (req.reverse_proxy as string | undefined) || 'https://api.openai.com/v1/completions';
 
     return fetch(url, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${this.getKey(req)}`,
       },
       body: JSON.stringify({
@@ -28,11 +32,11 @@ export class GenericAdapter implements TextCompletionAdapter {
         frequency_penalty: req.frequency_penalty,
         presence_penalty: req.presence_penalty,
       }),
-      signal: (req.signal as AbortSignal | undefined),
-    })
+      signal: req.signal as AbortSignal | undefined,
+    });
   }
 
   private getKey(req: TextCompletionRequest): string {
-    return (req.api_key as string | undefined) || ""
+    return (req.api_key as string | undefined) || '';
   }
 }

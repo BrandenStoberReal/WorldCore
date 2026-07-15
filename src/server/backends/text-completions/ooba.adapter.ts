@@ -1,16 +1,16 @@
-import type { TextCompletionAdapter } from "./types"
-import type { TextCompletionRequest } from "@/shared/types/backends/textcompletions"
+import type { TextCompletionAdapter } from './types';
+import type { TextCompletionRequest } from '@/shared/types/backends/textcompletions';
 
 export class OobaAdapter implements TextCompletionAdapter {
-  source = "ooba" as const
+  source = 'ooba' as const;
 
   async forwardRequest(req: TextCompletionRequest): Promise<Response> {
-    const url = (req.reverse_proxy as string | undefined) || "http://127.0.0.1:5000"
+    const url = (req.reverse_proxy as string | undefined) || 'http://127.0.0.1:5000';
 
     return fetch(`${url}/v1/completions`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${this.getKey(req)}`,
       },
       body: JSON.stringify({
@@ -24,11 +24,11 @@ export class OobaAdapter implements TextCompletionAdapter {
         frequency_penalty: req.frequency_penalty,
         presence_penalty: req.presence_penalty,
       }),
-      signal: (req.signal as AbortSignal | undefined),
-    })
+      signal: req.signal as AbortSignal | undefined,
+    });
   }
 
   private getKey(req: TextCompletionRequest): string {
-    return (req.api_key as string | undefined) || ""
+    return (req.api_key as string | undefined) || '';
   }
 }

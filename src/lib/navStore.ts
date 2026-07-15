@@ -1,17 +1,12 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 export type SectionId =
-  | "characters"
-  | "chats"
-  | "worldinfo"
-  | "extensions"
-  | "connections"
-  | "textoptions";
+  'characters' | 'chats' | 'worldinfo' | 'extensions' | 'connections' | 'textoptions';
 
 /** Top drawers fold down from the top bar */
-export type TopDrawerId = "worldinfo" | "extensions" | "connections" | "textoptions";
+export type TopDrawerId = 'worldinfo' | 'extensions' | 'connections' | 'textoptions';
 
-const STORAGE_KEY = "worldcore/nav";
+const STORAGE_KEY = 'worldcore/nav';
 
 function loadPersisted(): Partial<NavState> {
   try {
@@ -31,7 +26,9 @@ function persist(state: NavState) {
         genSidebarOpen: state.genSidebarOpen,
       }),
     );
-  } catch { /* noop */ }
+  } catch {
+    /* noop */
+  }
 }
 
 export interface NavState {
@@ -52,7 +49,7 @@ export interface NavState {
 const persisted = loadPersisted();
 
 export const useNavStore = create<NavState>((set, get) => ({
-  sectionId: "worldinfo",
+  sectionId: 'worldinfo',
   topDrawer: null,
   charactersOpen: persisted.charactersOpen ?? false,
   genSidebarOpen: persisted.genSidebarOpen ?? true,

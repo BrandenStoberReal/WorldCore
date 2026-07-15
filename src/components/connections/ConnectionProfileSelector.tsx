@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Info, Plus, Save, Pencil, RefreshCw, Trash2, Loader2, HelpCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useState } from 'react';
+import { Info, Plus, Save, Pencil, RefreshCw, Trash2, Loader2, HelpCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ConnectionProfile {
   id: string;
@@ -44,17 +44,17 @@ export function ConnectionProfileSelector({
   const selected = profiles.find((p) => p.id === selectedId);
 
   const handleSelect = (value: string) => {
-    onSelect(value === "" ? null : value);
-    if (value !== "" && !detailsOpen) {
+    onSelect(value === '' ? null : value);
+    if (value !== '' && !detailsOpen) {
       setDetailsOpen(true);
     }
   };
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn('w-full', className)}>
       {/* Header row */}
-      <div className="flex items-center gap-2 mb-1.5">
-        <h3 className="text-[15px] font-semibold leading-none tracking-tight">
+      <div className="mb-1.5 flex items-center gap-2">
+        <h3 className="text-[15px] leading-none font-semibold tracking-tight">
           Connection Profile
         </h3>
         <a
@@ -66,18 +66,16 @@ export function ConnectionProfileSelector({
         >
           <HelpCircle className="h-4 w-4" />
         </a>
-        {loading && (
-          <Loader2 className="h-4 w-4 animate-spin text-ember/70" />
-        )}
+        {loading && <Loader2 className="text-ember/70 h-4 w-4 animate-spin" />}
       </div>
 
       {/* Selector row */}
       <div className="flex items-center gap-1.5">
         {/* Profile dropdown */}
         <select
-          value={selectedId ?? ""}
+          value={selectedId ?? ''}
           onChange={(e) => handleSelect(e.target.value)}
-          className="flex-1 h-9 px-3 text-[13px] font-mono tracking-tight bg-background border border-border rounded-sm focus:outline-none focus:ring-1 focus:ring-ember/50 focus:border-ember/50 transition-colors"
+          className="bg-background border-border focus:ring-ember/50 focus:border-ember/50 h-9 flex-1 rounded-sm border px-3 font-mono text-[13px] tracking-tight transition-colors focus:ring-1 focus:outline-none"
         >
           <option value="">&lt;None&gt;</option>
           {profiles.map((p) => (
@@ -133,10 +131,14 @@ export function ConnectionProfileSelector({
 
       {/* Expandable details */}
       {detailsOpen && selected && (
-        <div className="mt-2 p-3 rounded-sm border border-border/60 bg-muted/20 text-[13px] space-y-1">
+        <div className="border-border/60 bg-muted/20 mt-2 space-y-1 rounded-sm border p-3 text-[13px]">
           <DetailRow label="API" value={selected.api} />
           <DetailRow label="Model" value={selected.model} />
-          <DetailRow label="ID" value={selected.id} className="text-muted-foreground/50 font-mono text-[11px]" />
+          <DetailRow
+            label="ID"
+            value={selected.id}
+            className="text-muted-foreground/50 font-mono text-[11px]"
+          />
         </div>
       )}
     </div>
@@ -150,13 +152,13 @@ function ActionButton({
   title,
   onClick,
   disabled = false,
-  variant = "default",
+  variant = 'default',
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   onClick: () => void;
   disabled?: boolean;
-  variant?: "default" | "destructive";
+  variant?: 'default' | 'destructive';
 }) {
   return (
     <button
@@ -165,13 +167,13 @@ function ActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center justify-center h-9 w-9 rounded-sm border transition-colors",
-        "focus:outline-none focus:ring-1 focus:ring-ember/50",
+        'inline-flex h-9 w-9 items-center justify-center rounded-sm border transition-colors',
+        'focus:ring-ember/50 focus:ring-1 focus:outline-none',
         disabled
-          ? "border-border/40 bg-muted/30 text-muted-foreground/30 cursor-not-allowed"
-          : variant === "destructive"
-            ? "border-border bg-background hover:bg-destructive/10 hover:border-destructive/40 hover:text-destructive text-muted-foreground/70"
-            : "border-border bg-background hover:bg-accent/50 hover:border-ember/30 hover:text-ember text-muted-foreground/70",
+          ? 'border-border/40 bg-muted/30 text-muted-foreground/30 cursor-not-allowed'
+          : variant === 'destructive'
+            ? 'border-border bg-background hover:bg-destructive/10 hover:border-destructive/40 hover:text-destructive text-muted-foreground/70'
+            : 'border-border bg-background hover:bg-accent/50 hover:border-ember/30 hover:text-ember text-muted-foreground/70',
       )}
     >
       <Icon className="h-4 w-4" />
@@ -190,10 +192,10 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="mono-tag text-muted-foreground/50 text-[11px] uppercase tracking-wider w-12 shrink-0">
+      <span className="mono-tag text-muted-foreground/50 w-12 shrink-0 text-[11px] tracking-wider uppercase">
         {label}
       </span>
-      <span className={cn("text-foreground/70", className)}>{value}</span>
+      <span className={cn('text-foreground/70', className)}>{value}</span>
     </div>
   );
 }

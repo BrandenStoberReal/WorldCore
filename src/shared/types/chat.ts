@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { z } from 'zod';
 import {
   ChatMetadataSchema,
   ChatMessageSchema,
@@ -6,7 +6,7 @@ import {
   SearchChatResultSchema,
   RecentChatSchema,
   ChatImportFormatSchema,
-} from "@/shared/schemas/chat";
+} from '@/shared/schemas/chat';
 
 export type ChatMetadata = z.infer<typeof ChatMetadataSchema>;
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;

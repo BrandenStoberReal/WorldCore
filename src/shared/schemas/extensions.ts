@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from 'zod';
 
 export const ExtensionInfoSchema = z.object({
   name: z.string(),
@@ -10,15 +10,15 @@ export const ExtensionInfoSchema = z.object({
   gitUrl: z.string().url().optional(),
   lastUpdated: z.string().datetime().optional(),
   manifest: z.record(z.unknown()),
-})
+});
 
 export const InstallExtensionSchema = z.object({
   url: z.string().url(),
   targetDir: z.string().optional(),
-})
+});
 
 export const NameExtensionSchema = z.object({
   name: z.string().min(1),
-})
+});
 
-export const ExtensionListResponseSchema = z.array(ExtensionInfoSchema)
+export const ExtensionListResponseSchema = z.array(ExtensionInfoSchema);

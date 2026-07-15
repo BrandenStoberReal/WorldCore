@@ -1,17 +1,17 @@
-import { useCallback, useMemo, useState } from "react";
-import { Eye, EyeOff, ExternalLink, KeyRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useCallback, useMemo, useState } from 'react';
+import { Eye, EyeOff, ExternalLink, KeyRound } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ModelSelector } from "@/components/connections/ModelSelector";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/select';
+import { ModelSelector } from '@/components/connections/ModelSelector';
+import { cn } from '@/lib/utils';
 
 export interface OpenRouterConfig {
   apiKey: string;
@@ -30,42 +30,42 @@ interface OpenRouterFormProps {
 }
 
 const OPENROUTER_PROVIDERS = [
-  "AI21",
-  "Alibaba",
-  "Amazon",
-  "Anthropic",
-  "Arcee",
-  "Cerebras",
-  "Cohere",
-  "DeepInfra",
-  "DeepSeek",
-  "Google",
-  "Grok",
-  "Inflection",
-  "Meta",
-  "Mistral",
-  "Moonshot",
-  "Neutrino",
-  "NousResearch",
-  "OpenAI",
-  "Perplexity",
-  "Qwen",
-  "Microsoft",
-  "SambaNova",
-  "Together",
-  "xAI",
+  'AI21',
+  'Alibaba',
+  'Amazon',
+  'Anthropic',
+  'Arcee',
+  'Cerebras',
+  'Cohere',
+  'DeepInfra',
+  'DeepSeek',
+  'Google',
+  'Grok',
+  'Inflection',
+  'Meta',
+  'Mistral',
+  'Moonshot',
+  'Neutrino',
+  'NousResearch',
+  'OpenAI',
+  'Perplexity',
+  'Qwen',
+  'Microsoft',
+  'SambaNova',
+  'Together',
+  'xAI',
 ] as const;
 
 const QUANTIZATION_OPTIONS = [
-  { value: "int4", label: "Integer (4 bit)" },
-  { value: "int8", label: "Integer (8 bit)" },
-  { value: "fp4", label: "Floating point (4 bit)" },
-  { value: "fp6", label: "Floating point (6 bit)" },
-  { value: "fp8", label: "Floating point (8 bit)" },
-  { value: "fp16", label: "Floating point (16 bit)" },
-  { value: "bf16", label: "Brain floating point (16 bit)" },
-  { value: "fp32", label: "Floating point (32 bit)" },
-  { value: "unknown", label: "Unknown" },
+  { value: 'int4', label: 'Integer (4 bit)' },
+  { value: 'int8', label: 'Integer (8 bit)' },
+  { value: 'fp4', label: 'Floating point (4 bit)' },
+  { value: 'fp6', label: 'Floating point (6 bit)' },
+  { value: 'fp8', label: 'Floating point (8 bit)' },
+  { value: 'fp16', label: 'Floating point (16 bit)' },
+  { value: 'bf16', label: 'Brain floating point (16 bit)' },
+  { value: 'fp32', label: 'Floating point (32 bit)' },
+  { value: 'unknown', label: 'Unknown' },
 ] as const;
 
 /**
@@ -81,8 +81,8 @@ export function OpenRouterForm({
   className,
 }: OpenRouterFormProps) {
   const [showKey, setShowKey] = useState(false);
-  const [providerSearch, setProviderSearch] = useState("");
-  const [quantSearch, setQuantSearch] = useState("");
+  const [providerSearch, setProviderSearch] = useState('');
+  const [quantSearch, setQuantSearch] = useState('');
 
   const update = useCallback(
     (patch: Partial<OpenRouterConfig>) => {
@@ -96,17 +96,13 @@ export function OpenRouterForm({
 
   const filteredProviders = useMemo(
     () =>
-      OPENROUTER_PROVIDERS.filter((p) =>
-        p.toLowerCase().includes(providerSearch.toLowerCase()),
-      ),
+      OPENROUTER_PROVIDERS.filter((p) => p.toLowerCase().includes(providerSearch.toLowerCase())),
     [providerSearch],
   );
 
   const filteredQuants = useMemo(
     () =>
-      QUANTIZATION_OPTIONS.filter((q) =>
-        q.label.toLowerCase().includes(quantSearch.toLowerCase()),
-      ),
+      QUANTIZATION_OPTIONS.filter((q) => q.label.toLowerCase().includes(quantSearch.toLowerCase())),
     [quantSearch],
   );
 
@@ -131,38 +127,38 @@ export function OpenRouterForm({
   );
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn('space-y-4', className)}>
       {/* API Key */}
       <div className="space-y-2">
         <Label>OpenRouter API Key</Label>
-        <p className="text-[12px] text-muted-foreground/60">
-          Click &quot;Authorize&quot; below or get the key from{" "}
+        <p className="text-muted-foreground/60 text-[12px]">
+          Click &quot;Authorize&quot; below or get the key from{' '}
           <a
             href="https://openrouter.ai/keys/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-foreground/70 underline underline-offset-2 hover:text-foreground transition-colors"
+            className="text-foreground/70 hover:text-foreground underline underline-offset-2 transition-colors"
           >
             OpenRouter
-            <ExternalLink className="inline h-3 w-3 ml-0.5 -mt-0.5" />
+            <ExternalLink className="-mt-0.5 ml-0.5 inline h-3 w-3" />
           </a>
-          .{" "}
+          .{' '}
           <a
             href="https://openrouter.ai/settings/credits"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-foreground/70 underline underline-offset-2 hover:text-foreground transition-colors"
+            className="text-foreground/70 hover:text-foreground underline underline-offset-2 transition-colors"
           >
             View Remaining Credits
-            <ExternalLink className="inline h-3 w-3 ml-0.5 -mt-0.5" />
+            <ExternalLink className="-mt-0.5 ml-0.5 inline h-3 w-3" />
           </a>
         </p>
         <div className="flex items-center gap-2">
           <Input
-            value={config?.apiKey ?? ""}
+            value={config?.apiKey ?? ''}
             onChange={(e) => update({ apiKey: e.target.value })}
             placeholder="Enter your OpenRouter API key"
-            type={showKey ? "text" : "password"}
+            type={showKey ? 'text' : 'password'}
             autoComplete="off"
             className="flex-1"
           />
@@ -171,8 +167,8 @@ export function OpenRouterForm({
             variant="outline"
             size="icon"
             onClick={() => setShowKey((v) => !v)}
-            aria-label={showKey ? "Hide key" : "Show key"}
-            title={showKey ? "Hide key" : "Show key"}
+            aria-label={showKey ? 'Hide key' : 'Show key'}
+            title={showKey ? 'Hide key' : 'Show key'}
           >
             {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
@@ -194,18 +190,18 @@ export function OpenRouterForm({
         <Label>OpenRouter Model</Label>
         <ModelSelector
           source="openrouter"
-          value={config?.model ?? ""}
+          value={config?.model ?? ''}
           onChange={(model) => update({ model })}
         />
       </div>
 
       {/* Allow Fallback Models */}
-      <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+      <label className="flex cursor-pointer items-center gap-2 text-sm select-none">
         <input
           type="checkbox"
           checked={config?.allowFallbackModels ?? false}
           onChange={(e) => update({ allowFallbackModels: e.target.checked })}
-          className="h-4 w-4 rounded border-input accent-primary shrink-0"
+          className="border-input accent-primary h-4 w-4 shrink-0 rounded"
         />
         Allow fallback models
       </label>
@@ -213,7 +209,7 @@ export function OpenRouterForm({
       {/* Model Providers (multi-select) */}
       <div className="space-y-2">
         <Label>Model Providers</Label>
-        <p className="text-[12px] text-muted-foreground/60">
+        <p className="text-muted-foreground/60 text-[12px]">
           Hold Ctrl/Cmd to select multiple providers.
         </p>
         <Input
@@ -222,9 +218,9 @@ export function OpenRouterForm({
           placeholder="Search providers..."
           className="h-8 text-[13px]"
         />
-        <div className="rounded-md border border-border/60 bg-muted/10 p-1 max-h-48 overflow-y-auto">
+        <div className="border-border/60 bg-muted/10 max-h-48 overflow-y-auto rounded-md border p-1">
           {filteredProviders.length === 0 && (
-            <p className="text-[12px] text-muted-foreground/50 px-2 py-1">
+            <p className="text-muted-foreground/50 px-2 py-1 text-[12px]">
               No providers match your search.
             </p>
           )}
@@ -232,36 +228,36 @@ export function OpenRouterForm({
             <label
               key={p}
               className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded-sm text-[13px] cursor-pointer transition-colors select-none",
+                'flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-[13px] transition-colors select-none',
                 providers.includes(p)
-                  ? "bg-accent/60 text-accent-foreground"
-                  : "hover:bg-accent/30 text-foreground/70",
+                  ? 'bg-accent/60 text-accent-foreground'
+                  : 'hover:bg-accent/30 text-foreground/70',
               )}
             >
               <input
                 type="checkbox"
                 checked={providers.includes(p)}
                 onChange={() => toggleProvider(p)}
-                className="h-3.5 w-3.5 rounded border-input accent-primary shrink-0"
+                className="border-input accent-primary h-3.5 w-3.5 shrink-0 rounded"
               />
               {p}
             </label>
           ))}
         </div>
         {providers.length > 0 && (
-          <p className="text-[12px] text-muted-foreground/60">
-            {providers.length} provider{providers.length !== 1 ? "s" : ""} selected
+          <p className="text-muted-foreground/60 text-[12px]">
+            {providers.length} provider{providers.length !== 1 ? 's' : ''} selected
           </p>
         )}
       </div>
 
       {/* Allow Fallback Providers */}
-      <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+      <label className="flex cursor-pointer items-center gap-2 text-sm select-none">
         <input
           type="checkbox"
           checked={config?.allowFallbackProviders ?? false}
           onChange={(e) => update({ allowFallbackProviders: e.target.checked })}
-          className="h-4 w-4 rounded border-input accent-primary shrink-0"
+          className="border-input accent-primary h-4 w-4 shrink-0 rounded"
         />
         Allow fallback providers
       </label>
@@ -269,7 +265,7 @@ export function OpenRouterForm({
       {/* Model Quantizations (multi-select) */}
       <div className="space-y-2">
         <Label>Model Quantizations</Label>
-        <p className="text-[12px] text-muted-foreground/60">
+        <p className="text-muted-foreground/60 text-[12px]">
           Hold Ctrl/Cmd to select multiple quantizations.
         </p>
         <Input
@@ -278,9 +274,9 @@ export function OpenRouterForm({
           placeholder="Search quantizations..."
           className="h-8 text-[13px]"
         />
-        <div className="rounded-md border border-border/60 bg-muted/10 p-1 max-h-48 overflow-y-auto">
+        <div className="border-border/60 bg-muted/10 max-h-48 overflow-y-auto rounded-md border p-1">
           {filteredQuants.length === 0 && (
-            <p className="text-[12px] text-muted-foreground/50 px-2 py-1">
+            <p className="text-muted-foreground/50 px-2 py-1 text-[12px]">
               No quantizations match your search.
             </p>
           )}
@@ -288,30 +284,30 @@ export function OpenRouterForm({
             <label
               key={q.value}
               className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded-sm text-[13px] cursor-pointer transition-colors select-none",
+                'flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-[13px] transition-colors select-none',
                 quantizations.includes(q.value)
-                  ? "bg-accent/60 text-accent-foreground"
-                  : "hover:bg-accent/30 text-foreground/70",
+                  ? 'bg-accent/60 text-accent-foreground'
+                  : 'hover:bg-accent/30 text-foreground/70',
               )}
             >
               <input
                 type="checkbox"
                 checked={quantizations.includes(q.value)}
                 onChange={() => toggleQuantization(q.value)}
-                className="h-3.5 w-3.5 rounded border-input accent-primary shrink-0"
+                className="border-input accent-primary h-3.5 w-3.5 shrink-0 rounded"
               />
               {q.label}
             </label>
           ))}
         </div>
         {quantizations.length > 0 && (
-          <p className="text-[12px] text-muted-foreground/60">
-            {quantizations.length} quantization{quantizations.length !== 1 ? "s" : ""} selected
+          <p className="text-muted-foreground/60 text-[12px]">
+            {quantizations.length} quantization{quantizations.length !== 1 ? 's' : ''} selected
           </p>
         )}
       </div>
 
-      <p className="text-[12px] text-muted-foreground/60 italic">
+      <p className="text-muted-foreground/60 text-[12px] italic">
         To use instruct formatting, switch to OpenRouter under Text Completion API.
       </p>
     </div>

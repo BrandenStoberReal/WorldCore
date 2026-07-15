@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const SSEChunkSchema = z.union([
   z.object({
@@ -24,4 +24,4 @@ export const SSEChunkSchema = z.union([
   }),
 ]);
 
-export const SSEDoneChunkSchema = z.literal("[DONE]");
+export const SSEDoneChunkSchema = z.literal('[DONE]');

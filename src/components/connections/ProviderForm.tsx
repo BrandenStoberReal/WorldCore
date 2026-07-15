@@ -1,32 +1,25 @@
-import { useCallback, useMemo, useState } from "react";
-import { Eye, EyeOff, ExternalLink, Key } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { useCallback, useMemo, useState } from 'react';
+import { Eye, EyeOff, ExternalLink, Key } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { OnlineStatus } from "./OnlineStatus";
-import { ModelSelector } from "./ModelSelector";
-import { cn } from "@/lib/utils";
-import { ALL_PROVIDERS } from "./providerConfigs";
+} from '@/components/ui/select';
+import { OnlineStatus } from './OnlineStatus';
+import { ModelSelector } from './ModelSelector';
+import { cn } from '@/lib/utils';
+import { ALL_PROVIDERS } from './providerConfigs';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
 export interface ProviderField {
-  type:
-    | "text"
-    | "password"
-    | "select"
-    | "checkbox"
-    | "url"
-    | "number"
-    | "textarea";
+  type: 'text' | 'password' | 'select' | 'checkbox' | 'url' | 'number' | 'textarea';
   key: string;
   label: string;
   placeholder?: string;
@@ -85,10 +78,10 @@ function fieldDefaults(fields: ProviderField[]): Record<string, string | boolean
   for (const f of fields) {
     if (f.defaultValue !== undefined) {
       out[f.key] = f.defaultValue;
-    } else if (f.type === "checkbox") {
+    } else if (f.type === 'checkbox') {
       out[f.key] = false;
     } else {
-      out[f.key] = "";
+      out[f.key] = '';
     }
   }
   return out;
@@ -108,17 +101,15 @@ function FormField({
   const [showPassword, setShowPassword] = useState(false);
 
   // ── Password field with peek toggle ──
-  if (field.type === "password") {
+  if (field.type === 'password') {
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="gap-1.5">
-            <Key className="h-3.5 w-3.5 text-muted-foreground/60" />
+            <Key className="text-muted-foreground/60 h-3.5 w-3.5" />
             {field.label}
             {field.optional && (
-              <span className="text-muted-foreground/40 font-normal text-xs ml-1">
-                (optional)
-              </span>
+              <span className="text-muted-foreground/40 ml-1 text-xs font-normal">(optional)</span>
             )}
           </Label>
           {field.link && (
@@ -126,7 +117,7 @@ function FormField({
               href={field.link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] text-foreground/50 hover:text-foreground/80 transition-colors inline-flex items-center gap-1 mono-tag"
+              className="text-foreground/50 hover:text-foreground/80 mono-tag inline-flex items-center gap-1 text-[11px] transition-colors"
             >
               {field.link.text}
               <ExternalLink className="h-2.5 w-2.5" />
@@ -135,8 +126,8 @@ function FormField({
         </div>
         <div className="flex items-center gap-2">
           <Input
-            type={showPassword ? "text" : "password"}
-            value={typeof value === "string" ? value : ""}
+            type={showPassword ? 'text' : 'password'}
+            value={typeof value === 'string' ? value : ''}
             onChange={(e) => onChange(field.key, e.target.value)}
             placeholder={field.placeholder}
             autoComplete="off"
@@ -147,39 +138,31 @@ function FormField({
             variant="outline"
             size="icon-sm"
             onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-            title={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            title={showPassword ? 'Hide password' : 'Show password'}
           >
-            {showPassword ? (
-              <EyeOff className="h-3.5 w-3.5" />
-            ) : (
-              <Eye className="h-3.5 w-3.5" />
-            )}
+            {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           </Button>
         </div>
         {field.helpText && (
-          <p className="text-[11px] text-muted-foreground/50 mono-tag">
-            {field.helpText}
-          </p>
+          <p className="text-muted-foreground/50 mono-tag text-[11px]">{field.helpText}</p>
         )}
       </div>
     );
   }
 
   // ── Select field ──
-  if (field.type === "select") {
+  if (field.type === 'select') {
     return (
       <div className="space-y-2">
         <Label>
           {field.label}
           {field.optional && (
-            <span className="text-muted-foreground/40 font-normal text-xs ml-1">
-              (optional)
-            </span>
+            <span className="text-muted-foreground/40 ml-1 text-xs font-normal">(optional)</span>
           )}
         </Label>
         <Select
-          value={typeof value === "string" ? value : undefined}
+          value={typeof value === 'string' ? value : undefined}
           onValueChange={(v) => onChange(field.key, v)}
         >
           <SelectTrigger className="w-full">
@@ -194,25 +177,23 @@ function FormField({
           </SelectContent>
         </Select>
         {field.helpText && (
-          <p className="text-[11px] text-muted-foreground/50 mono-tag">
-            {field.helpText}
-          </p>
+          <p className="text-muted-foreground/50 mono-tag text-[11px]">{field.helpText}</p>
         )}
       </div>
     );
   }
 
   // ── Checkbox ──
-  if (field.type === "checkbox") {
+  if (field.type === 'checkbox') {
     return (
-      <label className="flex items-center gap-3 cursor-pointer group py-1">
+      <label className="group flex cursor-pointer items-center gap-3 py-1">
         <input
           type="checkbox"
-          checked={typeof value === "boolean" ? value : false}
+          checked={typeof value === 'boolean' ? value : false}
           onChange={(e) => onChange(field.key, e.target.checked)}
-          className="h-4 w-4 rounded border-input bg-transparent accent-primary"
+          className="border-input accent-primary h-4 w-4 rounded bg-transparent"
         />
-        <span className="text-sm text-foreground/80 group-hover:text-foreground transition-colors">
+        <span className="text-foreground/80 group-hover:text-foreground text-sm transition-colors">
           {field.label}
         </span>
       </label>
@@ -220,55 +201,47 @@ function FormField({
   }
 
   // ── Textarea ──
-  if (field.type === "textarea") {
+  if (field.type === 'textarea') {
     return (
       <div className="space-y-2">
         <Label>
           {field.label}
           {field.optional && (
-            <span className="text-muted-foreground/40 font-normal text-xs ml-1">
-              (optional)
-            </span>
+            <span className="text-muted-foreground/40 ml-1 text-xs font-normal">(optional)</span>
           )}
         </Label>
         <Textarea
-          value={typeof value === "string" ? value : ""}
+          value={typeof value === 'string' ? value : ''}
           onChange={(e) => onChange(field.key, e.target.value)}
           placeholder={field.placeholder}
           rows={3}
         />
         {field.helpText && (
-          <p className="text-[11px] text-muted-foreground/50 mono-tag">
-            {field.helpText}
-          </p>
+          <p className="text-muted-foreground/50 mono-tag text-[11px]">{field.helpText}</p>
         )}
       </div>
     );
   }
 
   // ── Number ──
-  if (field.type === "number") {
+  if (field.type === 'number') {
     return (
       <div className="space-y-2">
         <Label>
           {field.label}
           {field.optional && (
-            <span className="text-muted-foreground/40 font-normal text-xs ml-1">
-              (optional)
-            </span>
+            <span className="text-muted-foreground/40 ml-1 text-xs font-normal">(optional)</span>
           )}
         </Label>
         <Input
           type="number"
-          value={typeof value === "number" ? value : typeof value === "string" ? value : ""}
+          value={typeof value === 'number' ? value : typeof value === 'string' ? value : ''}
           onChange={(e) => onChange(field.key, Number(e.target.value))}
           placeholder={field.placeholder}
           min={0}
         />
         {field.helpText && (
-          <p className="text-[11px] text-muted-foreground/50 mono-tag">
-            {field.helpText}
-          </p>
+          <p className="text-muted-foreground/50 mono-tag text-[11px]">{field.helpText}</p>
         )}
       </div>
     );
@@ -281,14 +254,12 @@ function FormField({
       <Label>
         {field.label}
         {field.optional && (
-          <span className="text-muted-foreground/40 font-normal text-xs ml-1">
-            (optional)
-          </span>
+          <span className="text-muted-foreground/40 ml-1 text-xs font-normal">(optional)</span>
         )}
       </Label>
       <Input
-        type={field.type === "url" ? "url" : "text"}
-        value={typeof value === "string" ? value : ""}
+        type={field.type === 'url' ? 'url' : 'text'}
+        value={typeof value === 'string' ? value : ''}
         onChange={(e) => onChange(field.key, e.target.value)}
         placeholder={field.placeholder}
         autoComplete="off"
@@ -298,16 +269,14 @@ function FormField({
           href={field.link.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[11px] text-foreground/50 hover:text-foreground/80 transition-colors inline-flex items-center gap-1 mono-tag"
+          className="text-foreground/50 hover:text-foreground/80 mono-tag inline-flex items-center gap-1 text-[11px] transition-colors"
         >
           {field.link.text}
           <ExternalLink className="h-2.5 w-2.5" />
         </a>
       )}
       {field.helpText && (
-        <p className="text-[11px] text-muted-foreground/50 mono-tag">
-          {field.helpText}
-        </p>
+        <p className="text-muted-foreground/50 mono-tag text-[11px]">{field.helpText}</p>
       )}
     </div>
   );
@@ -345,18 +314,19 @@ export function ProviderForm({
       showModelSelector: cfg.showModelSelector ?? false,
       showUrl: cfg.showUrl ?? false,
       urlPlaceholder: cfg.urlPlaceholder,
-      connectLabel: cfg.connectLabel ?? "Connect",
+      connectLabel: cfg.connectLabel ?? 'Connect',
     };
   }, [subType]);
 
-  const name = nameProp ?? resolved?.name ?? subType ?? "Provider";
+  const name = nameProp ?? resolved?.name ?? subType ?? 'Provider';
   const fields = fieldsProp ?? resolved?.fields ?? [];
   const showModelSelector = showModelSelectorProp ?? resolved?.showModelSelector ?? false;
   const showUrl = showUrlProp ?? resolved?.showUrl ?? false;
-  const urlPlaceholder = urlPlaceholderProp ?? resolved?.urlPlaceholder ?? "http://localhost:8080/v1";
-  const connectLabel = connectLabelProp ?? resolved?.connectLabel ?? "Connect";
+  const urlPlaceholder =
+    urlPlaceholderProp ?? resolved?.urlPlaceholder ?? 'http://localhost:8080/v1';
+  const connectLabel = connectLabelProp ?? resolved?.connectLabel ?? 'Connect';
 
-  const effectiveSource = subType ?? activeSource ?? "generic";
+  const effectiveSource = subType ?? activeSource ?? 'generic';
   // Field state (controlled externally via props if needed, or internal defaults)
   const [fieldValues, setFieldValues] = useState(() => fieldDefaults(fields));
 
@@ -365,8 +335,8 @@ export function ProviderForm({
   }, []);
 
   // Internal URL / model state for fields not managed externally
-  const [internalUrl, setInternalUrl] = useState("");
-  const [internalModel, setInternalModel] = useState("");
+  const [internalUrl, setInternalUrl] = useState('');
+  const [internalModel, setInternalModel] = useState('');
 
   const url = urlProp ?? internalUrl;
   const setUrl = onUrlChange ?? setInternalUrl;
@@ -378,18 +348,16 @@ export function ProviderForm({
   }, [fieldValues, url, model, onConnect]);
 
   return (
-    <div className={cn("space-y-5", className)}>
+    <div className={cn('space-y-5', className)}>
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-muted/40">
-          <span className="display-host text-ember text-sm">
-            {name.charAt(0).toUpperCase()}
-          </span>
+        <div className="border-border bg-muted/40 flex h-9 w-9 items-center justify-center rounded-md border">
+          <span className="display-host text-ember text-sm">{name.charAt(0).toUpperCase()}</span>
         </div>
         <div>
           <h3 className="display-host text-base leading-none">{name}</h3>
-          <p className="text-[11px] text-muted-foreground/50 mono-tag mt-0.5">
-            {connected ? "active connection" : "configure to connect"}
+          <p className="text-muted-foreground/50 mono-tag mt-0.5 text-[11px]">
+            {connected ? 'active connection' : 'configure to connect'}
           </p>
         </div>
       </div>
@@ -399,7 +367,7 @@ export function ProviderForm({
         <FormField
           key={field.key}
           field={field}
-          value={fieldValues[field.key] ?? ""}
+          value={fieldValues[field.key] ?? ''}
           onChange={setField}
         />
       ))}
@@ -439,22 +407,12 @@ export function ProviderForm({
         <Button
           type="button"
           onClick={handleConnect}
-          className={cn(
-            "relative pl-4 pr-5 h-9",
-            !connected && "ember-pulse",
-          )}
+          className={cn('relative h-9 pr-5 pl-4', !connected && 'ember-pulse')}
         >
-          <span className="text-[13px] font-semibold tracking-tight">
-            {connectLabel}
-          </span>
+          <span className="text-[13px] font-semibold tracking-tight">{connectLabel}</span>
         </Button>
         {connected && onCancel && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            className="h-9"
-          >
+          <Button type="button" variant="outline" onClick={onCancel} className="h-9">
             <span className="text-[13px]">Cancel</span>
           </Button>
         )}

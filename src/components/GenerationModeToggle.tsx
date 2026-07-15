@@ -1,10 +1,14 @@
-import { cn } from "@/lib/utils";
-import { useGenerationStore, type GenerationMode } from "@/lib/stores";
-import { MessageSquare, FileText } from "lucide-react";
+import { cn } from '@/lib/utils';
+import { useGenerationStore, type GenerationMode } from '@/lib/stores';
+import { MessageSquare, FileText } from 'lucide-react';
 
-const MODE_OPTIONS: { value: GenerationMode; label: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }> }[] = [
-  { value: "chat", label: "Chat", icon: MessageSquare },
-  { value: "text", label: "Text", icon: FileText },
+const MODE_OPTIONS: {
+  value: GenerationMode;
+  label: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+}[] = [
+  { value: 'chat', label: 'Chat', icon: MessageSquare },
+  { value: 'text', label: 'Text', icon: FileText },
 ];
 
 export function GenerationModeToggle() {
@@ -13,7 +17,7 @@ export function GenerationModeToggle() {
 
   return (
     <div
-      className="flex rounded-sm border border-border bg-background/50 p-0.5"
+      className="border-border bg-background/50 flex rounded-sm border p-0.5"
       role="radiogroup"
       aria-label="Generation mode"
     >
@@ -27,11 +31,11 @@ export function GenerationModeToggle() {
             aria-checked={isActive}
             onClick={() => setMode(value)}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 rounded-[3px] py-1.5 px-2",
-              "text-[11px] font-medium transition-all duration-200",
+              'flex flex-1 items-center justify-center gap-1.5 rounded-[3px] px-2 py-1.5',
+              'text-[11px] font-medium transition-all duration-200',
               isActive
-                ? "bg-ember/15 text-ember border border-ember/25 shadow-sm"
-                : "text-foreground/50 hover:text-foreground/70 hover:bg-accent/30 border border-transparent",
+                ? 'bg-ember/15 text-ember border-ember/25 border shadow-sm'
+                : 'text-foreground/50 hover:text-foreground/70 hover:bg-accent/30 border border-transparent',
             )}
           >
             <Icon className="h-3 w-3" strokeWidth={2} />

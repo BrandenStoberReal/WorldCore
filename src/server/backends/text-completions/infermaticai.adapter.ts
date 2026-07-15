@@ -1,16 +1,17 @@
-import type { TextCompletionAdapter } from "./types"
-import type { TextCompletionRequest } from "@/shared/types/backends/textcompletions"
+import type { TextCompletionAdapter } from './types';
+import type { TextCompletionRequest } from '@/shared/types/backends/textcompletions';
 
 export class InfermaticAIAdapter implements TextCompletionAdapter {
-  source = "infermaticai" as const
+  source = 'infermaticai' as const;
 
   async forwardRequest(req: TextCompletionRequest): Promise<Response> {
-    const url = (req.reverse_proxy as string | undefined) || "https://api.infermatic.ai/v1/completions"
+    const url =
+      (req.reverse_proxy as string | undefined) || 'https://api.infermatic.ai/v1/completions';
 
     return fetch(url, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${this.getKey(req)}`,
       },
       body: JSON.stringify({
@@ -24,11 +25,11 @@ export class InfermaticAIAdapter implements TextCompletionAdapter {
         frequency_penalty: req.frequency_penalty,
         presence_penalty: req.presence_penalty,
       }),
-      signal: (req.signal as AbortSignal | undefined),
-    })
+      signal: req.signal as AbortSignal | undefined,
+    });
   }
 
   private getKey(req: TextCompletionRequest): string {
-    return (req.api_key as string | undefined) || ""
+    return (req.api_key as string | undefined) || '';
   }
 }

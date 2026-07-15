@@ -39,8 +39,8 @@ export async function generateStableDiffusion(
   }
 
   const res = await fetch(`${apiUrl}/sdapi/v1/txt2img`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 
@@ -49,9 +49,9 @@ export async function generateStableDiffusion(
     throw new Error(`SD WebUI error ${res.status}: ${errText}`);
   }
 
-  const data = await res.json() as Record<string, unknown>;
+  const data = (await res.json()) as Record<string, unknown>;
   const images = (data.images as string[] | undefined) ?? [];
-  const info = (data.info as string | undefined) ?? "";
+  const info = (data.info as string | undefined) ?? '';
   const match = info.match(/Seed: (\d+)/);
   const baseSeed = match ? Number(match[1]) : 0;
 

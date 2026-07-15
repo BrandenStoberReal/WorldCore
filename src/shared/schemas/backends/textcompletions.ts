@@ -1,9 +1,10 @@
-import { z } from "zod";
-import { SHARED_CONST } from "@/shared/constants";
+import { z } from 'zod';
+import { SHARED_CONST } from '@/shared/constants';
 
-export const TextCompletionSourceSchema = z.enum([
-  ...SHARED_CONST.TEXT_COMPLETION_SOURCES,
-] as [string, ...string[]]);
+export const TextCompletionSourceSchema = z.enum([...SHARED_CONST.TEXT_COMPLETION_SOURCES] as [
+  string,
+  ...string[],
+]);
 
 export const TextCompletionRequestSchema = z
   .object({

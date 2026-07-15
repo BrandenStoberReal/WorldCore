@@ -1,14 +1,14 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-export const WIPositionSchema = z.enum(["0", "1", "2", "3", "4"]).transform(Number);
-export const WIRoleSchema = z.enum(["", "0", "1", "2"]);
+export const WIPositionSchema = z.enum(['0', '1', '2', '3', '4']).transform(Number);
+export const WIRoleSchema = z.enum(['', '0', '1', '2']);
 
 export const WorldInfoEntrySchema = z.object({
   uid: z.string(),
   key: z.string(),
   keysecondary: z.array(z.string()).default([]),
-  comment: z.string().default(""),
-  content: z.string().default(""),
+  comment: z.string().default(''),
+  content: z.string().default(''),
   constant: z.boolean().default(false),
   vectorized: z.boolean().default(false),
   selective: z.boolean().default(false),
@@ -29,8 +29,8 @@ export const WorldInfoEntrySchema = z.object({
   scanDepth: z.number().int().default(0),
   caseSensitive: z.boolean().default(false),
   matchWholeWords: z.boolean().default(false),
-  automationId: z.string().default(""),
-  role: z.string().default(""),
+  automationId: z.string().default(''),
+  role: z.string().default(''),
   sticky: z.boolean().default(false),
   cooldown: z.number().int().default(0),
   delay: z.number().int().default(0),
@@ -40,7 +40,7 @@ export const WorldInfoEntrySchema = z.object({
   matchCharacterDepthPrompt: z.boolean().default(false),
   matchScenario: z.boolean().default(false),
   matchCreatorNotes: z.boolean().default(false),
-  triggers: z.string().default(""),
+  triggers: z.string().default(''),
   ignoreBudget: z.boolean().default(false),
   extensions: z.record(z.unknown()).optional(),
 });

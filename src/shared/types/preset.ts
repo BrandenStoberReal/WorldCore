@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { z } from 'zod';
 import {
   PresetCategorySchema,
   OpenaiPresetSchema,
@@ -10,7 +10,7 @@ import {
   SyspromptSchema,
   ReasoningTemplateSchema,
   PresetSchema,
-} from "@/shared/schemas/preset";
+} from '@/shared/schemas/preset';
 
 export type PresetCategory = z.infer<typeof PresetCategorySchema>;
 export type OpenaiPreset = z.infer<typeof OpenaiPresetSchema>;

@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -55,9 +55,9 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-display: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-display: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -195,8 +195,11 @@
 
   /* Subtle dot pattern for depth */
   .dot-grid {
-    background-image:
-      radial-gradient(circle, color-mix(in oklch, var(--foreground) 6%, transparent) 1px, transparent 1px);
+    background-image: radial-gradient(
+      circle,
+      color-mix(in oklch, var(--foreground) 6%, transparent) 1px,
+      transparent 1px
+    );
     background-size: 24px 24px;
   }
 
@@ -213,13 +216,22 @@
   /* Soft ambient glow */
   .ambient-glow {
     background:
-      radial-gradient(circle at 78% 18%, color-mix(in oklch, var(--ember) 18%, transparent) 0%, transparent 42%),
-      radial-gradient(circle at 18% 84%, color-mix(in oklch, var(--ember) 10%, transparent) 0%, transparent 56%);
+      radial-gradient(
+        circle at 78% 18%,
+        color-mix(in oklch, var(--ember) 18%, transparent) 0%,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 18% 84%,
+        color-mix(in oklch, var(--ember) 10%, transparent) 0%,
+        transparent 56%
+      );
   }
 
   /* Accent pulse for active state — subtle breathing glow */
   @keyframes ember-pulse {
-    0%, 100% {
+    0%,
+    100% {
       box-shadow: 0 0 0 0 color-mix(in oklch, var(--ember) 40%, transparent);
       opacity: 1;
     }
@@ -234,8 +246,15 @@
 
   /* Stream indicator dots — animated typing indicator */
   @keyframes dot-hot {
-    0%, 100% { opacity: 0.3; transform: translateY(0); }
-    50% { opacity: 1; transform: translateY(-2px); }
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: translateY(0);
+    }
+    50% {
+      opacity: 1;
+      transform: translateY(-2px);
+    }
   }
   .dot-hot > span {
     display: inline-block;
@@ -246,8 +265,12 @@
     margin-right: 2px;
     animation: dot-hot 1.2s ease-in-out infinite;
   }
-  .dot-hot > span:nth-child(2) { animation-delay: 0.2s; }
-  .dot-hot > span:nth-child(3) { animation-delay: 0.4s; }
+  .dot-hot > span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .dot-hot > span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
 
   /* Page chrome utility — section heading */
   .display-host {
@@ -288,12 +311,12 @@
   }
 
   .top-bar {
-    @apply fixed top-0 left-0 right-0 z-50 h-16;
-    @apply backdrop-blur-xl border-b;
+    @apply fixed top-0 right-0 left-0 z-50 h-16;
+    @apply border-b backdrop-blur-xl;
     background: color-mix(in oklch, var(--background) 70%, transparent);
     border-color: color-mix(in oklch, var(--border) 60%, transparent);
   }
-  .top-bar[data-tinted="true"] {
+  .top-bar[data-tinted='true'] {
     background: color-mix(in oklch, var(--background) 85%, transparent);
   }
 
@@ -303,7 +326,9 @@
     backdrop-filter: blur(24px);
     background: color-mix(in oklch, var(--background) 90%, transparent);
     border-right: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
-    transition: width 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
+    transition:
+      width 300ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 200ms ease;
   }
   .generation-sidebar.closed {
     width: 0;
@@ -312,21 +337,21 @@
     overflow: hidden;
   }
 
-  input[type="range"].gen-slider {
-    @apply w-full h-1.5 rounded-full appearance-none cursor-pointer;
+  input[type='range'].gen-slider {
+    @apply h-1.5 w-full cursor-pointer appearance-none rounded-full;
     background: var(--border);
   }
-  input[type="range"].gen-slider::-webkit-slider-thumb {
-    @apply appearance-none w-4 h-4 rounded-full cursor-pointer;
+  input[type='range'].gen-slider::-webkit-slider-thumb {
+    @apply h-4 w-4 cursor-pointer appearance-none rounded-full;
     background: var(--ember);
     box-shadow: 0 0 0 2px color-mix(in oklch, var(--ember) 30%, transparent);
   }
-  input[type="range"].gen-slider::-moz-range-thumb {
-    @apply w-4 h-4 rounded-full cursor-pointer border-0;
+  input[type='range'].gen-slider::-moz-range-thumb {
+    @apply h-4 w-4 cursor-pointer rounded-full border-0;
     background: var(--ember);
     box-shadow: 0 0 0 2px color-mix(in oklch, var(--ember) 30%, transparent);
   }
-  input[type="range"].gen-slider:focus-visible {
+  input[type='range'].gen-slider:focus-visible {
     @apply outline-none;
     box-shadow: 0 0 0 2px color-mix(in oklch, var(--ember) 50%, transparent);
   }
@@ -348,8 +373,9 @@
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
     transform: translateY(-100%) scale(0.98);
     opacity: 0;
-    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 200ms ease;
+    transition:
+      transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 200ms ease;
     pointer-events: none;
   }
   .drawer-top.drawer-open {
@@ -365,7 +391,9 @@
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-left: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
-    transition: width 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
+    transition:
+      width 300ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 200ms ease;
   }
   .drawer-characters.drawer-closed {
     width: 0;

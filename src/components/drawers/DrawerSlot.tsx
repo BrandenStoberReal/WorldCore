@@ -1,10 +1,10 @@
-import type { ReactNode } from "react"
-import { cn } from "@/lib/utils"
+import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 interface DrawerSlotProps {
-  direction: "top" | "characters"
-  open: boolean
-  children: ReactNode
+  direction: 'top' | 'characters';
+  open: boolean;
+  children: ReactNode;
 }
 
 export function DrawerSlot({ direction, open, children }: DrawerSlotProps) {
@@ -12,15 +12,13 @@ export function DrawerSlot({ direction, open, children }: DrawerSlotProps) {
     <div
       data-drawer-slot={direction}
       className={cn(
-        direction === "top" ? "drawer-top" : "drawer-characters",
-        direction === "top"
-          ? (open && "drawer-open")
-          : (!open && "drawer-closed"),
-        direction === "top" && "p-4",
-        direction === "characters" && "p-4",
+        direction === 'top' ? 'drawer-top' : 'drawer-characters',
+        direction === 'top' ? open && 'drawer-open' : !open && 'drawer-closed',
+        direction === 'top' && 'p-4',
+        direction === 'characters' && 'p-4',
       )}
     >
       {children}
     </div>
-  )
+  );
 }

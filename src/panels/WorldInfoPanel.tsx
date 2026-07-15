@@ -1,27 +1,15 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Modal } from "@/components/Modal";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import {
-  Loader2,
-  Plus,
-  Trash2,
-  Search,
-  Pencil,
-  Layers,
-  Hash,
-  Flame,
-} from "lucide-react";
-import { cn, surfaceCard } from "@/lib/utils";
-import { InlineSection } from "@/components/drawers/InlineSection";
-import type { WorldInfo, WorldInfoEntry } from "@/shared/types/worldinfo";
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Modal } from '@/components/Modal';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Loader2, Plus, Trash2, Search, Pencil, Layers, Hash, Flame } from 'lucide-react';
+import { cn, surfaceCard } from '@/lib/utils';
+import { InlineSection } from '@/components/drawers/InlineSection';
+import type { WorldInfo, WorldInfoEntry } from '@/shared/types/worldinfo';
 
 interface FormState {
   key: string;
@@ -36,10 +24,10 @@ interface FormState {
 }
 
 const emptyForm = (): FormState => ({
-  key: "",
-  keysecondary: "",
-  content: "",
-  comment: "",
+  key: '',
+  keysecondary: '',
+  content: '',
+  comment: '',
   depth: 0,
   probability: 1,
   constant: false,
@@ -49,17 +37,21 @@ const emptyForm = (): FormState => ({
 
 export function WorldInfoPanel() {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editUid, setEditUid] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [deleteUid, setDeleteUid] = useState<string | null>(null);
 
-  const { data: worldinfos, isLoading, error } = useQuery<WorldInfo[]>({
-    queryKey: ["/api/v1/worldinfo/all"],
+  const {
+    data: worldinfos,
+    isLoading,
+    error,
+  } = useQuery<WorldInfo[]>({
+    queryKey: ['/api/v1/worldinfo/all'],
     queryFn: async () => {
-      const res = await fetch("/api/v1/worldinfo/all");
-      if (!res.ok) throw new Error("Failed to fetch world info");
+      const res = await fetch('/api/v1/worldinfo/all');
+      if (!res.ok) throw new Error('Failed to fetch world info');
       const data = await res.json();
       return Array.isArray(data) ? data : (data.results ?? data.data ?? data);
     },
@@ -67,17 +59,17 @@ export function WorldInfoPanel() {
 
   const createMutation = useMutation({
     mutationFn: async (data: { entries: Record<string, WorldInfoEntry> }) => {
-      const res = await fetch("/api/v1/worldinfo/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/v1/worldinfo/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to create world info");
+      if (!res.ok) throw new Error('Failed to create world info');
       const result = await res.json();
       return Array.isArray(result) ? result : (result.results ?? result.data ?? result);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/worldinfo/all"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/worldinfo/all'] });
       setModalOpen(false);
       setForm(emptyForm());
     },
@@ -91,17 +83,17 @@ export function WorldInfoPanel() {
       fileId: string;
       entries: Record<string, WorldInfoEntry>;
     }) => {
-      const res = await fetch("/api/v1/worldinfo/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/v1/worldinfo/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_id: fileId, entries }),
       });
-      if (!res.ok) throw new Error("Failed to update world info");
+      if (!res.ok) throw new Error('Failed to update world info');
       const result = await res.json();
       return Array.isArray(result) ? result : (result.results ?? result.data ?? result);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/worldinfo/all"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/worldinfo/all'] });
       setModalOpen(false);
       setEditUid(null);
       setForm(emptyForm());
@@ -109,24 +101,18 @@ export function WorldInfoPanel() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async ({
-      fileId,
-      uid,
-    }: {
-      fileId: string;
-      uid: string;
-    }) => {
-      const res = await fetch("/api/v1/worldinfo/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+    mutationFn: async ({ fileId, uid }: { fileId: string; uid: string }) => {
+      const res = await fetch('/api/v1/worldinfo/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_id: fileId, entries: [uid] }),
       });
-      if (!res.ok) throw new Error("Failed to delete world info entry");
+      if (!res.ok) throw new Error('Failed to delete world info entry');
       const result = await res.json();
       return Array.isArray(result) ? result : (result.results ?? result.data ?? result);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/worldinfo/all"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/worldinfo/all'] });
     },
   });
 
@@ -136,16 +122,14 @@ export function WorldInfoPanel() {
       uid,
       wiName: wi.name,
       wiFileId: wi.name,
-    }))
+    })),
   );
 
   const filtered = allEntries?.filter(
     (e) =>
       e.key.toLowerCase().includes(search.toLowerCase()) ||
       e.content.toLowerCase().includes(search.toLowerCase()) ||
-      e.keysecondary.some((k) =>
-        k.toLowerCase().includes(search.toLowerCase())
-      )
+      e.keysecondary.some((k) => k.toLowerCase().includes(search.toLowerCase())),
   );
 
   const handleSave = () => {
@@ -154,7 +138,7 @@ export function WorldInfoPanel() {
       uid,
       key: form.key,
       keysecondary: form.keysecondary
-        .split(",")
+        .split(',')
         .map((s) => s.trim())
         .filter(Boolean),
       comment: form.comment,
@@ -179,8 +163,8 @@ export function WorldInfoPanel() {
       scanDepth: 0,
       caseSensitive: false,
       matchWholeWords: false,
-      automationId: "",
-      role: "",
+      automationId: '',
+      role: '',
       sticky: false,
       cooldown: 0,
       delay: 0,
@@ -190,14 +174,12 @@ export function WorldInfoPanel() {
       matchCharacterDepthPrompt: false,
       matchScenario: false,
       matchCreatorNotes: false,
-      triggers: "",
+      triggers: '',
       ignoreBudget: false,
     };
 
     if (editUid) {
-      const wi = worldinfos?.find((w) =>
-        Object.keys(w.entries).includes(editUid)
-      );
+      const wi = worldinfos?.find((w) => Object.keys(w.entries).includes(editUid));
       if (wi) {
         updateMutation.mutate({
           fileId: wi.name,
@@ -213,7 +195,7 @@ export function WorldInfoPanel() {
     setEditUid(entry.uid);
     setForm({
       key: entry.key,
-      keysecondary: entry.keysecondary.join(", "),
+      keysecondary: entry.keysecondary.join(', '),
       content: entry.content,
       comment: entry.comment,
       depth: entry.depth,
@@ -227,45 +209,34 @@ export function WorldInfoPanel() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64 flex-col gap-3">
-        <Loader2 className="h-7 w-7 animate-spin text-ember" />
-        <span className="mono-tag text-muted-foreground/55">
-          scanning tablets
-        </span>
+      <div className="flex h-64 flex-col items-center justify-center gap-3">
+        <Loader2 className="text-ember h-7 w-7 animate-spin" />
+        <span className="mono-tag text-muted-foreground/55">scanning tablets</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div
-        className={cn(
-          surfaceCard,
-          "flex items-center justify-center h-64",
-        )}
-      >
+      <div className={cn(surfaceCard, 'flex h-64 items-center justify-center')}>
         <span className="mono-tag text-destructive">{error.message}</span>
       </div>
     );
   }
 
   return (
-    <div data-panel="worldinfo" className="relative isolate section-rhythm">
+    <div data-panel="worldinfo" className="section-rhythm relative isolate">
       {/* Section header */}
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="flex items-center gap-3 mb-2">
+          <div className="mb-2 flex items-center gap-3">
             <span className="mono-tag text-ember">{`[03] — ARCHIVE`}</span>
-            <span className="h-px w-10 bg-ember/40" />
+            <span className="bg-ember/40 h-px w-10" />
           </div>
-          <h2
-            className="display-host text-[42px] leading-none tracking-tight"
-          >
-            Lore Tablets
-          </h2>
-          <p className="text-sm text-muted-foreground mt-2 max-w-md">
-            Triggered knowledge fragments: keys, secondary keywords, depth, and
-            probability gating the lore the model can summon mid-conversation.
+          <h2 className="display-host text-[42px] leading-none tracking-tight">Lore Tablets</h2>
+          <p className="text-muted-foreground mt-2 max-w-md text-sm">
+            Triggered knowledge fragments: keys, secondary keywords, depth, and probability gating
+            the lore the model can summon mid-conversation.
           </p>
         </div>
 
@@ -275,35 +246,33 @@ export function WorldInfoPanel() {
             setForm(emptyForm());
             setModalOpen(true);
           }}
-          className="h-9 ember-pulse"
+          className="ember-pulse h-9"
         >
           <Plus className="h-4 w-4" strokeWidth={2.5} />
-          <span className="text-[13px] font-semibold tracking-tight">
-            New Tablet
-          </span>
+          <span className="text-[13px] font-semibold tracking-tight">New Tablet</span>
         </Button>
       </header>
 
       {/* Search rail */}
       <InlineSection panelId="worldinfo" sectionId="search" title="Search & Filter">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[260px]">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/55" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[260px] flex-1">
+            <Search className="text-muted-foreground/55 absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
             <Input
               placeholder="query · key, secondary, or content fragment..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 font-mono text-[13px] tracking-tight"
+              className="h-9 pl-9 font-mono text-[13px] tracking-tight"
             />
           </div>
-          <div className="flex items-center gap-1.5 h-9 px-3 border border-border bg-background/40 rounded-sm">
+          <div className="border-border bg-background/40 flex h-9 items-center gap-1.5 rounded-sm border px-3">
             <span className="mono-tag text-muted-foreground/55">tablets</span>
             <span className="mono-tag text-ember tabular-nums">
-              {String(filtered?.length ?? 0).padStart(2, "0")}
+              {String(filtered?.length ?? 0).padStart(2, '0')}
             </span>
             <span className="mono-tag text-muted-foreground/40">/</span>
             <span className="mono-tag text-foreground/70 tabular-nums">
-              {String(allEntries?.length ?? 0).padStart(2, "0")}
+              {String(allEntries?.length ?? 0).padStart(2, '0')}
             </span>
           </div>
         </div>
@@ -316,44 +285,42 @@ export function WorldInfoPanel() {
             key={entry.uid}
             className={cn(
               surfaceCard,
-              "group relative rounded-sm py-0 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]",
-              entry.disable ? "opacity-55" : "",
+              'group relative overflow-hidden rounded-sm py-0 transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
+              entry.disable ? 'opacity-55' : '',
             )}
           >
             {/* Top rail */}
-            <div className="flex items-center justify-between px-4 py-2 bg-background/30 border-b border-border/60">
-              <div className="flex items-center gap-2.5 min-w-0">
+            <div className="bg-background/30 border-border/60 flex items-center justify-between border-b px-4 py-2">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <span className="mono-tag text-muted-foreground/55 tabular-nums">
-                  {`#${String(idx + 1).padStart(3, "0")}`}
+                  {`#${String(idx + 1).padStart(3, '0')}`}
                 </span>
-                <span className="mono-tag text-ember/70 truncate">
-                  {entry.key || "{no_key}"}
-                </span>
+                <span className="mono-tag text-ember/70 truncate">{entry.key || '{no_key}'}</span>
                 {!entry.disable && (
-                  <span className="mono-tag px-1.5 py-0.5 rounded-sm bg-ember/15 text-ember">
+                  <span className="mono-tag bg-ember/15 text-ember rounded-sm px-1.5 py-0.5">
                     ON
                   </span>
                 )}
                 {entry.disable && (
-                  <span className="mono-tag px-1.5 py-0.5 rounded-sm bg-muted/50 text-muted-foreground/55">
+                  <span className="mono-tag bg-muted/50 text-muted-foreground/55 rounded-sm px-1.5 py-0.5">
                     OFF
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex shrink-0 items-center gap-1">
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => openEdit(entry)}
-                  className="h-7 w-7 hover:text-ember"
+                  className="hover:text-ember h-7 w-7"
                 >
                   <Pencil className="h-3 w-3" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                  className="text-destructive hover:bg-destructive/10 h-7 w-7"
                   onClick={() => setDeleteUid(entry.uid)}
                 >
                   <Trash2 className="h-3 w-3" />
@@ -361,38 +328,25 @@ export function WorldInfoPanel() {
               </div>
             </div>
 
-            <CardContent className="px-4 py-3 space-y-3">
+            <CardContent className="space-y-3 px-4 py-3">
               {/* Card body */}
-              <p className="text-[13.5px] leading-relaxed text-foreground/80 line-clamp-2">
+              <p className="text-foreground/80 line-clamp-2 text-[13.5px] leading-relaxed">
                 {entry.content || (
-                  <span className="italic text-muted-foreground/40">
-                    no content inscribed
-                  </span>
+                  <span className="text-muted-foreground/40 italic">no content inscribed</span>
                 )}
               </p>
 
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-3">
                 <Badge label="DEPTH" value={String(entry.depth)} icon={Layers} />
-                <Badge
-                  label="PROB"
-                  value={entry.probability.toFixed(2)}
-                  icon={Flame}
-                  accent
-                />
-                <Badge
-                  label="KEYS"
-                  value={String(entry.keysecondary.length)}
-                  icon={Hash}
-                />
+                <Badge label="PROB" value={entry.probability.toFixed(2)} icon={Flame} accent />
+                <Badge label="KEYS" value={String(entry.keysecondary.length)} icon={Hash} />
                 <Badge
                   label="MODE"
-                  value={
-                    entry.constant ? "CONST" : entry.selective ? "SELECT" : "TRIG"
-                  }
+                  value={entry.constant ? 'CONST' : entry.selective ? 'SELECT' : 'TRIG'}
                 />
                 {entry.comment && (
-                  <span className="mono-tag text-muted-foreground/55 truncate min-w-0 ml-auto">
+                  <span className="mono-tag text-muted-foreground/55 ml-auto min-w-0 truncate">
                     {entry.comment}
                   </span>
                 )}
@@ -403,20 +357,13 @@ export function WorldInfoPanel() {
       </div>
 
       {filtered?.length === 0 && (
-        <Card
-          className={cn(
-            surfaceCard,
-            "relative overflow-hidden rounded-sm py-16 px-6",
-          )}
-        >
+        <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-sm px-6 py-16')}>
           <CardContent className="flex flex-col items-center justify-center text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-sm border border-border bg-muted/40 mb-4">
+            <div className="border-border bg-muted/40 mb-4 flex h-14 w-14 items-center justify-center rounded-sm border">
               <span className="display-host text-ember text-2xl">∅</span>
             </div>
-            <h3 className="display-host text-xl mb-1">Archive empty</h3>
-            <p className="mono-tag text-muted-foreground/55">
-              inscribe your first lore tablet
-            </p>
+            <h3 className="display-host mb-1 text-xl">Archive empty</h3>
+            <p className="mono-tag text-muted-foreground/55">inscribe your first lore tablet</p>
           </CardContent>
         </Card>
       )}
@@ -429,7 +376,7 @@ export function WorldInfoPanel() {
           setEditUid(null);
           setForm(emptyForm());
         }}
-        title={editUid ? "Reinscribe Tablet" : "Inscribe Tablet"}
+        title={editUid ? 'Reinscribe Tablet' : 'Inscribe Tablet'}
         className="max-w-2xl"
       >
         <div className="space-y-4">
@@ -444,9 +391,7 @@ export function WorldInfoPanel() {
           <FieldRow label="SECONDARY (comma sep)">
             <Input
               value={form.keysecondary}
-              onChange={(e) =>
-                setForm({ ...form, keysecondary: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, keysecondary: e.target.value })}
               placeholder="secondary keys"
               className="font-mono text-[13px]"
             />
@@ -474,9 +419,7 @@ export function WorldInfoPanel() {
               <Input
                 type="number"
                 value={form.depth}
-                onChange={(e) =>
-                  setForm({ ...form, depth: parseInt(e.target.value, 10) || 0 })
-                }
+                onChange={(e) => setForm({ ...form, depth: parseInt(e.target.value, 10) || 0 })}
                 className="font-mono"
               />
             </FieldRow>
@@ -520,7 +463,7 @@ export function WorldInfoPanel() {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-border/60">
+          <div className="border-border/60 flex justify-end gap-2 border-t pt-3">
             <Button
               variant="outline"
               onClick={() => {
@@ -531,13 +474,8 @@ export function WorldInfoPanel() {
             >
               <span className="mono-tag">cancel</span>
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!form.key.trim()}
-            >
-              <span className="mono-tag">
-                {editUid ? "UPDATE" : "INSCRIBE"}
-              </span>
+            <Button onClick={handleSave} disabled={!form.key.trim()}>
+              <span className="mono-tag">{editUid ? 'UPDATE' : 'INSCRIBE'}</span>
             </Button>
           </div>
         </div>
@@ -566,13 +504,7 @@ export function WorldInfoPanel() {
   );
 }
 
-function FieldRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
       <label className="mono-tag text-muted-foreground/70">{label}</label>
@@ -598,30 +530,22 @@ function ToggleRow({
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="flex items-center justify-between w-full px-3 py-2 rounded-sm border border-border bg-background/40 hover:bg-accent/30 transition-colors text-left"
+      className="border-border bg-background/40 hover:bg-accent/30 flex w-full items-center justify-between rounded-sm border px-3 py-2 text-left transition-colors"
     >
       <div className="flex flex-col">
         <span className="text-[13px] font-medium">{label}</span>
-        {caption && (
-          <span className="mono-tag text-muted-foreground/55 mt-0.5">
-            {caption}
-          </span>
-        )}
+        {caption && <span className="mono-tag text-muted-foreground/55 mt-0.5">{caption}</span>}
       </div>
       <span
         className={cn(
-          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-          checked
-            ? ember
-              ? "bg-ember"
-              : "bg-foreground/70"
-            : "bg-muted",
+          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+          checked ? (ember ? 'bg-ember' : 'bg-foreground/70') : 'bg-muted',
         )}
       >
         <span
           className={cn(
-            "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow ring-0 transition-transform",
-            checked ? "translate-x-4" : "translate-x-0",
+            'bg-background pointer-events-none inline-block h-4 w-4 transform rounded-full shadow ring-0 transition-transform',
+            checked ? 'translate-x-4' : 'translate-x-0',
           )}
         />
       </span>
@@ -643,10 +567,10 @@ function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 px-2 py-1 rounded-sm border text-[11px]",
+        'inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px]',
         accent
-          ? "border-ember/40 bg-ember/10 text-ember"
-          : "border-border bg-muted/40 text-foreground/70",
+          ? 'border-ember/40 bg-ember/10 text-ember'
+          : 'border-border bg-muted/40 text-foreground/70',
       )}
     >
       <span className="mono-tag opacity-70">{label}</span>

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const GenSettingsSchema = z.object({
   temperature: z.number().default(1),
@@ -20,8 +20,8 @@ export const GenSettingsSchema = z.object({
   dry_base: z.number().default(0),
   dry_allowed_length: z.number().int().default(0),
   dry_penalty_last_n: z.number().int().default(0),
-  mimic_example: z.string().default(""),
-  mimic_color: z.string().default(""),
+  mimic_example: z.string().default(''),
+  mimic_color: z.string().default(''),
   mirostat_mode: z.number().int().default(0),
   mirostat_tau: z.number().default(0),
   mirostat_eta: z.number().default(0),

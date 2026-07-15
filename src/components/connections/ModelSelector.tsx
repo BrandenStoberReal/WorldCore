@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
-import { Loader2, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useState } from 'react';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { apiFetch } from "@/lib/api";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/select';
+import { apiFetch } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 interface ModelSelectorProps {
   /** API source identifier (e.g. "openai", "llamacpp"). */
@@ -43,7 +43,7 @@ export function ModelSelector({
   value,
   onChange,
   className,
-  placeholder = "Select a model...",
+  placeholder = 'Select a model...',
   queryParams,
 }: ModelSelectorProps) {
   const [models, setModels] = useState<ModelEntry[]>([]);
@@ -58,14 +58,12 @@ export function ModelSelector({
     setLoading(true);
     setError(null);
     try {
-      const qs = queryParams
-        ? `?${new URLSearchParams(queryParams).toString()}`
-        : "";
+      const qs = queryParams ? `?${new URLSearchParams(queryParams).toString()}` : '';
       const data = (await apiFetch(`/models/${source}${qs}`)) as unknown;
       const list = normalizeModels(data);
       setModels(list);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load models");
+      setError(err instanceof Error ? err.message : 'Failed to load models');
       setModels([]);
     } finally {
       setLoading(false);
@@ -77,18 +75,14 @@ export function ModelSelector({
   }, [fetchModels]);
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <Select
-        value={value || undefined}
-        onValueChange={onChange}
-        disabled={loading}
-      >
-        <SelectTrigger className="flex-1 min-w-0">
+    <div className={cn('flex items-center gap-2', className)}>
+      <Select value={value || undefined} onValueChange={onChange} disabled={loading}>
+        <SelectTrigger className="min-w-0 flex-1">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
           {loading && (
-            <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground">
+            <div className="text-muted-foreground flex items-center gap-2 px-2 py-1.5 text-sm">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               <span>Loading models...</span>
             </div>
@@ -121,7 +115,7 @@ export function ModelSelector({
         aria-label="Refresh models"
         title="Refresh models"
       >
-        <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+        <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
       </Button>
     </div>
   );
@@ -139,18 +133,18 @@ function normalizeModels(data: unknown): ModelEntry[] {
   if (!Array.isArray(data)) return [];
   return data
     .map((entry) => {
-      if (typeof entry === "string") return { id: entry, label: entry };
-      if (entry && typeof entry === "object") {
+      if (typeof entry === 'string') return { id: entry, label: entry };
+      if (entry && typeof entry === 'object') {
         const rec = entry as Record<string, unknown>;
         const id =
-          (typeof rec.id === "string" && rec.id) ||
-          (typeof rec.model === "string" && rec.model) ||
-          (typeof rec.name === "string" && rec.name) ||
-          "";
+          (typeof rec.id === 'string' && rec.id) ||
+          (typeof rec.model === 'string' && rec.model) ||
+          (typeof rec.name === 'string' && rec.name) ||
+          '';
         if (!id) return null;
         const label =
-          (typeof rec.label === "string" && rec.label) ||
-          (typeof rec.name === "string" && rec.name) ||
+          (typeof rec.label === 'string' && rec.label) ||
+          (typeof rec.name === 'string' && rec.name) ||
           id;
         return { id, label };
       }

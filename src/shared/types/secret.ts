@@ -1,10 +1,10 @@
-import type { z } from "zod";
+import type { z } from 'zod';
 import {
   SecretKeySchema,
   SecretValueSchema,
   SecretStateSchema,
   SecretStateMapSchema,
-} from "@/shared/schemas/secret";
+} from '@/shared/schemas/secret';
 
 export type SecretKey = z.infer<typeof SecretKeySchema>;
 export type SecretValue = z.infer<typeof SecretValueSchema>;

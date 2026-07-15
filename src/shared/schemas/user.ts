@@ -1,12 +1,14 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-export const UserRoleSchema = z.enum(["admin", "user", "disabled"]);
+export const UserRoleSchema = z.enum(['admin', 'user', 'disabled']);
 
-export const UserSettingsSchema = z.object({
-  theme: z.string().optional(),
-  language: z.string().optional(),
-  catchall: z.unknown().optional(),
-}).catchall(z.unknown());
+export const UserSettingsSchema = z
+  .object({
+    theme: z.string().optional(),
+    language: z.string().optional(),
+    catchall: z.unknown().optional(),
+  })
+  .catchall(z.unknown());
 
 export const UserSchema = z.object({
   id: z.string(),

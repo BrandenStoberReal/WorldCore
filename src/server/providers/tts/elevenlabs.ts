@@ -7,27 +7,24 @@ export async function synthesizeElevenLabs(
     speed?: number;
   },
 ): Promise<{ audioBase64: string; duration?: number }> {
-  const { voice = "21m00Tcm4TlvDq8ikWAM", model = "eleven_monolingual_v1" } = options;
+  const { voice = '21m00Tcm4TlvDq8ikWAM', model = 'eleven_monolingual_v1' } = options;
 
-  const res = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${voice}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "xi-api-key": apiKey,
-        "Accept": "audio/mpeg",
-      },
-      body: JSON.stringify({
-        text,
-        model_id: model,
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-        },
-      }),
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'xi-api-key': apiKey,
+      Accept: 'audio/mpeg',
     },
-  );
+    body: JSON.stringify({
+      text,
+      model_id: model,
+      voice_settings: {
+        stability: 0.5,
+        similarity_boost: 0.75,
+      },
+    }),
+  });
 
   if (!res.ok) {
     const errText = await res.text();
@@ -36,6 +33,6 @@ export async function synthesizeElevenLabs(
 
   const buffer = await res.arrayBuffer();
   return {
-    audioBase64: Buffer.from(buffer).toString("base64"),
+    audioBase64: Buffer.from(buffer).toString('base64'),
   };
 }

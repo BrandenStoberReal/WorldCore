@@ -1,16 +1,16 @@
-import { useState } from "react";
-import { ChevronDown, Eye, EyeOff, KeyRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react';
+import { ChevronDown, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 interface ReverseProxySectionProps {
   /** Only render when true (caller gates by source). */
@@ -41,8 +41,8 @@ export interface ProxyPreset {
 }
 
 const DEFAULT_PRESETS: ProxyPreset[] = [
-  { value: "none", label: "None" },
-  { value: "custom", label: "Custom" },
+  { value: 'none', label: 'None' },
+  { value: 'custom', label: 'Custom' },
 ];
 
 /**
@@ -73,34 +73,31 @@ export function ReverseProxySection({
   if (!visible) return null;
 
   return (
-    <div className={cn("rounded-md border border-border/60 bg-muted/20", className)}>
+    <div className={cn('border-border/60 bg-muted/20 rounded-md border', className)}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium hover:bg-accent/50 rounded-md transition-colors"
+        className="hover:bg-accent/50 flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors"
       >
         <span className="flex items-center gap-2">
-          <KeyRound className="h-3.5 w-3.5 text-muted-foreground/60" />
+          <KeyRound className="text-muted-foreground/60 h-3.5 w-3.5" />
           Reverse Proxy
         </span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 text-muted-foreground/50 transition-transform",
-            open && "rotate-180",
+            'text-muted-foreground/50 h-4 w-4 transition-transform',
+            open && 'rotate-180',
           )}
         />
       </button>
 
       {open && (
-        <div className="px-3 pb-3 pt-1 space-y-3 border-t border-border/40">
+        <div className="border-border/40 space-y-3 border-t px-3 pt-1 pb-3">
           {/* Proxy Preset */}
           <div className="space-y-2 pt-2">
             <Label>Proxy Preset</Label>
-            <Select
-              value={preset ?? "none"}
-              onValueChange={(v) => onPresetChange?.(v)}
-            >
+            <Select value={preset ?? 'none'} onValueChange={(v) => onPresetChange?.(v)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a preset" />
               </SelectTrigger>
@@ -118,7 +115,7 @@ export function ReverseProxySection({
           <div className="space-y-2">
             <Label>Proxy Name</Label>
             <Input
-              value={name ?? ""}
+              value={name ?? ''}
               onChange={(e) => onNameChange?.(e.target.value)}
               placeholder="My proxy"
             />
@@ -128,7 +125,7 @@ export function ReverseProxySection({
           <div className="space-y-2">
             <Label>Proxy Server URL</Label>
             <Input
-              value={url ?? ""}
+              value={url ?? ''}
               onChange={(e) => onUrlChange?.(e.target.value)}
               placeholder="https://your-proxy.example.com/v1"
               type="url"
@@ -141,10 +138,10 @@ export function ReverseProxySection({
             <Label>Proxy Password</Label>
             <div className="flex items-center gap-2">
               <Input
-                value={password ?? ""}
+                value={password ?? ''}
                 onChange={(e) => onPasswordChange?.(e.target.value)}
                 placeholder="sk-..."
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 autoComplete="off"
                 className="flex-1"
               />
@@ -153,14 +150,10 @@ export function ReverseProxySection({
                 variant="outline"
                 size="icon"
                 onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                title={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                title={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
           </div>

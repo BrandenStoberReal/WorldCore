@@ -1,36 +1,36 @@
-import type { ReactNode } from "react"
-import { cn } from "@/lib/utils"
-import { useNavStore, type SectionId, type TopDrawerId } from "@/lib/navStore"
+import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
+import { useNavStore, type SectionId, type TopDrawerId } from '@/lib/navStore';
 
 interface DrawerIconProps {
-  icon: ReactNode
-  label: string
-  sectionId: SectionId
-  behavior: "section" | "top-drawer" | "characters"
+  icon: ReactNode;
+  label: string;
+  sectionId: SectionId;
+  behavior: 'section' | 'top-drawer' | 'characters';
 }
 
 export function DrawerIcon({ icon, label, sectionId, behavior }: DrawerIconProps) {
-  const activeSection = useNavStore((s) => s.sectionId)
-  const topDrawer = useNavStore((s) => s.topDrawer)
-  const charactersOpen = useNavStore((s) => s.charactersOpen)
-  const openSection = useNavStore((s) => s.openSection)
-  const openTopDrawer = useNavStore((s) => s.openTopDrawer)
-  const toggleCharacters = useNavStore((s) => s.toggleCharacters)
+  const activeSection = useNavStore((s) => s.sectionId);
+  const topDrawer = useNavStore((s) => s.topDrawer);
+  const charactersOpen = useNavStore((s) => s.charactersOpen);
+  const openSection = useNavStore((s) => s.openSection);
+  const openTopDrawer = useNavStore((s) => s.openTopDrawer);
+  const toggleCharacters = useNavStore((s) => s.toggleCharacters);
 
   const isActive =
-    behavior === "section"
+    behavior === 'section'
       ? activeSection === sectionId
-      : behavior === "top-drawer"
+      : behavior === 'top-drawer'
         ? topDrawer === sectionId
-        : charactersOpen
+        : charactersOpen;
 
   function handleClick() {
-    if (behavior === "section") {
-      openSection(sectionId)
-    } else if (behavior === "top-drawer") {
-      openTopDrawer(sectionId as TopDrawerId)
+    if (behavior === 'section') {
+      openSection(sectionId);
+    } else if (behavior === 'top-drawer') {
+      openTopDrawer(sectionId as TopDrawerId);
     } else {
-      toggleCharacters()
+      toggleCharacters();
     }
   }
 
@@ -41,14 +41,14 @@ export function DrawerIcon({ icon, label, sectionId, behavior }: DrawerIconProps
       aria-pressed={isActive}
       title={label}
       className={cn(
-        "flex items-center justify-center p-2 rounded-md transition-all duration-200",
-        "hover:bg-accent hover:text-accent-foreground",
+        'flex items-center justify-center rounded-md p-2 transition-all duration-200',
+        'hover:bg-accent hover:text-accent-foreground',
         isActive
-          ? "text-accent-foreground bg-accent"
-          : "text-muted-foreground hover:text-foreground"
+          ? 'text-accent-foreground bg-accent'
+          : 'text-muted-foreground hover:text-foreground',
       )}
     >
       {icon}
     </button>
-  )
+  );
 }

@@ -7,12 +7,12 @@ export async function synthesizeOpenAI(
     speed?: number;
   },
 ): Promise<{ audioBase64: string; duration?: number }> {
-  const { voice = "alloy", model = "tts-1", speed = 1 } = options;
+  const { voice = 'alloy', model = 'tts-1', speed = 1 } = options;
 
-  const res = await fetch("https://api.openai.com/v1/audio/speech", {
-    method: "POST",
+  const res = await fetch('https://api.openai.com/v1/audio/speech', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
@@ -20,7 +20,7 @@ export async function synthesizeOpenAI(
       input: text,
       voice,
       speed,
-      response_format: "mp3",
+      response_format: 'mp3',
     }),
   });
 
@@ -31,6 +31,6 @@ export async function synthesizeOpenAI(
 
   const buffer = await res.arrayBuffer();
   return {
-    audioBase64: Buffer.from(buffer).toString("base64"),
+    audioBase64: Buffer.from(buffer).toString('base64'),
   };
 }

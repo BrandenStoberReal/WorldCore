@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { z } from 'zod';
 import {
   CharacterSpecVersionSchema,
   CharacterSpecSchema,
@@ -13,7 +13,7 @@ import {
   CharacterCreateInputSchema,
   CharacterEditAttributeInputSchema,
   CropSchema,
-} from "@/shared/schemas/character";
+} from '@/shared/schemas/character';
 
 export type CharacterSpecVersion = z.infer<typeof CharacterSpecVersionSchema>;
 export type CharacterSpec = z.infer<typeof CharacterSpecSchema>;

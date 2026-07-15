@@ -1,17 +1,17 @@
-import { useCallback, useState } from "react";
-import { ExternalLink, HelpCircle, Key, Plug, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useCallback, useState } from 'react';
+import { ExternalLink, HelpCircle, Key, Plug, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import { OnlineStatus } from "./OnlineStatus";
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { OnlineStatus } from './OnlineStatus';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -23,32 +23,27 @@ interface NovelAIFormProps {
 }
 
 const NOVELAI_MODELS = [
-  { value: "clio-v1", label: "Clio" },
-  { value: "kayra-v1", label: "Kayra" },
-  { value: "llama-3-erato-v1", label: "Erato" },
+  { value: 'clio-v1', label: 'Clio' },
+  { value: 'kayra-v1', label: 'Kayra' },
+  { value: 'llama-3-erato-v1', label: 'Erato' },
 ] as const;
 
-const DOCS_URL =
-  "https://docs.sillytavern.app/usage/api-connections/novelai/";
-const MODELS_DOCS_URL =
-  "https://docs.sillytavern.app/usage/api-connections/novelai/#models";
+const DOCS_URL = 'https://docs.sillytavern.app/usage/api-connections/novelai/';
+const MODELS_DOCS_URL = 'https://docs.sillytavern.app/usage/api-connections/novelai/#models';
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function NovelAIForm({
-  onConnect,
-  connected = false,
-}: NovelAIFormProps) {
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("kayra-v1");
+export function NovelAIForm({ onConnect, connected = false }: NovelAIFormProps) {
+  const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState('kayra-v1');
   const [connecting, setConnecting] = useState(false);
 
   const handleConnect = useCallback(() => {
     setConnecting(true);
     onConnect?.({
-      type: "novel",
+      type: 'novel',
       apiKey,
       model,
     });
@@ -61,14 +56,14 @@ export function NovelAIForm({
   return (
     <div className="space-y-5">
       {/* Instructions */}
-      <div className="space-y-2 text-sm text-muted-foreground">
-        <ol className="list-decimal list-inside space-y-1">
+      <div className="text-muted-foreground space-y-2 text-sm">
+        <ol className="list-inside list-decimal space-y-1">
           <li>
             <a
               href={DOCS_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline inline-flex items-center gap-1"
+              className="text-primary inline-flex items-center gap-1 hover:underline"
             >
               Get your NovelAI API Key
               <ExternalLink className="h-3 w-3 shrink-0" />
@@ -100,9 +95,8 @@ export function NovelAIForm({
             <Key className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground/70 italic">
-          For privacy reasons, your API key will be hidden after you click
-          &quot;Connect&quot;.
+        <p className="text-muted-foreground/70 text-xs italic">
+          For privacy reasons, your API key will be hidden after you click &quot;Connect&quot;.
         </p>
       </div>
 
@@ -141,21 +135,15 @@ export function NovelAIForm({
           onClick={handleConnect}
           disabled={connecting}
           className={cn(
-            "gap-1.5",
-            connected &&
-              "bg-emerald-600 hover:bg-emerald-600/90 text-white",
+            'gap-1.5',
+            connected && 'bg-emerald-600 text-white hover:bg-emerald-600/90',
           )}
         >
           <Plug className="h-4 w-4" />
-          {connected ? "Connected" : "Connect"}
+          {connected ? 'Connected' : 'Connect'}
         </Button>
         {connecting && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCancel}
-            className="gap-1.5"
-          >
+          <Button type="button" variant="outline" onClick={handleCancel} className="gap-1.5">
             <X className="h-4 w-4" />
             Cancel
           </Button>

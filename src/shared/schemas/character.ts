@@ -1,24 +1,20 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-export const CharacterSpecVersionSchema = z.enum(["1.0", "2.0", "3.0"]);
-export const CharacterSpecSchema = z.enum([
-  "chara_card_v1",
-  "chara_card_v2",
-  "chara_card_v3",
-]);
-export const RoleSchema = z.enum(["system", "user", "assistant"]);
+export const CharacterSpecVersionSchema = z.enum(['1.0', '2.0', '3.0']);
+export const CharacterSpecSchema = z.enum(['chara_card_v1', 'chara_card_v2', 'chara_card_v3']);
+export const RoleSchema = z.enum(['system', 'user', 'assistant']);
 
 export const DepthPromptSchema = z.object({
   prompt: z.string(),
   depth: z.number().default(4),
-  role: RoleSchema.default("system"),
+  role: RoleSchema.default('system'),
 });
 
 export const CharacterExtensionsSchema = z
   .object({
     talkativeness: z.number().default(0.5),
     fav: z.boolean().default(false),
-    world: z.string().default(""),
+    world: z.string().default(''),
     depth_prompt: DepthPromptSchema.optional(),
     avatar_style: z.number().default(0),
   })
@@ -28,8 +24,8 @@ export const CharacterBookEntrySchema = z.object({
   id: z.string().optional(),
   keys: z.array(z.string()).default([]),
   secondary_keys: z.array(z.string()).default([]),
-  comment: z.string().default(""),
-  content: z.string().default(""),
+  comment: z.string().default(''),
+  content: z.string().default(''),
   constant: z.boolean().default(false),
   selective: z.boolean().default(false),
   insertion_order: z.number().default(0),
@@ -41,22 +37,22 @@ export const CharacterBookEntrySchema = z.object({
 
 export const CharacterBookSchema = z.object({
   entries: z.array(CharacterBookEntrySchema).default([]),
-  name: z.string().default(""),
+  name: z.string().default(''),
 });
 
 export const CharacterDataSchema = z.object({
   name: z.string(),
-  description: z.string().default(""),
-  personality: z.string().default(""),
-  scenario: z.string().default(""),
-  first_mes: z.string().default(""),
-  mes_example: z.string().default(""),
-  creator_notes: z.string().default(""),
-  system_prompt: z.string().default(""),
-  post_history_instructions: z.string().default(""),
+  description: z.string().default(''),
+  personality: z.string().default(''),
+  scenario: z.string().default(''),
+  first_mes: z.string().default(''),
+  mes_example: z.string().default(''),
+  creator_notes: z.string().default(''),
+  system_prompt: z.string().default(''),
+  post_history_instructions: z.string().default(''),
   tags: z.array(z.string()).default([]),
-  creator: z.string().default(""),
-  character_version: z.string().default(""),
+  creator: z.string().default(''),
+  character_version: z.string().default(''),
   alternate_greetings: z.array(z.string()).default([]),
   character_book: CharacterBookSchema.optional(),
   extensions: z.record(z.unknown()).optional(),
@@ -85,25 +81,25 @@ export const ShallowCharacterSchema = z.object({
   chat_size: z.number().default(0),
   data_size: z.number().default(0),
   name: z.string(),
-  description: z.string().default(""),
+  description: z.string().default(''),
   tags: z.array(z.string()).default([]),
-  creator: z.string().default(""),
-  character_version: z.string().default(""),
+  creator: z.string().default(''),
+  character_version: z.string().default(''),
 });
 
 export const CharacterCreateInputSchema = z.object({
   name: z.string(),
-  description: z.string().default(""),
-  personality: z.string().default(""),
-  scenario: z.string().default(""),
-  first_mes: z.string().default(""),
-  mes_example: z.string().default(""),
-  creator_notes: z.string().default(""),
-  system_prompt: z.string().default(""),
-  post_history_instructions: z.string().default(""),
+  description: z.string().default(''),
+  personality: z.string().default(''),
+  scenario: z.string().default(''),
+  first_mes: z.string().default(''),
+  mes_example: z.string().default(''),
+  creator_notes: z.string().default(''),
+  system_prompt: z.string().default(''),
+  post_history_instructions: z.string().default(''),
   tags: z.array(z.string()).default([]),
-  creator: z.string().default(""),
-  character_version: z.string().default(""),
+  creator: z.string().default(''),
+  character_version: z.string().default(''),
   alternate_greetings: z.array(z.string()).default([]),
   character_book: CharacterBookSchema.optional(),
   extensions: z.record(z.unknown()).optional(),
@@ -114,21 +110,21 @@ export const CharacterCreateInputSchema = z.object({
 
 export const CharacterEditAttributeInputSchema = z.object({
   attribute: z.enum([
-    "name",
-    "description",
-    "personality",
-    "scenario",
-    "first_mes",
-    "mes_example",
-    "creator_notes",
-    "system_prompt",
-    "post_history_instructions",
-    "tags",
-    "creator",
-    "character_version",
-    "alternate_greetings",
-    "character_book",
-    "extensions",
+    'name',
+    'description',
+    'personality',
+    'scenario',
+    'first_mes',
+    'mes_example',
+    'creator_notes',
+    'system_prompt',
+    'post_history_instructions',
+    'tags',
+    'creator',
+    'character_version',
+    'alternate_greetings',
+    'character_book',
+    'extensions',
   ]),
   value: z.unknown(),
 });

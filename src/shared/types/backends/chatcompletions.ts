@@ -1,10 +1,10 @@
-import type { z } from "zod";
+import type { z } from 'zod';
 import {
   ChatCompletionSourceSchema,
   ChatCompletionRoleSchema,
   ChatCompletionMessageSchema,
   ChatCompletionRequestSchema,
-} from "@/shared/schemas/backends/chatcompletions";
+} from '@/shared/schemas/backends/chatcompletions';
 
 export type ChatCompletionSource = z.infer<typeof ChatCompletionSourceSchema>;
 export type ChatCompletionRole = z.infer<typeof ChatCompletionRoleSchema>;

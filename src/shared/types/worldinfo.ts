@@ -1,10 +1,10 @@
-import type { z } from "zod";
+import type { z } from 'zod';
 import {
   WIPositionSchema,
   WIRoleSchema,
   WorldInfoEntrySchema,
   WorldInfoSchema,
-} from "@/shared/schemas/worldinfo";
+} from '@/shared/schemas/worldinfo';
 
 export type WIPosition = z.infer<typeof WIPositionSchema>;
 export type WIRole = z.infer<typeof WIRoleSchema>;

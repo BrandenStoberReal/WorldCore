@@ -1,16 +1,16 @@
-import { useCallback } from "react";
-import { Save, FolderOpen, RotateCcw, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useGenerationStore } from "@/lib/stores";
-import { GenerationModeToggle } from "@/components/GenerationModeToggle";
-import { GenerationSlider } from "@/components/GenerationSlider";
-import { InlineSection } from "@/components/drawers/InlineSection";
+import { useCallback } from 'react';
+import { Save, FolderOpen, RotateCcw, Zap } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useGenerationStore } from '@/lib/stores';
+import { GenerationModeToggle } from '@/components/GenerationModeToggle';
+import { GenerationSlider } from '@/components/GenerationSlider';
+import { InlineSection } from '@/components/drawers/InlineSection';
 
 interface GenerationSidebarProps {
-  mode?: "sidebar" | "drawer";
+  mode?: 'sidebar' | 'drawer';
 }
 
-export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebarProps) {
+export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebarProps) {
   const store = useGenerationStore();
   const { mode } = store;
 
@@ -25,23 +25,19 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
   );
 
   return (
-    <aside
-      className="generation-sidebar"
-      role="complementary"
-      aria-label="Generation settings"
-    >
-      <div className="flex flex-col h-full">
-        <div className="px-4 pt-4 pb-3 border-b border-border/40">
-          <div className="flex items-center justify-between mb-3">
+    <aside className="generation-sidebar" role="complementary" aria-label="Generation settings">
+      <div className="flex h-full flex-col">
+        <div className="border-border/40 border-b px-4 pt-4 pb-3">
+          <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="h-3.5 w-3.5 text-ember" strokeWidth={2} />
+              <Zap className="text-ember h-3.5 w-3.5" strokeWidth={2} />
               <span className="display-host text-sm">Generation</span>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => store.resetDefaults()}
-                className="p-1 rounded-sm text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 transition-colors"
+                className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors"
                 title="Reset to defaults"
                 aria-label="Reset to defaults"
               >
@@ -60,7 +56,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
               min={0}
               max={2.5}
               step={0.01}
-              onChange={(v) => update("temperature", v)}
+              onChange={(v) => update('temperature', v)}
               description="Randomness of output"
             />
             <GenerationSlider
@@ -69,7 +65,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
               min={0}
               max={1}
               step={0.001}
-              onChange={(v) => update("top_p", v)}
+              onChange={(v) => update('top_p', v)}
               description="Nucleus sampling threshold"
             />
             <GenerationSlider
@@ -78,10 +74,10 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
               min={0}
               max={300}
               step={1}
-              onChange={(v) => update("top_k", v)}
+              onChange={(v) => update('top_k', v)}
               description="Top-K sampling"
             />
-            {mode === "text" && (
+            {mode === 'text' && (
               <>
                 <GenerationSlider
                   label="Min P"
@@ -89,7 +85,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={1}
                   step={0.001}
-                  onChange={(v) => update("min_p", v)}
+                  onChange={(v) => update('min_p', v)}
                   description="Minimum probability threshold"
                 />
                 <GenerationSlider
@@ -98,7 +94,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={1}
                   step={0.001}
-                  onChange={(v) => update("typical_p", v)}
+                  onChange={(v) => update('typical_p', v)}
                   description="Typicality sampling"
                 />
                 <GenerationSlider
@@ -107,7 +103,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={1}
                   step={0.001}
-                  onChange={(v) => update("top_a", v)}
+                  onChange={(v) => update('top_a', v)}
                   description="Top-A sampling"
                 />
                 <GenerationSlider
@@ -116,7 +112,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={1}
                   step={0.001}
-                  onChange={(v) => update("tfs", v)}
+                  onChange={(v) => update('tfs', v)}
                   description="Tail-free sampling"
                 />
               </>
@@ -124,7 +120,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
           </InlineSection>
 
           <InlineSection panelId="generation" sectionId="repetition" title="Repetition">
-            {mode === "text" ? (
+            {mode === 'text' ? (
               <>
                 <GenerationSlider
                   label="Rep Pen"
@@ -132,7 +128,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={1}
                   max={8}
                   step={0.025}
-                  onChange={(v) => update("rep_pen", v)}
+                  onChange={(v) => update('rep_pen', v)}
                   description="Repetition penalty"
                 />
                 <GenerationSlider
@@ -141,7 +137,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={8192}
                   step={1}
-                  onChange={(v) => update("rep_pen_range", v)}
+                  onChange={(v) => update('rep_pen_range', v)}
                   description="Token range for penalty"
                 />
                 <GenerationSlider
@@ -150,7 +146,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={10}
                   step={0.01}
-                  onChange={(v) => update("rep_pen_slope", v)}
+                  onChange={(v) => update('rep_pen_slope', v)}
                   description="Penalty slope"
                 />
               </>
@@ -162,7 +158,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={-2}
                   max={2}
                   step={0.01}
-                  onChange={(v) => update("frequency_penalty", v)}
+                  onChange={(v) => update('frequency_penalty', v)}
                   description="Reduce frequency of tokens"
                 />
                 <GenerationSlider
@@ -171,7 +167,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={-2}
                   max={2}
                   step={0.01}
-                  onChange={(v) => update("presence_penalty", v)}
+                  onChange={(v) => update('presence_penalty', v)}
                   description="Reduce presence of tokens"
                 />
               </>
@@ -179,7 +175,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
           </InlineSection>
 
           <InlineSection panelId="generation" sectionId="advanced" title="Advanced">
-            {mode === "text" && (
+            {mode === 'text' && (
               <>
                 <GenerationSlider
                   label="DRY Multiplier"
@@ -187,7 +183,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={10}
                   step={0.1}
-                  onChange={(v) => update("dry_multiplier", v)}
+                  onChange={(v) => update('dry_multiplier', v)}
                   description="Don't Repeat Yourself"
                 />
                 <GenerationSlider
@@ -196,7 +192,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={10}
                   step={0.1}
-                  onChange={(v) => update("dry_base", v)}
+                  onChange={(v) => update('dry_base', v)}
                   description="DRY penalty base"
                 />
                 <GenerationSlider
@@ -205,7 +201,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={20}
                   step={1}
-                  onChange={(v) => update("dry_allowed_length", v)}
+                  onChange={(v) => update('dry_allowed_length', v)}
                   description="Allowed repeat length"
                 />
                 <div className="space-y-1.5">
@@ -215,19 +211,19 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                       <button
                         key={m}
                         type="button"
-                        onClick={() => update("mirostat_mode", m)}
+                        onClick={() => update('mirostat_mode', m)}
                         className={cn(
-                          "flex-1 py-1 rounded-sm text-[11px] font-mono border transition-all",
+                          'flex-1 rounded-sm border py-1 font-mono text-[11px] transition-all',
                           store.mirostat_mode === m
-                            ? "bg-ember/15 text-ember border-ember/25"
-                            : "border-border text-foreground/40 hover:text-foreground/60",
+                            ? 'bg-ember/15 text-ember border-ember/25'
+                            : 'border-border text-foreground/40 hover:text-foreground/60',
                         )}
                       >
                         {m}
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] text-foreground/30">0 = off, 1 = v1, 2 = v2</p>
+                  <p className="text-foreground/30 text-[10px]">0 = off, 1 = v1, 2 = v2</p>
                 </div>
                 {store.mirostat_mode !== 0 && (
                   <>
@@ -237,7 +233,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                       min={0}
                       max={10}
                       step={0.1}
-                      onChange={(v) => update("mirostat_tau", v)}
+                      onChange={(v) => update('mirostat_tau', v)}
                       description="Target entropy"
                     />
                     <GenerationSlider
@@ -246,7 +242,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                       min={0}
                       max={1}
                       step={0.01}
-                      onChange={(v) => update("mirostat_eta", v)}
+                      onChange={(v) => update('mirostat_eta', v)}
                       description="Learning rate"
                     />
                   </>
@@ -257,7 +253,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={10}
                   step={0.1}
-                  onChange={(v) => update("smoothing_factor", v)}
+                  onChange={(v) => update('smoothing_factor', v)}
                   description="Quadratic sampling"
                 />
                 <GenerationSlider
@@ -266,7 +262,7 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={9}
                   step={0.01}
-                  onChange={(v) => update("epsilon_cutoff", v)}
+                  onChange={(v) => update('epsilon_cutoff', v)}
                   description="Epsilon cutoff"
                 />
                 <GenerationSlider
@@ -275,13 +271,13 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                   min={0}
                   max={20}
                   step={0.01}
-                  onChange={(v) => update("eta_cutoff", v)}
+                  onChange={(v) => update('eta_cutoff', v)}
                   description="Eta cutoff"
                 />
               </>
             )}
-            {mode === "chat" && (
-              <p className="text-[11px] text-foreground/35 py-2">
+            {mode === 'chat' && (
+              <p className="text-foreground/35 py-2 text-[11px]">
                 Advanced settings are text-completion only.
               </p>
             )}
@@ -294,17 +290,17 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
               min={1}
               max={8192}
               step={1}
-              onChange={(v) => update("max_tokens", v)}
+              onChange={(v) => update('max_tokens', v)}
               description="Maximum response length"
             />
-            {mode === "text" && (
+            {mode === 'text' && (
               <GenerationSlider
                 label="Min Tokens"
                 value={store.min_tokens}
                 min={0}
                 max={2048}
                 step={1}
-                onChange={(v) => update("min_tokens", v)}
+                onChange={(v) => update('min_tokens', v)}
                 description="Minimum response length"
               />
             )}
@@ -312,21 +308,21 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
               <label className="mono-tag text-foreground/60">Stop Sequences</label>
               <input
                 type="text"
-                value={store.stop.join(", ")}
+                value={store.stop.join(', ')}
                 onChange={(e) =>
                   update(
-                    "stop",
+                    'stop',
                     e.target.value
-                      .split(",")
+                      .split(',')
                       .map((s) => s.trim())
                       .filter(Boolean),
                   )
                 }
                 placeholder="comma separated"
                 className={cn(
-                  "w-full h-7 rounded-sm border border-border bg-background/60 px-2",
-                  "text-xs text-foreground/80 outline-none placeholder:text-foreground/25",
-                  "focus:border-ember/50",
+                  'border-border bg-background/60 h-7 w-full rounded-sm border px-2',
+                  'text-foreground/80 placeholder:text-foreground/25 text-xs outline-none',
+                  'focus:border-ember/50',
                 )}
                 aria-label="Stop sequences"
               />
@@ -336,16 +332,16 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
               <input
                 type="number"
                 value={store.seed}
-                onChange={(e) => update("seed", parseInt(e.target.value, 10) || -1)}
+                onChange={(e) => update('seed', parseInt(e.target.value, 10) || -1)}
                 className={cn(
-                  "w-full h-7 rounded-sm border border-border bg-background/60 px-2",
-                  "text-xs text-foreground/80 outline-none",
-                  "focus:border-ember/50",
-                  "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                  'border-border bg-background/60 h-7 w-full rounded-sm border px-2',
+                  'text-foreground/80 text-xs outline-none',
+                  'focus:border-ember/50',
+                  '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
                 )}
                 aria-label="Seed value"
               />
-              <p className="text-[10px] text-foreground/30">-1 for random</p>
+              <p className="text-foreground/30 text-[10px]">-1 for random</p>
             </div>
             <div className="flex items-center justify-between py-1">
               <label className="mono-tag text-foreground/60">Streaming</label>
@@ -353,16 +349,16 @@ export function GenerationSidebar({ mode: _mode = "sidebar" }: GenerationSidebar
                 type="button"
                 role="switch"
                 aria-checked={store.streaming}
-                onClick={() => update("streaming", !store.streaming)}
+                onClick={() => update('streaming', !store.streaming)}
                 className={cn(
-                  "relative w-9 h-5 rounded-full transition-colors duration-200",
-                  store.streaming ? "bg-ember/60" : "bg-border",
+                  'relative h-5 w-9 rounded-full transition-colors duration-200',
+                  store.streaming ? 'bg-ember/60' : 'bg-border',
                 )}
               >
                 <span
                   className={cn(
-                    "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform duration-200 shadow-sm",
-                    store.streaming ? "translate-x-4.5" : "translate-x-0.5",
+                    'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200',
+                    store.streaming ? 'translate-x-4.5' : 'translate-x-0.5',
                   )}
                 />
               </button>

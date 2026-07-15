@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const VectorSearchRequestSchema = z.object({
   query: z.string(),
@@ -10,7 +10,7 @@ export const VectorSearchRequestSchema = z.object({
 
 export const VectorEmbeddingRequestSchema = z.object({
   texts: z.array(z.string()),
-  model: z.string().optional().default("default"),
+  model: z.string().optional().default('default'),
 });
 
 export const VectorEmbeddingResponseSchema = z.object({
@@ -25,11 +25,13 @@ export const VectorDeleteRequestSchema = z.object({
 });
 
 export const VectorUpsertRequestSchema = z.object({
-  vectors: z.array(z.object({
-    id: z.string(),
-    values: z.array(z.number()),
-    metadata: z.record(z.unknown()).optional(),
-  })),
+  vectors: z.array(
+    z.object({
+      id: z.string(),
+      values: z.array(z.number()),
+      metadata: z.record(z.unknown()).optional(),
+    }),
+  ),
   namespace: z.string().optional(),
   collection: z.string().optional(),
 });

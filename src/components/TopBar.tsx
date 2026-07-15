@@ -1,13 +1,13 @@
-import { useAppStore } from "@/lib/stores";
-import { cn } from "@/lib/utils";
+import { useAppStore } from '@/lib/stores';
+import { cn } from '@/lib/utils';
 
 function LogoMark() {
   return (
     <div
-      className="relative flex items-center justify-center h-8 w-8 bg-muted/60 border border-border rounded-[3px]"
+      className="bg-muted/60 border-border relative flex h-8 w-8 items-center justify-center rounded-[3px] border"
       aria-hidden
     >
-      <span className="display-host leading-none text-foreground text-[14px]">
+      <span className="display-host text-foreground text-[14px] leading-none">
         <span className="text-ember">互联</span>
       </span>
     </div>
@@ -17,19 +17,15 @@ function LogoMark() {
 export function TopBar() {
   const { user, theme, setTheme } = useAppStore();
 
-  const themeNext: "light" | "dark" | "system" = theme === "dark" ? "light" : "dark";
+  const themeNext: 'light' | 'dark' | 'system' = theme === 'dark' ? 'light' : 'dark';
 
   return (
     <header className="top-bar flex items-center justify-between px-4" role="banner">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-3">
-          <a
-            href="/"
-            className="flex items-center gap-2 group"
-            aria-label="WorldCore home"
-          >
+          <a href="/" className="group flex items-center gap-2" aria-label="WorldCore home">
             <LogoMark />
-            <span className="hidden sm:inline display-host text-[17px]">
+            <span className="display-host hidden text-[17px] sm:inline">
               World<span className="text-ember">Core</span>
             </span>
           </a>
@@ -41,8 +37,8 @@ export function TopBar() {
           type="button"
           onClick={() => setTheme(themeNext)}
           className={cn(
-            "flex items-center justify-center h-8 px-2.5 rounded-sm",
-            "border border-border bg-background/60 hover:bg-accent/40 transition-colors",
+            'flex h-8 items-center justify-center rounded-sm px-2.5',
+            'border-border bg-background/60 hover:bg-accent/40 border transition-colors',
           )}
           aria-label={`Switch to ${themeNext} theme`}
           title={`Theme: ${theme}`}
@@ -50,10 +46,10 @@ export function TopBar() {
           <ThemeGlyph theme={theme} />
         </button>
 
-        <div className="flex items-center gap-2 pl-2 border-l border-border/60">
-          <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-muted/60 border border-border">
-            <span className="display-host text-[13px] text-foreground/80">
-              {user ? user.name[0]?.toUpperCase() ?? "G" : "G"}
+        <div className="border-border/60 flex items-center gap-2 border-l pl-2">
+          <div className="bg-muted/60 border-border flex h-7 w-7 items-center justify-center rounded-sm border">
+            <span className="display-host text-foreground/80 text-[13px]">
+              {user ? (user.name[0]?.toUpperCase() ?? 'G') : 'G'}
             </span>
           </div>
         </div>
@@ -62,28 +58,28 @@ export function TopBar() {
   );
 }
 
-function ThemeGlyph({ theme }: { theme: "light" | "dark" | "system" }) {
-  const isDark = theme === "dark" || theme === "system";
+function ThemeGlyph({ theme }: { theme: 'light' | 'dark' | 'system' }) {
+  const isDark = theme === 'dark' || theme === 'system';
   return (
     <span className="relative inline-flex h-3.5 w-3.5 items-center justify-center">
       <span
         className={cn(
-          "absolute inset-0 rounded-full transition-opacity",
-          isDark ? "opacity-0" : "opacity-100 bg-ember",
+          'absolute inset-0 rounded-full transition-opacity',
+          isDark ? 'opacity-0' : 'bg-ember opacity-100',
         )}
       />
       <span
         className={cn(
-          "absolute inset-0 transition-opacity rounded-full bg-foreground",
-          isDark ? "opacity-80" : "opacity-15",
+          'bg-foreground absolute inset-0 rounded-full transition-opacity',
+          isDark ? 'opacity-80' : 'opacity-15',
         )}
       />
       <span
         className={cn(
-          "absolute h-2 w-2 rounded-full bg-background transition-all",
-          isDark ? "translate-x-1.5 -translate-y-0" : "translate-x-[-2px]",
+          'bg-background absolute h-2 w-2 rounded-full transition-all',
+          isDark ? 'translate-x-1.5 -translate-y-0' : 'translate-x-[-2px]',
         )}
-        style={{ boxShadow: "0 0 0 1px var(--border)" }}
+        style={{ boxShadow: '0 0 0 1px var(--border)' }}
       />
     </span>
   );

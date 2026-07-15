@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { z } from 'zod';
 import {
   TTSProviderSchema,
   STTProviderSchema,
@@ -6,7 +6,7 @@ import {
   TTSSynthesizeResponseSchema,
   STTTranscribeRequestSchema,
   STTTranscribeResponseSchema,
-} from "@/shared/schemas/speech";
+} from '@/shared/schemas/speech';
 
 export type TTSProvider = z.infer<typeof TTSProviderSchema>;
 export type STTProvider = z.infer<typeof STTProviderSchema>;

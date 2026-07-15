@@ -1,19 +1,19 @@
-import type { ChatCompletionAdapter } from "./types"
-import type { ChatCompletionRequest } from "@/shared/types/backends/chatcompletions"
+import type { ChatCompletionAdapter } from './types';
+import type { ChatCompletionRequest } from '@/shared/types/backends/chatcompletions';
 
 export class AzureOpenAIAdapter implements ChatCompletionAdapter {
-  source = "azure_openai" as const
+  source = 'azure_openai' as const;
 
   async forwardRequest(req: ChatCompletionRequest): Promise<Response> {
-    const baseUrl = (req.reverse_proxy as string | undefined) || ""
-    const deployment = req.model || "gpt-35-turbo"
-    const url = `${baseUrl}/openai/deployments/${deployment}/chat/completions?api-version=2023-03-15-preview`
+    const baseUrl = (req.reverse_proxy as string | undefined) || '';
+    const deployment = req.model || 'gpt-35-turbo';
+    const url = `${baseUrl}/openai/deployments/${deployment}/chat/completions?api-version=2023-03-15-preview`;
 
     return fetch(url, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "api-key": this.getKey(req),
+        'Content-Type': 'application/json',
+        'api-key': this.getKey(req),
       },
       body: JSON.stringify({
         model: req.model,
@@ -26,11 +26,11 @@ export class AzureOpenAIAdapter implements ChatCompletionAdapter {
         top_p: req.top_p,
         stop: req.stop,
       }),
-      signal: (req.signal as AbortSignal | undefined),
-    })
+      signal: req.signal as AbortSignal | undefined,
+    });
   }
 
   private getKey(req: ChatCompletionRequest): string {
-    return (req.api_key as string | undefined) || ""
+    return (req.api_key as string | undefined) || '';
   }
 }

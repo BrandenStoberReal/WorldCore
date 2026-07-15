@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
-import { cn, surfaceCard, subtleEdge } from "@/lib/utils";
-import type { ShallowCharacter } from "@/shared/types/character";
+import { Button } from '@/components/ui/button';
+import { Pencil, Trash2 } from 'lucide-react';
+import { cn, surfaceCard, subtleEdge } from '@/lib/utils';
+import type { ShallowCharacter } from '@/shared/types/character';
 
 interface CharacterCardProps {
   character: ShallowCharacter;
@@ -25,17 +25,17 @@ export function CharacterCard({
       className={cn(
         surfaceCard,
         subtleEdge,
-        "group relative rounded-sm cursor-pointer p-0 overflow-hidden",
-        "transition-all duration-200",
-        "hover:-translate-y-1 hover:shadow-[0_14px_36px_-12px_color-mix(in_oklch,var(--ember)_55%,transparent)]",
-        "after:translate-x-[-100%] hover:after:translate-x-0",
+        'group relative cursor-pointer overflow-hidden rounded-sm p-0',
+        'transition-all duration-200',
+        'hover:-translate-y-1 hover:shadow-[0_14px_36px_-12px_color-mix(in_oklch,var(--ember)_55%,transparent)]',
+        'after:translate-x-[-100%] hover:after:translate-x-0',
       )}
       onClick={() => onSelect(character.id)}
     >
       {/* Top number rail */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/60 bg-background/30">
+      <div className="border-border/60 bg-background/30 flex items-center justify-between border-b px-4 py-2.5">
         <span className="mono-tag text-muted-foreground/55 tabular-nums">
-          {`#${String(index + 1).padStart(3, "0")}`}
+          {`#${String(index + 1).padStart(3, '0')}`}
         </span>
         <span className="mono-tag text-muted-foreground/35 tabular-nums">
           {`id · ${character.id}`}
@@ -43,61 +43,57 @@ export function CharacterCard({
       </div>
 
       {/* Avatar + name */}
-      <div className="px-4 md:px-5 pt-4 pb-3 flex items-start gap-3 relative">
+      <div className="relative flex items-start gap-3 px-4 pt-4 pb-3 md:px-5">
         <div className="relative shrink-0">
-          <div className="h-14 w-14 rounded-full overflow-hidden border border-border bg-muted/50 flex items-center justify-center">
+          <div className="border-border bg-muted/50 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border">
             <img
               src={avatarUrl}
               alt={character.name}
               className="h-14 w-14 rounded-full object-cover"
               onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
+                (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
           </div>
           {/* ember ring */}
           <span
             aria-hidden
-            className="absolute -inset-[3px] rounded-full border border-ember/0 group-hover:border-ember/60 transition-colors"
+            className="border-ember/0 group-hover:border-ember/60 absolute -inset-[3px] rounded-full border transition-colors"
           />
         </div>
 
         <div className="min-w-0 flex-1">
-          <h3
-            className="display-host text-[20px] leading-tight tracking-tight truncate"
-          >
+          <h3 className="display-host truncate text-[20px] leading-tight tracking-tight">
             {character.name}
           </h3>
           <div className="mono-tag text-muted-foreground/55 mt-1">
-            {character.chat || "unfiled"}
+            {character.chat || 'unfiled'}
           </div>
         </div>
       </div>
 
       {/* Description */}
-      <div className="px-4 md:px-5 pb-3">
-        <p className="text-[13px] leading-relaxed text-foreground/65 line-clamp-2">
+      <div className="px-4 pb-3 md:px-5">
+        <p className="text-foreground/65 line-clamp-2 text-[13px] leading-relaxed">
           {character.description || (
-            <span className="text-muted-foreground/40 italic">
-              no description registered
-            </span>
+            <span className="text-muted-foreground/40 italic">no description registered</span>
           )}
         </p>
       </div>
 
       {/* Tags */}
       {character.tags.length > 0 && (
-        <div className="px-4 md:px-5 pb-3 flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 px-4 pb-3 md:px-5">
           {character.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="mono-tag px-1.5 py-0.5 rounded-sm bg-muted/50 border border-border/60 text-foreground/65"
+              className="mono-tag bg-muted/50 border-border/60 text-foreground/65 rounded-sm border px-1.5 py-0.5"
             >
               #{tag}
             </span>
           ))}
           {character.tags.length > 3 && (
-            <span className="mono-tag px-1.5 py-0.5 text-muted-foreground/45">
+            <span className="mono-tag text-muted-foreground/45 px-1.5 py-0.5">
               +{character.tags.length - 3}
             </span>
           )}
@@ -106,7 +102,7 @@ export function CharacterCard({
 
       {/* Creator + Version */}
       {(character.creator || character.character_version) && (
-        <div className="px-4 md:px-5 pb-3 flex items-center gap-2 text-[11px] text-muted-foreground/45 mono-tag">
+        <div className="text-muted-foreground/45 mono-tag flex items-center gap-2 px-4 pb-3 text-[11px] md:px-5">
           {character.creator && <span>by {character.creator}</span>}
           {character.creator && character.character_version && <span aria-hidden>·</span>}
           {character.character_version && <span>v{character.character_version}</span>}
@@ -114,7 +110,7 @@ export function CharacterCard({
       )}
 
       {/* Action rail — appears on hover */}
-      <div className="border-t border-border/60 flex items-stretch divide-x divide-border/60">
+      <div className="border-border/60 divide-border/60 flex items-stretch divide-x border-t">
         <Button
           variant="ghost"
           size="sm"
@@ -122,7 +118,7 @@ export function CharacterCard({
             e.stopPropagation();
             onEdit(character.id);
           }}
-          className="flex-1 justify-center h-9 rounded-none border-0 font-medium hover:bg-accent/40 hover:text-ember"
+          className="hover:bg-accent/40 hover:text-ember h-9 flex-1 justify-center rounded-none border-0 font-medium"
         >
           <Pencil className="h-3.5 w-3.5" />
           <span className="mono-tag">Edit</span>
@@ -134,7 +130,7 @@ export function CharacterCard({
             e.stopPropagation();
             onDelete(character.id);
           }}
-          className="flex-1 justify-center h-9 rounded-none border-0 font-medium hover:bg-destructive/10 hover:text-destructive"
+          className="hover:bg-destructive/10 hover:text-destructive h-9 flex-1 justify-center rounded-none border-0 font-medium"
         >
           <Trash2 className="h-3.5 w-3.5" />
           <span className="mono-tag">Slag</span>
