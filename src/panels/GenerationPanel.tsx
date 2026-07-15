@@ -9,20 +9,25 @@ interface GenerationPanelProps {
 
 export function GenerationPanel({ closed, onToggle }: GenerationPanelProps) {
   return (
-    <aside
-      data-panel="generation"
-      className={cn("generation-sidebar", closed && "closed")}
-    >
-      <GenerationSidebar mode="drawer" />
+    <div className="relative flex shrink-0">
+      <aside
+        data-panel="generation"
+        className={cn("generation-sidebar", closed && "closed")}
+      >
+        <GenerationSidebar mode="drawer" />
+      </aside>
       <button
         type="button"
         onClick={onToggle}
-        className="absolute top-3 right-2 z-10 p-1 rounded-sm text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 transition-colors"
+        className={cn(
+          "absolute top-3 z-10 p-1 rounded-sm text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 transition-colors",
+          closed ? "left-1" : "right-2",
+        )}
         title={closed ? "Show generation options" : "Hide generation options"}
         aria-label={closed ? "Show generation options" : "Hide generation options"}
       >
         {closed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
       </button>
-    </aside>
+    </div>
   )
 }
