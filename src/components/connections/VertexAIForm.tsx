@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useManageApiKey } from '@/lib/useManageApiKey';
 
 export type VertexAIAuthMode = 'express' | 'full';
 
@@ -33,10 +34,6 @@ export interface VertexAIConfig {
 interface VertexAIFormProps {
   config?: Partial<VertexAIConfig>;
   onConfigChange?: (config: Partial<VertexAIConfig>) => void;
-  /** Called when user wants to manage stored keys. */
-  onManageKeys?: () => void;
-  /** Called to validate the service account JSON. */
-  onValidateServiceAccount?: (json: string) => void;
   className?: string;
 }
 
@@ -106,21 +103,32 @@ const VERTEX_REGIONS = [
  *
  * Both modes share a region selector and model picker.
  */
-export function VertexAIForm({
-  config,
-  onConfigChange,
-  onManageKeys,
-  onValidateServiceAccount,
-  className,
-}: VertexAIFormProps) {
+export function VertexAIForm({ config, onConfigChange, className }: VertexAIFormProps) {
   const [showKey, setShowKey] = useState(false);
   const [showServiceAccount, setShowServiceAccount] = useState(false);
+  const [showKeyManager, setShowKeyManager] = useState(false);
+  const {
+    apiKey: managedKey,
+    setApiKey: setManagedKey,
+    save,
+    loading,
+    saved,
+  } = useManageApiKey('vertexai');
 
   const update = (patch: Partial<VertexAIConfig>) => {
     onConfigChange?.({ ...config, ...patch });
   };
 
   const authMode = config?.authMode ?? 'express';
+
+  const handleValidateJson = () => {
+    try {
+      JSON.parse(config?.serviceAccountJson ?? '');
+      alert('Valid JSON');
+    } catch {
+      alert('Invalid JSON');
+    }
+  };
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -167,13 +175,29 @@ export function VertexAIForm({
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={onManageKeys}
+                onClick={() => setShowKeyManager((v) => !v)}
                 aria-label="Manage API keys"
                 title="Manage API keys"
               >
                 <KeyRound className="h-4 w-4" />
               </Button>
             </div>
+            {showKeyManager && (
+              <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-sm border p-2">
+                <Input
+                  type="password"
+                  value={managedKey}
+                  onChange={(e) => setManagedKey(e.target.value)}
+                  placeholder={loading ? 'Loading stored key...' : 'Paste stored Vertex AI key'}
+                  className="flex-1"
+                  autoComplete="off"
+                  disabled={loading}
+                />
+                <Button type="button" size="sm" onClick={() => void save()} disabled={loading}>
+                  {saved ? 'Saved' : 'Save'}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Project ID */}
@@ -225,7 +249,7 @@ export function VertexAIForm({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => onValidateServiceAccount?.(config?.serviceAccountJson ?? '')}
+              onClick={handleValidateJson}
               disabled={!config?.serviceAccountJson}
             >
               <FileCheck className="h-3.5 w-3.5" />

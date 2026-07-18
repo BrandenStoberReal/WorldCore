@@ -101,6 +101,40 @@ export const ReasoningTemplateSchema = z
   })
   .catchall(z.unknown());
 
+export const GenerationPresetSchema = z
+  .object({
+    name: z.string(),
+    temperature: z.number().default(1),
+    top_p: z.number().default(1),
+    top_k: z.number().int().default(50),
+    max_tokens: z.number().int().default(4096),
+    seed: z.number().int().default(-1),
+    streaming: z.boolean().default(true),
+    stop: z.array(z.string()).default([]),
+    frequency_penalty: z.number().default(0),
+    presence_penalty: z.number().default(0),
+    min_tokens: z.number().int().default(0),
+    min_p: z.number().default(0),
+    typical_p: z.number().default(1),
+    top_a: z.number().default(0),
+    tfs: z.number().default(1),
+    rep_pen: z.number().default(1),
+    rep_pen_range: z.number().int().default(0),
+    rep_pen_slope: z.number().default(0),
+    dry_multiplier: z.number().default(0),
+    dry_base: z.number().default(1.75),
+    dry_allowed_length: z.number().int().default(0),
+    mirostat_mode: z.number().int().default(0),
+    mirostat_tau: z.number().default(5),
+    mirostat_eta: z.number().default(0.1),
+    smoothing_factor: z.number().default(0),
+    epsilon_cutoff: z.number().default(0),
+    eta_cutoff: z.number().default(0),
+    model: z.string().default(''),
+    mode: z.enum(['chat', 'text']).default('chat'),
+  })
+  .catchall(z.unknown());
+
 export const PresetSchema = z.discriminatedUnion('category', [
   z.object({ category: z.literal('openai'), data: OpenaiPresetSchema }),
   z.object({ category: z.literal('kobold'), data: KoboldPresetSchema }),
@@ -111,4 +145,5 @@ export const PresetSchema = z.discriminatedUnion('category', [
   z.object({ category: z.literal('context'), data: ContextTemplateSchema }),
   z.object({ category: z.literal('sysprompt'), data: SyspromptSchema }),
   z.object({ category: z.literal('reasoning'), data: ReasoningTemplateSchema }),
+  z.object({ category: z.literal('generation'), data: GenerationPresetSchema }),
 ]);

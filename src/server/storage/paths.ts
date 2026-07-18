@@ -18,6 +18,7 @@ export const paths = {
   context: path.join(USER_ROOT, 'context'),
   sysprompt: path.join(USER_ROOT, 'sysprompt'),
   reasoning: path.join(USER_ROOT, 'reasoning'),
+  generation: path.join(USER_ROOT, 'generation'),
   themes: path.join(USER_ROOT, 'themes'),
   backgrounds: path.join(USER_ROOT, 'backgrounds'),
   avatars: path.join(USER_ROOT, 'avatars'),
@@ -52,4 +53,12 @@ export function ensureUserDirs(): void {
 
 export function getUserPath(userId: string): string {
   return path.join(DATA_ROOT, userId);
+}
+
+export function getUserCharacterPath(userId: string): string {
+  return path.join(DATA_ROOT, userId, 'characters');
+}
+
+export function ensureUserCharacterDir(userId: string): void {
+  fs.mkdirSync(getUserCharacterPath(userId), { recursive: true });
 }

@@ -15,6 +15,7 @@ import {
   GitBranch,
 } from 'lucide-react';
 import { cn, surfaceCard } from '@/lib/utils';
+import { apiGet, apiPost } from '@/lib/api';
 import type { ExtensionInfo } from '@/shared/types/extensions';
 
 export function ExtensionsPanel() {
@@ -29,24 +30,14 @@ export function ExtensionsPanel() {
   } = useQuery<ExtensionInfo[]>({
     queryKey: ['/api/v1/extensions/list'],
     queryFn: async () => {
-      const res = await fetch('/api/v1/extensions/list');
-      if (!res.ok) throw new Error('Failed to fetch extensions');
-      const data = await res.json();
-      return Array.isArray(data) ? data : (data.results ?? data.data ?? data);
+      return await apiGet<ExtensionInfo[]>('/extensions/list');
     },
   });
 
   const toggleMutation = useMutation({
     mutationFn: async ({ name, enable }: { name: string; enable: boolean }) => {
       const endpoint = enable ? 'enable' : 'disable';
-      const res = await fetch(`/api/v1/extensions/${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      if (!res.ok) throw new Error(`Failed to ${enable ? 'enable' : 'disable'} extension`);
-      const result = await res.json();
-      return Array.isArray(result) ? result : (result.results ?? result.data ?? result);
+      return await apiPost<unknown>(`/extensions/${endpoint}`, { name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/extensions/list'] });
@@ -55,14 +46,7 @@ export function ExtensionsPanel() {
 
   const installMutation = useMutation({
     mutationFn: async (url: string) => {
-      const res = await fetch('/api/v1/extensions/install', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
-      if (!res.ok) throw new Error('Failed to install extension');
-      const result = await res.json();
-      return Array.isArray(result) ? result : (result.results ?? result.data ?? result);
+      return await apiPost<unknown>('/extensions/install', { url });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/extensions/list'] });
@@ -73,14 +57,7 @@ export function ExtensionsPanel() {
 
   const updateMutation = useMutation({
     mutationFn: async (name: string) => {
-      const res = await fetch('/api/v1/extensions/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      if (!res.ok) throw new Error('Failed to update extension');
-      const result = await res.json();
-      return Array.isArray(result) ? result : (result.results ?? result.data ?? result);
+      return await apiPost<unknown>('/extensions/update', { name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/extensions/list'] });
@@ -89,13 +66,7 @@ export function ExtensionsPanel() {
 
   const updateAllMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/v1/extensions/updateAll', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) throw new Error('Failed to update all extensions');
-      const result = await res.json();
-      return Array.isArray(result) ? result : (result.results ?? result.data ?? result);
+      return await apiPost<unknown>('/extensions/updateAll');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/extensions/list'] });
@@ -122,14 +93,14 @@ export function ExtensionsPanel() {
   return (
     <div className="section-rhythm relative isolate" data-panel="extensions">
       {/* Section header */}
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-2.5">
             <span className="mono-tag text-ember">{`[05] — MODULES`}</span>
-            <span className="bg-ember/40 h-px w-10" />
+            <span className="bg-ember/40 h-px w-8" />
           </div>
-          <h2 className="display-host text-[42px] leading-none tracking-tight">Extensions</h2>
-          <p className="text-muted-foreground mt-2 max-w-md text-sm">
+          <h2 className="display-host text-[30px] leading-none tracking-tight">Extensions</h2>
+          <p className="text-muted-foreground mt-1.5 max-w-md text-[13px] leading-snug">
             Extend WorldCore with additional functionality. Install, update, and toggle extensions.
           </p>
         </div>
@@ -139,45 +110,45 @@ export function ExtensionsPanel() {
             variant="outline"
             onClick={() => updateAllMutation.mutate()}
             disabled={updateAllMutation.isPending || !extensions?.length}
-            className="h-9"
+            className="h-8"
           >
             <RefreshCw
               className={cn('h-3.5 w-3.5', updateAllMutation.isPending && 'animate-spin')}
             />
             <span className="mono-tag">UPDATE ALL</span>
           </Button>
-          <Button onClick={() => setInstallOpen(true)} className="ember-pulse h-9">
+          <Button onClick={() => setInstallOpen(true)} className="ember-pulse h-8">
             <Download className="h-3.5 w-3.5" />
             <span className="mono-tag font-bold">INSTALL</span>
           </Button>
         </div>
       </header>
 
-      <div className="border-border bg-background/40 flex h-9 items-center gap-1.5 self-start rounded-sm border px-3">
+      <div className="border-border bg-background/40 flex h-8 items-center gap-1.5 self-start rounded-sm border px-2.5">
         <span className="mono-tag text-muted-foreground/55">modules</span>
         <span className="mono-tag text-ember tabular-nums">
           {String(extensions?.length ?? 0).padStart(2, '0')}
         </span>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {extensions?.map((ext, idx) => (
           <Card
             key={ext.name}
             className={cn(
               surfaceCard,
               'group relative overflow-hidden rounded-sm py-0 transition-all',
-              'hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
+              'hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
               ext.enabled ? '' : 'opacity-55',
             )}
           >
             {/* Top rail */}
-            <div className="bg-background/30 border-border/60 flex items-center justify-between border-b px-4 py-2.5">
-              <div className="flex min-w-0 items-center gap-2.5">
+            <div className="bg-background/30 border-border/60 flex items-center justify-between border-b px-3 py-2">
+              <div className="flex min-w-0 items-center gap-2">
                 <span className="mono-tag text-muted-foreground/45 tabular-nums">
                   {`#${String(idx + 1).padStart(2, '0')}`}
                 </span>
-                <Package className="text-ember/70 h-3.5 w-3.5 shrink-0" />
+                <Package className="text-ember/70 h-3 w-3 shrink-0" />
                 <span className="mono-tag text-ember/80 truncate">{ext.displayName}</span>
               </div>
               <ForgeToggle
@@ -186,40 +157,40 @@ export function ExtensionsPanel() {
               />
             </div>
 
-            <CardContent className="space-y-3 p-4">
-              <p className="text-foreground/75 line-clamp-2 text-[13px] leading-relaxed">
+            <CardContent className="space-y-2 p-3">
+              <p className="text-foreground/75 line-clamp-2 text-[12px] leading-relaxed">
                 {ext.description || (
                   <span className="text-muted-foreground/40 italic">no description supplied</span>
                 )}
               </p>
 
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
                 <span className="mono-tag text-muted-foreground/65 inline-flex items-center gap-1">
-                  <GitBranch className="h-3 w-3" />v{ext.version}
+                  <GitBranch className="h-2.5 w-2.5" />v{ext.version}
                 </span>
                 <span className="mono-tag text-muted-foreground/65 inline-flex items-center gap-1">
-                  <User className="h-3 w-3" />
+                  <User className="h-2.5 w-2.5" />
                   {ext.author || 'anon'}
                 </span>
                 {ext.lastUpdated && (
                   <span className="mono-tag text-muted-foreground/65 inline-flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
+                    <Calendar className="h-2.5 w-2.5" />
                     {new Date(ext.lastUpdated).toLocaleDateString()}
                   </span>
                 )}
               </div>
 
-              <div className="border-border/40 -mx-4 -mb-1 flex justify-end border-t px-4 pt-1 pb-1">
+              <div className="border-border/40 -mx-3 -mb-1 flex justify-end border-t px-3 pt-1 pb-1">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => updateMutation.mutate(ext.name)}
                   disabled={updateMutation.isPending}
-                  className="h-7"
+                  className="h-6"
                 >
                   <RefreshCw
                     className={cn(
-                      'h-3 w-3',
+                      'h-2.5 w-2.5',
                       updateMutation.isPending &&
                         updateMutation.variables === ext.name &&
                         'animate-spin',
@@ -234,17 +205,17 @@ export function ExtensionsPanel() {
       </div>
 
       {extensions?.length === 0 && (
-        <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-sm px-6 py-16')}>
+        <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-sm px-6 py-12')}>
           <CardContent className="flex flex-col items-center justify-center text-center">
-            <div className="border-border bg-muted/40 mb-4 flex h-14 w-14 items-center justify-center rounded-sm border">
-              <Package className="text-ember/60 h-6 w-6" />
+            <div className="border-border bg-muted/40 mb-3 flex h-12 w-12 items-center justify-center rounded-sm border">
+              <Package className="text-ember/60 h-5 w-5" />
             </div>
-            <h3 className="display-host mb-1 text-xl">No modules</h3>
-            <p className="mono-tag text-muted-foreground/55 mb-5">
+            <h3 className="display-host mb-1 text-lg">No modules</h3>
+            <p className="mono-tag text-muted-foreground/55 mb-4">
               install a module from URL to extend WorldCore
             </p>
-            <Button onClick={() => setInstallOpen(true)}>
-              <Plus className="h-4 w-4" />
+            <Button size="sm" onClick={() => setInstallOpen(true)}>
+              <Plus className="h-3.5 w-3.5" />
               Install Module
             </Button>
           </CardContent>
@@ -304,15 +275,15 @@ function ForgeToggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => 
       aria-checked={enabled}
       onClick={onToggle}
       className={cn(
-        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+        'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
         enabled ? 'bg-ember' : 'bg-muted',
       )}
     >
       <span className="sr-only">Toggle module</span>
       <span
         className={cn(
-          'bg-background pointer-events-none inline-block h-4 w-4 transform rounded-full shadow ring-0 transition-transform',
-          enabled ? 'translate-x-4' : 'translate-x-0',
+          'bg-background pointer-events-none inline-block h-3 w-3 transform rounded-full shadow ring-0 transition-transform',
+          enabled ? 'translate-x-3.5' : 'translate-x-0',
         )}
       />
     </button>

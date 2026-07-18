@@ -41,7 +41,7 @@ export function DrawerIcon({ icon, label, sectionId, behavior }: DrawerIconProps
       aria-pressed={isActive}
       title={label}
       className={cn(
-        'flex items-center justify-center rounded-md p-2 transition-all duration-200',
+        'flex items-center justify-center rounded p-1.5 transition-all duration-200',
         'hover:bg-accent hover:text-accent-foreground',
         isActive
           ? 'text-accent-foreground bg-accent'

@@ -105,6 +105,9 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/characters/import`] = characterRoutes.import;
   routes[`${PREFIX}/characters/export`] = characterRoutes.export;
   routes[`${PREFIX}/characters/avatar`] = characterRoutes.getAvatar;
+  routes[`${PREFIX}/characters/thumbnail`] = characterRoutes.getThumbnail;
+  routes[`${PREFIX}/characters/reconcile-list`] = characterRoutes.reconcileList;
+  routes[`${PREFIX}/characters/reconcile-delete`] = characterRoutes.reconcileDelete;
 
   // === Chats (T10) ===
   routes[`${PREFIX}/chats/save`] = chatsRoutes.save;
@@ -120,6 +123,7 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/chats/groupMessage`] = chatsRoutes.groupMessage;
   routes[`${PREFIX}/chats/listGroupChats`] = chatsRoutes.listGroupChats;
   routes[`${PREFIX}/chats/import`] = chatsRoutes.import;
+  routes[`${PREFIX}/chats/import-raw`] = chatsRoutes.importRaw;
 
   // === Groups (T12) ===
   routes[`${PREFIX}/groups/create`] = groupsRoutes.create;

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavStore } from '@/lib/navStore';
 
@@ -22,17 +22,24 @@ export function InlineSection({
   const toggle = useNavStore((s) => s.toggleInline);
 
   return (
-    <div className="inline-drawer">
+    <div className={cn('inline-drawer', open && 'inline-drawer-expanded')}>
       <button
         onClick={() => toggle(panelId, sectionId)}
         aria-expanded={open}
-        className="hover:bg-accent/50 flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors"
+        className="inline-drawer-trigger hover:bg-accent/40 flex w-full items-center gap-1.5 pr-2.5 pl-2 text-left transition-colors"
       >
-        <span>{title}</span>
-        {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        <span
+          className={cn(
+            'text-muted-foreground/55 transition-transform duration-200',
+            open && 'rotate-90',
+          )}
+        >
+          <ChevronDown size={12} strokeWidth={2.25} />
+        </span>
+        <span className="text-foreground/80 text-[12px] font-medium tracking-tight">{title}</span>
       </button>
       <div className={cn('accordion-content', open && 'accordion-open')}>
-        <div className="px-3 pb-3">{children}</div>
+        <div className="inline-drawer-body">{children}</div>
       </div>
     </div>
   );

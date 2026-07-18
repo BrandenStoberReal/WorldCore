@@ -147,6 +147,7 @@ export const SHARED_CONST = {
     'context',
     'sysprompt',
     'reasoning',
+    'generation',
   ] as const,
 
   EXPORTABLE_SECRET_KEYS: [

@@ -1,6 +1,7 @@
 import { errorGuard } from '@/server/middleware/errorGuard';
 import { getSession, setSessionCookie, generateCsrfToken } from '@/server/auth/session';
-import { DEFAULT_USER } from '@/server/auth/users';
+import { resolveUserFromSession, getUserById, DEFAULT_USER } from '@/server/auth/users';
+import type { DbUser } from '@/server/auth/users';
 import { hashPassword, verifyPassword } from '@/server/auth/password';
 import { eq } from 'drizzle-orm';
 import { db } from '@/server/db/client';
@@ -9,12 +10,18 @@ import { users } from '@/server/db/schema';
 export const usersPrivateRoutes = {
   me: errorGuard(async (req: Request): Promise<Response> => {
     const session = getSession(req);
-    const user = session ? DEFAULT_USER : DEFAULT_USER;
+    const resolved = resolveUserFromSession(session);
+    let dbUser: DbUser | null = null;
+    if (resolved.id !== DEFAULT_USER.id) {
+      dbUser = await getUserById(resolved.id);
+    }
+    const user = dbUser ?? DEFAULT_USER;
     return Response.json({
-      handle: user.username,
-      name: user.username,
+      id: user.id,
+      handle: 'handle' in user ? user.handle : user.username,
+      name: 'name' in user ? user.name : user.username,
       admin: user.role === 'admin',
-      avatar: '',
+      avatar: 'avatar' in user ? user.avatar : '',
     });
   }),
 

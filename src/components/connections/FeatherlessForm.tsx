@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { apiFetch } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useManageApiKey } from '@/lib/useManageApiKey';
 
 /* ── Types ── */
 
@@ -34,7 +35,6 @@ export interface FeatherlessConfig {
 interface FeatherlessFormProps {
   config?: Partial<FeatherlessConfig>;
   onConfigChange?: (config: Partial<FeatherlessConfig>) => void;
-  onManageKeys?: () => void;
   className?: string;
 }
 
@@ -67,16 +67,19 @@ const CATEGORY_OPTIONS: ReadonlyArray<{
  * Provides API key entry, a searchable/sortable model catalog with
  * grid/list toggle, class filter, and pagination controls.
  */
-export function FeatherlessForm({
-  config,
-  onConfigChange,
-  onManageKeys,
-  className,
-}: FeatherlessFormProps) {
+export function FeatherlessForm({ config, onConfigChange, className }: FeatherlessFormProps) {
   const [showKey, setShowKey] = useState(false);
   const [models, setModels] = useState<FeatherlessModel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showKeyManager, setShowKeyManager] = useState(false);
+  const {
+    apiKey: managedKey,
+    setApiKey: setManagedKey,
+    save: saveKey,
+    loading: keyLoading,
+    saved: keySaved,
+  } = useManageApiKey('featherless');
 
   // Browser state
   const [search, setSearch] = useState('');
@@ -201,13 +204,29 @@ export function FeatherlessForm({
             type="button"
             variant="outline"
             size="icon"
-            onClick={onManageKeys}
+            onClick={() => setShowKeyManager((v) => !v)}
             aria-label="Manage API keys"
             title="Manage API keys"
           >
             <KeyRound className="h-4 w-4" />
           </Button>
         </div>
+        {showKeyManager && (
+          <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-sm border p-2">
+            <Input
+              type="password"
+              value={managedKey}
+              onChange={(e) => setManagedKey(e.target.value)}
+              placeholder={keyLoading ? 'Loading stored key...' : 'Paste stored Featherless key'}
+              className="flex-1"
+              autoComplete="off"
+              disabled={keyLoading}
+            />
+            <Button type="button" size="sm" onClick={() => void saveKey()} disabled={keyLoading}>
+              {keySaved ? 'Saved' : 'Save'}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Model Browser Header */}

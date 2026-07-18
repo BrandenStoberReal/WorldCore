@@ -171,11 +171,11 @@ describe('importFromJson', () => {
     const filePath = path.join(testDir, 'test_import.json');
     await fs.writeFile(filePath, JSON.stringify(charData));
 
-    const id = await importFromJson(filePath);
+    const id = await importFromJson(filePath, 'default-user');
     createdIds.push(id);
     expect(id).toBeGreaterThan(0);
 
-    const char = await characterService.get(id);
+    const char = await characterService.get(id, 'default-user');
     expect(char).not.toBeNull();
     expect(char!.name).toBe('JsonImportTest');
     expect(char!.description).toBe('Imported from JSON');
@@ -199,11 +199,11 @@ tags:
     const filePath = path.join(testDir, 'test_import.yaml');
     await fs.writeFile(filePath, yamlContent);
 
-    const id = await importFromYaml(filePath);
+    const id = await importFromYaml(filePath, 'default-user');
     createdIds.push(id);
     expect(id).toBeGreaterThan(0);
 
-    const char = await characterService.get(id);
+    const char = await characterService.get(id, 'default-user');
     expect(char).not.toBeNull();
     expect(char!.name).toBe('YamlImportTest');
     expect(char!.description).toContain('YAML format');
@@ -215,7 +215,7 @@ tags:
 afterEach(async () => {
   for (const id of createdIds) {
     try {
-      await characterService.delete(id);
+      await characterService.delete(id, 'default-user');
     } catch {
       // Already deleted
     }

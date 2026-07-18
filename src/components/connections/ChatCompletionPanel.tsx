@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ChevronDown, Loader2, MessageSquare, Plug, Send, TestTube2 } from 'lucide-react';
+import { ChevronDown, Loader2, MessageSquare, Plug, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -16,6 +16,8 @@ import { ReverseProxySection } from '@/components/connections/ReverseProxySectio
 import { AzureOpenAIForm } from '@/components/connections/AzureOpenAIForm';
 import { VertexAIForm } from '@/components/connections/VertexAIForm';
 import { OpenRouterForm } from '@/components/connections/OpenRouterForm';
+import { ModelSelector } from '@/components/connections/ModelSelector';
+import { writeSecret } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 /* ── Types ── */
@@ -53,7 +55,7 @@ export interface ChatCompletionPanelProps {
   /** Called when the user clicks Connect with the assembled config. */
   onConnect?: (config: Record<string, unknown>) => void;
   /** Called when the user clicks "Send Test Message". */
-  onTestMessage?: (source: ChatSourceId) => void;
+  onTestMessage?: (source: ChatSourceId, message: string) => void;
   /** Whether the panel is currently connected. */
   connected?: boolean;
   /** The currently active source (if any). */
@@ -184,6 +186,8 @@ export function ChatCompletionPanel({
   const [connecting, setConnecting] = useState(false);
   const [testMessage, setTestMessage] = useState('Hello, this is a test message.');
   const [promptPostProcessing, setPromptPostProcessing] = useState<PromptPostProcessing>('none');
+  const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState('');
 
   // Reverse proxy state
   const [proxyPreset, setProxyPreset] = useState<string>('none');
@@ -203,8 +207,21 @@ export function ChatCompletionPanel({
   const handleConnect = useCallback(async () => {
     setConnecting(true);
     try {
+      // Route the API key to /secrets/write BEFORE calling onConnect so it
+      // never lands in the settings patch persisted by the parent. The config
+      // object passed to onConnect is intentionally sanitized (no api_key).
+      if (apiKey) {
+        try {
+          await writeSecret(`api_key_${source}`, apiKey, `${getSourceLabel(source)} API key`);
+        } catch {
+          // Secret write failure is non-fatal for the connect flow; the
+          // settings save below still proceeds so the user sees feedback.
+        }
+      }
       onConnect?.({
         chat_completion_source: source,
+        chat_completion_model: model || undefined,
+        model: model || undefined,
         prompt_post_processing: promptPostProcessing,
         proxy: proxyPreset !== 'none' ? proxyPreset : undefined,
         proxy_name: proxyName || undefined,
@@ -215,11 +232,21 @@ export function ChatCompletionPanel({
       // Keep connecting visual for a moment so the user sees feedback
       setTimeout(() => setConnecting(false), 800);
     }
-  }, [source, promptPostProcessing, proxyPreset, proxyName, proxyUrl, proxyPassword, onConnect]);
+  }, [
+    source,
+    model,
+    apiKey,
+    promptPostProcessing,
+    proxyPreset,
+    proxyName,
+    proxyUrl,
+    proxyPassword,
+    onConnect,
+  ]);
 
   const handleTestMessage = useCallback(() => {
-    onTestMessage?.(source);
-  }, [source, onTestMessage]);
+    onTestMessage?.(source, testMessage);
+  }, [source, testMessage, onTestMessage]);
 
   const showReverseProxy = REVERSE_PROXY_SOURCES.has(source);
 
@@ -263,7 +290,14 @@ export function ChatCompletionPanel({
 
       {/* ── Dynamic Provider Form ── */}
       <div className="space-y-2">
-        <ProviderFormArea source={source} />
+        <ProviderFormArea
+          source={source}
+          connected={connected}
+          apiKey={apiKey}
+          onApiKeyChange={setApiKey}
+          model={model}
+          onModelChange={setModel}
+        />
       </div>
 
       {/* ── Reverse Proxy Section ── */}
@@ -371,7 +405,21 @@ export function ChatCompletionPanel({
  * - Featherless → dedicated model browser form
  * - All others → simple API key + model selector (inline)
  */
-function ProviderFormArea({ source }: { source: ChatSourceId }) {
+function ProviderFormArea({
+  source,
+  connected,
+  apiKey,
+  onApiKeyChange,
+  model,
+  onModelChange,
+}: {
+  source: ChatSourceId;
+  connected: boolean;
+  apiKey: string;
+  onApiKeyChange: (key: string) => void;
+  model: string;
+  onModelChange: (model: string) => void;
+}) {
   // Complex providers with dedicated forms
   if (source === 'azure_openai') {
     return <AzureOpenAIForm />;
@@ -384,15 +432,37 @@ function ProviderFormArea({ source }: { source: ChatSourceId }) {
   }
 
   // All other sources use the simple provider form
-  return <SimpleProviderForm source={source} />;
+  return (
+    <SimpleProviderForm
+      source={source}
+      connected={connected}
+      apiKey={apiKey}
+      onApiKeyChange={onApiKeyChange}
+      model={model}
+      onModelChange={onModelChange}
+    />
+  );
 }
 
 /**
  * Simple provider form for sources that just need an API key + model selector.
  * Used for: OpenAI, Claude, Groq, DeepSeek, MistralAI, Cohere, AI21, xAI, etc.
  */
-function SimpleProviderForm({ source }: { source: ChatSourceId }) {
-  const [apiKey, setApiKey] = useState('');
+function SimpleProviderForm({
+  source,
+  connected,
+  apiKey,
+  onApiKeyChange,
+  model,
+  onModelChange,
+}: {
+  source: ChatSourceId;
+  connected: boolean;
+  apiKey: string;
+  onApiKeyChange: (key: string) => void;
+  model: string;
+  onModelChange: (model: string) => void;
+}) {
   const [showKey, setShowKey] = useState(false);
 
   const sourceLabel = getSourceLabel(source);
@@ -411,7 +481,7 @@ function SimpleProviderForm({ source }: { source: ChatSourceId }) {
           <input
             type={showKey ? 'text' : 'password'}
             value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            onChange={(e) => onApiKeyChange(e.target.value)}
             placeholder={`Enter your ${sourceLabel} API key`}
             autoComplete="off"
             className="border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 flex h-9 w-full min-w-0 flex-1 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] md:text-sm"
@@ -433,19 +503,28 @@ function SimpleProviderForm({ source }: { source: ChatSourceId }) {
         </div>
       </div>
 
-      {/* Model Selector — uses native select with fetch-on-connect semantics */}
+      {/* Model Selector — fetches models from /models/{source} after connect */}
       <div className="space-y-2">
         <Label>Model</Label>
-        <select
-          className="border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] md:text-sm"
-          defaultValue=""
-        >
-          <option value="" disabled>
-            Click &quot;Connect&quot; to load models
-          </option>
-        </select>
+        {connected ? (
+          <ModelSelector
+            source={source}
+            value={model}
+            onChange={onModelChange}
+            placeholder="Select a model..."
+          />
+        ) : (
+          <Select value="" onValueChange={() => {}} disabled>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder='Click "Connect" to load models' />
+            </SelectTrigger>
+            <SelectContent />
+          </Select>
+        )}
         <p className="text-muted-foreground/60 text-[12px]">
-          Models are loaded automatically when you connect.
+          {connected
+            ? 'Models are loaded automatically. Use the refresh button to reload.'
+            : 'Models are loaded automatically when you connect.'}
         </p>
       </div>
     </div>

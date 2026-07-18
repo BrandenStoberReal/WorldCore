@@ -14,8 +14,8 @@ export function DrawerSlot({ direction, open, children }: DrawerSlotProps) {
       className={cn(
         direction === 'top' ? 'drawer-top' : 'drawer-characters',
         direction === 'top' ? open && 'drawer-open' : !open && 'drawer-closed',
-        direction === 'top' && 'p-4',
-        direction === 'characters' && 'p-4',
+        direction === 'top' && 'p-2.5',
+        direction === 'characters' && 'p-0',
       )}
     >
       {children}

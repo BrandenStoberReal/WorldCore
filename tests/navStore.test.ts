@@ -4,15 +4,16 @@ import { useNavStore } from '../src/lib/navStore';
 describe('useNavStore', () => {
   beforeEach(() => {
     useNavStore.setState({
-      sectionId: 'welcome',
+      sectionId: 'chats',
+      prevSectionId: null,
       topDrawer: null,
       charactersOpen: false,
     });
   });
 
-  it('defaults to welcome section with no drawers open', () => {
+  it('defaults to chats section with no drawers open', () => {
     const state = useNavStore.getState();
-    expect(state.sectionId).toBe('welcome');
+    expect(state.sectionId).toBe('chats');
     expect(state.topDrawer).toBeNull();
     expect(state.charactersOpen).toBe(false);
   });
@@ -30,9 +31,9 @@ describe('useNavStore', () => {
   });
 
   it('top drawer and characters sidebar are independent', () => {
-    useNavStore.getState().openTopDrawer('settings');
+    useNavStore.getState().openTopDrawer('textoptions');
     useNavStore.getState().toggleCharacters();
-    expect(useNavStore.getState().topDrawer).toBe('settings');
+    expect(useNavStore.getState().topDrawer).toBe('textoptions');
     expect(useNavStore.getState().charactersOpen).toBe(true);
   });
 
@@ -49,9 +50,9 @@ describe('useNavStore', () => {
     expect(useNavStore.getState().charactersOpen).toBe(false);
   });
 
-  it('openSection welcome returns to welcome from any section', () => {
+  it('openSection chats returns to chats from any section', () => {
     useNavStore.getState().openSection('characters');
-    useNavStore.getState().openSection('welcome');
-    expect(useNavStore.getState().sectionId).toBe('welcome');
+    useNavStore.getState().openSection('chats');
+    expect(useNavStore.getState().sectionId).toBe('chats');
   });
 });

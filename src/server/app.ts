@@ -5,9 +5,11 @@ import { ensureUserDirs } from './storage/paths';
 import { runMigrations } from './db/migrate';
 import { safePathWithin } from './util/safePath';
 import { securityHeaders } from './errors';
+import { startCharacterWatcher, stopCharacterWatcher } from './services/character-watcher';
 
 runMigrations();
 ensureUserDirs();
+startCharacterWatcher();
 
 const apiRoutes = buildApiRoutes();
 
@@ -70,4 +72,17 @@ const server = serve({
 });
 
 console.log(`WorldCore running at ${server.url}`);
+
+let shuttingDown = false;
+async function shutdown(signal: string): Promise<void> {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[app] received ${signal}, shutting down...`);
+  await stopCharacterWatcher();
+  server.stop();
+  process.exit(0);
+}
+process.on('SIGINT', () => void shutdown('SIGINT'));
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+
 export default server;

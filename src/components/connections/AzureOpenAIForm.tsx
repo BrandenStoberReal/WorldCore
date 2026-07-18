@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useManageApiKey } from '@/lib/useManageApiKey';
 
 export interface AzureOpenAIConfig {
   baseUrl: string;
@@ -23,8 +24,6 @@ export interface AzureOpenAIConfig {
 interface AzureOpenAIFormProps {
   config?: Partial<AzureOpenAIConfig>;
   onConfigChange?: (config: Partial<AzureOpenAIConfig>) => void;
-  /** Called when user wants to manage stored keys. */
-  onManageKeys?: () => void;
   className?: string;
 }
 
@@ -41,13 +40,16 @@ const API_VERSIONS = [
  * Mirrors the SillyTavern `#azure_openai_settings` block with base URL,
  * deployment name, API version, API key, and model selection.
  */
-export function AzureOpenAIForm({
-  config,
-  onConfigChange,
-  onManageKeys,
-  className,
-}: AzureOpenAIFormProps) {
+export function AzureOpenAIForm({ config, onConfigChange, className }: AzureOpenAIFormProps) {
   const [showKey, setShowKey] = useState(false);
+  const [showKeyManager, setShowKeyManager] = useState(false);
+  const {
+    apiKey: managedKey,
+    setApiKey: setManagedKey,
+    save,
+    loading,
+    saved,
+  } = useManageApiKey('azure_openai');
 
   const update = (patch: Partial<AzureOpenAIConfig>) => {
     onConfigChange?.({ ...config, ...patch });
@@ -123,13 +125,29 @@ export function AzureOpenAIForm({
             type="button"
             variant="outline"
             size="icon"
-            onClick={onManageKeys}
+            onClick={() => setShowKeyManager((v) => !v)}
             aria-label="Manage API keys"
             title="Manage API keys"
           >
             <KeyRound className="h-4 w-4" />
           </Button>
         </div>
+        {showKeyManager && (
+          <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-sm border p-2">
+            <Input
+              type="password"
+              value={managedKey}
+              onChange={(e) => setManagedKey(e.target.value)}
+              placeholder={loading ? 'Loading stored key...' : 'Paste stored Azure key'}
+              className="flex-1"
+              autoComplete="off"
+              disabled={loading}
+            />
+            <Button type="button" size="sm" onClick={() => void save()} disabled={loading}>
+              {saved ? 'Saved' : 'Save'}
+            </Button>
+          </div>
+        )}
         <p className="text-muted-foreground/60 text-[12px]">
           For privacy reasons, your key is stored locally and never sent to third parties.
         </p>

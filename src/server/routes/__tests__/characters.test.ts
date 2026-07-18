@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import { characterRoutes } from '@/server/routes/characters.routes';
+import { characterService } from '@/server/services/character.service';
 import type { CharacterCreateInput } from '@/shared/types/character';
 
 const baseInput = (name: string): CharacterCreateInput => ({
@@ -16,9 +17,25 @@ const baseInput = (name: string): CharacterCreateInput => ({
   creator: '',
   character_version: '',
   alternate_greetings: [],
+  source: [],
+  group_only_greetings: [],
+  assets: [],
 });
 
 describe('Character routes', () => {
+  const createdIds: number[] = [];
+
+  afterEach(async () => {
+    for (const id of createdIds) {
+      try {
+        await characterService.delete(id, 'default-user');
+      } catch {
+        // Already deleted
+      }
+    }
+    createdIds.length = 0;
+  });
+
   it('create returns ok and id', async () => {
     const res = await characterRoutes.create(
       new Request('http://localhost/api/v1/characters/create', {
@@ -31,6 +48,7 @@ describe('Character routes', () => {
     const data = (await res.json()) as { ok: boolean; id: number };
     expect(data.ok).toBe(true);
     expect(typeof data.id).toBe('number');
+    createdIds.push(data.id);
   });
 
   it('all returns array', async () => {
@@ -55,6 +73,7 @@ describe('Character routes', () => {
       }),
     );
     const createData = (await createRes.json()) as { id: number };
+    createdIds.push(createData.id);
 
     const res = await characterRoutes.get(
       new Request('http://localhost/api/v1/characters/get', {
@@ -78,6 +97,7 @@ describe('Character routes', () => {
       }),
     );
     const createData = (await createRes.json()) as { id: number };
+    createdIds.push(createData.id);
 
     const res = await characterRoutes.delete(
       new Request('http://localhost/api/v1/characters/delete', {

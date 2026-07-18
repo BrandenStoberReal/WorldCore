@@ -1,13 +1,24 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { ChatMessage } from '@/shared/types/chat';
+import { apiGet, getPreset, getSettings, listPresets, savePreset, saveSettings } from '@/lib/api';
 
 export type Theme = 'light' | 'dark' | 'system';
 
 export interface User {
-  id: number;
+  id: string;
   name: string;
   role: string;
   avatarPath?: string;
+}
+
+/** Shape returned by the backend `GET /users/me` handler. */
+interface MeResponse {
+  id?: string;
+  handle?: string;
+  name?: string;
+  admin?: boolean;
+  avatar?: string;
 }
 
 export interface AppStore {
@@ -15,13 +26,46 @@ export interface AppStore {
   setTheme: (theme: Theme) => void;
   user: User | null;
   setUser: (user: User | null) => void;
+  initUser: () => Promise<void>;
+  initTheme: () => Promise<void>;
+}
+
+function isTheme(value: unknown): value is Theme {
+  return value === 'light' || value === 'dark' || value === 'system';
 }
 
 export const useAppStore = create<AppStore>((set) => ({
   theme: 'system',
-  setTheme: (theme) => set({ theme }),
+  setTheme: (theme) => {
+    set({ theme });
+    void saveSettings({ theme }).catch(() => {});
+  },
   user: null,
   setUser: (user) => set({ user }),
+  initUser: async () => {
+    try {
+      const me = await apiGet<MeResponse>('/users/me');
+      const user: User = {
+        id: me.id ?? 'default-user',
+        name: me.name ?? me.handle ?? '',
+        role: me.admin ? 'admin' : 'user',
+        avatarPath: me.avatar || undefined,
+      };
+      set({ user });
+    } catch {
+      /* leave user null if backend unreachable */
+    }
+  },
+  initTheme: async () => {
+    try {
+      const settings = await getSettings<Record<string, unknown>>();
+      if (typeof settings === 'object' && settings !== null && isTheme(settings.theme)) {
+        set({ theme: settings.theme });
+      }
+    } catch {
+      /* leave default 'system' theme if backend unreachable */
+    }
+  },
 }));
 
 export type GenerationMode = 'chat' | 'text';
@@ -103,33 +147,176 @@ export interface GenerationState {
   updateParam: <K extends keyof GenerationState>(key: K, value: GenerationState[K]) => void;
   resetDefaults: () => void;
   loadPreset: (preset: Partial<GenerationState>) => void;
+  savePresetToBackend: (name: string) => Promise<void>;
+  loadPresetFromBackend: (name: string) => Promise<void>;
+  listAvailablePresets: () => Promise<string[]>;
 }
 
-export const useGenerationStore = create<GenerationState>((set, get) => ({
-  mode: 'chat',
+type GenerationParams = Pick<
+  GenerationState,
+  | 'mode'
+  | 'temperature'
+  | 'top_p'
+  | 'top_k'
+  | 'max_tokens'
+  | 'seed'
+  | 'streaming'
+  | 'stop'
+  | 'frequency_penalty'
+  | 'presence_penalty'
+  | 'min_tokens'
+  | 'min_p'
+  | 'typical_p'
+  | 'top_a'
+  | 'tfs'
+  | 'rep_pen'
+  | 'rep_pen_range'
+  | 'rep_pen_slope'
+  | 'dry_multiplier'
+  | 'dry_base'
+  | 'dry_allowed_length'
+  | 'mirostat_mode'
+  | 'mirostat_tau'
+  | 'mirostat_eta'
+  | 'smoothing_factor'
+  | 'epsilon_cutoff'
+  | 'eta_cutoff'
+  | 'model'
+  | 'preset'
+>;
 
-  ...SHARED_DEFAULTS,
-  ...CHAT_DEFAULTS,
-  ...TEXT_DEFAULTS,
+const PARAM_KEYS = [
+  'mode',
+  'temperature',
+  'top_p',
+  'top_k',
+  'max_tokens',
+  'seed',
+  'streaming',
+  'stop',
+  'frequency_penalty',
+  'presence_penalty',
+  'min_tokens',
+  'min_p',
+  'typical_p',
+  'top_a',
+  'tfs',
+  'rep_pen',
+  'rep_pen_range',
+  'rep_pen_slope',
+  'dry_multiplier',
+  'dry_base',
+  'dry_allowed_length',
+  'mirostat_mode',
+  'mirostat_tau',
+  'mirostat_eta',
+  'smoothing_factor',
+  'epsilon_cutoff',
+  'eta_cutoff',
+  'model',
+  'preset',
+] as const satisfies readonly (keyof GenerationParams)[];
 
-  model: '',
-  preset: 'Default',
+function extractParams(value: unknown): Partial<GenerationParams> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const raw = value as Record<string, unknown>;
+  const out: Partial<GenerationParams> = {};
+  for (const key of PARAM_KEYS) {
+    if (key in raw) {
+      (out as Record<string, unknown>)[key] = raw[key];
+    }
+  }
+  return out;
+}
 
-  setMode: (mode) => {
-    const defaults = mode === 'chat' ? CHAT_GEN_DEFAULTS : TEXT_GEN_DEFAULTS;
-    set({ mode, ...defaults });
-  },
+export const useGenerationStore = create<GenerationState>()(
+  persist(
+    (set, get) => ({
+      mode: 'chat',
 
-  updateParam: (key, value) => set({ [key]: value } as Partial<GenerationState>),
+      ...SHARED_DEFAULTS,
+      ...CHAT_DEFAULTS,
+      ...TEXT_DEFAULTS,
 
-  resetDefaults: () => {
-    const { mode } = get();
-    const defaults = mode === 'chat' ? CHAT_GEN_DEFAULTS : TEXT_GEN_DEFAULTS;
-    set({ ...defaults });
-  },
+      model: '',
+      preset: 'Default',
 
-  loadPreset: (preset) => set(preset),
-}));
+      setMode: (mode) => {
+        const defaults = mode === 'chat' ? CHAT_GEN_DEFAULTS : TEXT_GEN_DEFAULTS;
+        set({ mode, ...defaults });
+      },
+
+      updateParam: (key, value) => set({ [key]: value } as Partial<GenerationState>),
+
+      resetDefaults: () => {
+        const { mode } = get();
+        const defaults = mode === 'chat' ? CHAT_GEN_DEFAULTS : TEXT_GEN_DEFAULTS;
+        set({ ...defaults });
+      },
+
+      loadPreset: (preset) => set(preset),
+
+      savePresetToBackend: async (name) => {
+        const trimmed = name.trim();
+        if (!trimmed) throw new Error('Preset name is required');
+        const state = get();
+        const data: Record<string, unknown> = { name: trimmed };
+        for (const key of PARAM_KEYS) {
+          data[key] = state[key] as unknown;
+        }
+        await savePreset({ name: trimmed, category: 'generation', data });
+        set({ preset: trimmed });
+      },
+
+      loadPresetFromBackend: async (name) => {
+        const trimmed = name.trim();
+        if (!trimmed) throw new Error('Preset name is required');
+        const result = await getPreset('generation', trimmed);
+        // apiFetch unwraps `data.data` for the { category, data } envelope, so
+        // `result` is usually the params object directly. Tolerate both the
+        // unwrapped shape and a residual { data: ... } wrapper.
+        const params = extractParams(
+          result && typeof result === 'object' && 'data' in result
+            ? (result as { data: unknown }).data
+            : result,
+        );
+        if (Object.keys(params).length === 0) {
+          throw new Error(`Preset "${trimmed}" has no loadable params`);
+        }
+        set(params);
+      },
+
+      listAvailablePresets: async () => {
+        const presets = await listPresets('generation');
+        const names: string[] = [];
+        for (const entry of presets) {
+          if (!entry || typeof entry !== 'object') continue;
+          const raw = entry as Record<string, unknown>;
+          // Name lives inside `data.name` per the Preset shape; fall back to a
+          // top-level `name` for forward compatibility.
+          let name: unknown;
+          if (raw.data && typeof raw.data === 'object') {
+            name = (raw.data as Record<string, unknown>).name;
+          } else {
+            name = raw.name;
+          }
+          if (typeof name === 'string' && name.length > 0) names.push(name);
+        }
+        return names;
+      },
+    }),
+    {
+      name: 'worldcore/generation',
+      partialize: (state): Partial<GenerationParams> => {
+        const persisted: Record<string, unknown> = {};
+        for (const key of PARAM_KEYS) {
+          persisted[key] = state[key];
+        }
+        return persisted as Partial<GenerationParams>;
+      },
+    },
+  ),
+);
 
 export interface ChatStore {
   activeChatId: string | null;

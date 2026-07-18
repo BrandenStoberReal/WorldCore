@@ -1,11 +1,10 @@
 import { db } from '@/server/db/client';
 import { characters, chats } from '@/server/db/schema';
-import { eq, asc } from 'drizzle-orm';
-import { paths } from '@/server/storage/paths';
-import { writeFile, readFile, removeFile, copyFile } from '@/server/storage/fs';
+import { eq, asc, and } from 'drizzle-orm';
+import { getUserCharacterPath, getUserPath } from '@/server/storage/paths';
+import { writeFile, readFile, removeFile, copyFile, exists as fsExists } from '@/server/storage/fs';
 import { writeCharacterCard } from '@/server/storage/png-metadata';
 import path from 'node:path';
-import fs from 'node:fs/promises';
 import { SHARED_CONST } from '@/shared/constants';
 import type {
   Character,
@@ -19,6 +18,7 @@ import { Jimp } from 'jimp';
 
 const DEFAULT_SPEC = 'chara_card_v3';
 const DEFAULT_SPEC_VERSION = '3.0';
+const THUMBNAIL_WIDTH = 128;
 
 async function generatePlaceholderPng(): Promise<Buffer> {
   const img = new Jimp({
@@ -27,6 +27,33 @@ async function generatePlaceholderPng(): Promise<Buffer> {
     color: 0x000000ff,
   });
   return img.getBuffer('image/png');
+}
+
+export function thumbnailPathFor(avatarFileName: string): string {
+  const base = path.basename(avatarFileName, path.extname(avatarFileName));
+  return `thumb_${base}.png`;
+}
+
+async function writeCharacterThumbnail(
+  avatarPath: string,
+  userId: string,
+  avatarFileName: string,
+): Promise<void> {
+  if (!(await fsExists(avatarPath))) return;
+  let image;
+  try {
+    image = await Jimp.read(avatarPath);
+  } catch {
+    return;
+  }
+  if (image.width === 0 || image.height === 0) return;
+  const thumbW = Math.min(THUMBNAIL_WIDTH, image.width);
+  const thumbH = Math.round(thumbW * (image.height / image.width));
+  image.resize({ w: thumbW, h: thumbH });
+  const thumbName = thumbnailPathFor(avatarFileName);
+  const thumbPath = path.join(getUserCharacterPath(userId), thumbName);
+  const buffer = await image.getBuffer('image/png');
+  await writeFile(thumbPath, buffer);
 }
 
 function normalizeToV3(data: CharacterCreateInput): CharacterData {
@@ -46,6 +73,15 @@ function normalizeToV3(data: CharacterCreateInput): CharacterData {
     alternate_greetings: data.alternate_greetings ?? [],
     character_book: data.character_book,
     extensions: data.extensions,
+    nickname: data.nickname,
+    creator_notes_multilingual: data.creator_notes_multilingual,
+    source: data.source ?? [],
+    group_only_greetings: data.group_only_greetings ?? [],
+    assets: data.assets ?? [],
+    // creation_date / modification_date are server-controlled;
+    // set in create()/edit()/importCharacter()/duplicate() below.
+    creation_date: undefined,
+    modification_date: undefined,
   };
 }
 
@@ -104,12 +140,12 @@ function buildShallowCharacter(
 }
 
 export class CharacterService {
-  async create(input: CharacterCreateInput): Promise<CharacterWithId> {
+  async create(input: CharacterCreateInput, userId: string): Promise<CharacterWithId> {
     const data = normalizeToV3(input);
     const spec = input.spec ?? DEFAULT_SPEC;
     const specVersion = input.spec_version ?? DEFAULT_SPEC_VERSION;
     const fileName = `${data.name.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
-    const filePath = path.join(paths.characters, fileName);
+    const filePath = path.join(getUserCharacterPath(userId), fileName);
 
     let pngBuffer: Buffer;
     if (input.avatar && input.avatar.startsWith('data:image/')) {
@@ -118,10 +154,17 @@ export class CharacterService {
     } else {
       pngBuffer = await generatePlaceholderPng();
     }
-    const jsonData = JSON.stringify({ spec, spec_version: specVersion, ...data });
-    await writeCharacterCard(pngBuffer, jsonData, filePath);
 
     const now = Date.now();
+    data.creation_date = now;
+    data.modification_date = now;
+
+    const jsonData = JSON.stringify({ spec, spec_version: specVersion, ...data });
+    await writeCharacterCard(pngBuffer, jsonData, filePath);
+    await writeCharacterThumbnail(filePath, userId, fileName).catch(() => {
+      // Best-effort: the thumbnail endpoint regenerates on demand if missing.
+    });
+
     const createDate = new Date(now).toISOString();
     const dataSize = Buffer.from(jsonData).length;
 
@@ -143,7 +186,7 @@ export class CharacterService {
         chatSize: 0,
         dataSize,
         fav: false,
-        userId: 'default-user',
+        userId,
       })
       .returning();
 
@@ -161,8 +204,12 @@ export class CharacterService {
     );
   }
 
-  async rename(id: number, newName: string): Promise<void> {
-    const row = await db.select().from(characters).where(eq(characters.id, id)).limit(1);
+  async rename(id: number, userId: string, newName: string): Promise<void> {
+    const row = await db
+      .select()
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .limit(1);
     if (row.length === 0) {
       throw new NotFoundError(`Character with id ${id}`);
     }
@@ -171,12 +218,16 @@ export class CharacterService {
     parsedData.name = newName;
 
     const newFileName = `${newName.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
-    const oldFilePath = path.join(paths.characters, charRow.avatar);
-    const newFilePath = path.join(paths.characters, newFileName);
+    const userChars = getUserCharacterPath(userId);
+    const oldFilePath = path.join(userChars, charRow.avatar);
+    const newFilePath = path.join(userChars, newFileName);
 
     const jsonData = JSON.stringify(parsedData);
     await writeCharacterCard(oldFilePath, jsonData, newFilePath);
     await removeFile(oldFilePath);
+    const oldThumbPath = path.join(userChars, thumbnailPathFor(charRow.avatar));
+    await removeFile(oldThumbPath).catch(() => {});
+    await writeCharacterThumbnail(newFilePath, userId, newFileName).catch(() => {});
 
     await db
       .update(characters)
@@ -186,19 +237,29 @@ export class CharacterService {
         fileName: newFileName,
         jsonData,
       })
-      .where(eq(characters.id, id));
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)));
   }
 
-  async edit(id: number, data: Partial<CharacterData>): Promise<void> {
-    const row = await db.select().from(characters).where(eq(characters.id, id)).limit(1);
+  async edit(id: number, userId: string, data: Partial<CharacterData>): Promise<void> {
+    const row = await db
+      .select()
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .limit(1);
     if (row.length === 0) {
       throw new NotFoundError(`Character with id ${id}`);
     }
     const charRow = row[0]!;
     const parsedData = JSON.parse(charRow.jsonData) as CharacterData;
-    const merged = { ...parsedData, ...data } as CharacterData;
+    const clientData = { ...data } as Partial<CharacterData>;
+    // creation_date is immutable after create; modification_date bumps on every edit.
+    delete clientData.creation_date;
+    delete clientData.modification_date;
+    const merged = { ...parsedData, ...clientData } as CharacterData;
+    merged.modification_date = Date.now();
+    merged.creation_date = parsedData.creation_date ?? merged.creation_date;
 
-    const filePath = path.join(paths.characters, charRow.avatar);
+    const filePath = path.join(getUserCharacterPath(userId), charRow.avatar);
     const jsonData = JSON.stringify(merged);
     await writeCharacterCard(filePath, jsonData, filePath);
 
@@ -212,16 +273,20 @@ export class CharacterService {
         characterVersion: merged.character_version,
         dataSize: Buffer.from(jsonData).length,
       })
-      .where(eq(characters.id, id));
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)));
   }
 
-  async editAvatar(id: number, avatarData: string | Buffer): Promise<void> {
-    const row = await db.select().from(characters).where(eq(characters.id, id)).limit(1);
+  async editAvatar(id: number, userId: string, avatarData: string | Buffer): Promise<void> {
+    const row = await db
+      .select()
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .limit(1);
     if (row.length === 0) {
       throw new NotFoundError(`Character with id ${id}`);
     }
     const charRow = row[0]!;
-    const filePath = path.join(paths.characters, charRow.avatar);
+    const filePath = path.join(getUserCharacterPath(userId), charRow.avatar);
 
     let pngBuffer: Buffer;
     if (typeof avatarData === 'string') {
@@ -234,22 +299,31 @@ export class CharacterService {
       pngBuffer = avatarData;
     }
     await writeCharacterCard(pngBuffer, charRow.jsonData, filePath);
+    await writeCharacterThumbnail(filePath, userId, charRow.avatar).catch(() => {});
   }
 
   async editAttribute(
     id: number,
+    userId: string,
     field: string,
     value: string | string[] | boolean | number,
   ): Promise<void> {
-    const row = await db.select().from(characters).where(eq(characters.id, id)).limit(1);
+    const row = await db
+      .select()
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .limit(1);
     if (row.length === 0) {
       throw new NotFoundError(`Character with id ${id}`);
     }
     const charRow = row[0]!;
     const parsedData = JSON.parse(charRow.jsonData) as Record<string, unknown> & CharacterData;
-    parsedData[field as keyof CharacterData] = value as never;
+    if (field !== 'creation_date' && field !== 'modification_date') {
+      parsedData[field as keyof CharacterData] = value as never;
+    }
+    parsedData.modification_date = Date.now();
 
-    const filePath = path.join(paths.characters, charRow.avatar);
+    const filePath = path.join(getUserCharacterPath(userId), charRow.avatar);
     const jsonData = JSON.stringify(parsedData);
     await writeCharacterCard(filePath, jsonData, filePath);
 
@@ -260,19 +334,31 @@ export class CharacterService {
     if (field === 'character_version') updateData.characterVersion = value as string;
     updateData.dataSize = Buffer.from(jsonData).length;
 
-    await db.update(characters).set(updateData).where(eq(characters.id, id));
+    await db
+      .update(characters)
+      .set(updateData)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)));
   }
 
-  async mergeAttributes(id: number, attrs: Record<string, unknown>): Promise<void> {
-    const row = await db.select().from(characters).where(eq(characters.id, id)).limit(1);
+  async mergeAttributes(id: number, userId: string, attrs: Record<string, unknown>): Promise<void> {
+    const row = await db
+      .select()
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .limit(1);
     if (row.length === 0) {
       throw new NotFoundError(`Character with id ${id}`);
     }
     const charRow = row[0]!;
     const parsedData = JSON.parse(charRow.jsonData) as Record<string, unknown> & CharacterData;
-    const merged = { ...parsedData, ...attrs } as CharacterData;
+    const clientAttrs = { ...attrs };
+    delete clientAttrs.creation_date;
+    delete clientAttrs.modification_date;
+    const merged = { ...parsedData, ...clientAttrs } as CharacterData;
+    merged.modification_date = Date.now();
+    merged.creation_date = (parsedData.creation_date as number | undefined) ?? merged.creation_date;
 
-    const filePath = path.join(paths.characters, charRow.avatar);
+    const filePath = path.join(getUserCharacterPath(userId), charRow.avatar);
     const jsonData = JSON.stringify(merged);
     await writeCharacterCard(filePath, jsonData, filePath);
 
@@ -284,29 +370,53 @@ export class CharacterService {
       updateData.characterVersion = attrs.character_version as string;
     updateData.dataSize = Buffer.from(jsonData).length;
 
-    await db.update(characters).set(updateData).where(eq(characters.id, id));
+    await db
+      .update(characters)
+      .set(updateData)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)));
   }
 
-  async delete(id: number): Promise<void> {
-    const row = await db.select().from(characters).where(eq(characters.id, id)).limit(1);
+  async delete(id: number, userId: string): Promise<void> {
+    const row = await db
+      .select()
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .limit(1);
     if (row.length === 0) {
       throw new NotFoundError(`Character with id ${id}`);
     }
     const charRow = row[0]!;
 
-    const pngPath = path.join(paths.characters, charRow.avatar);
+    const pngPath = path.join(getUserCharacterPath(userId), charRow.avatar);
     await removeFile(pngPath);
+    const thumbPath = path.join(getUserCharacterPath(userId), thumbnailPathFor(charRow.avatar));
+    await removeFile(thumbPath).catch(() => {});
 
     const chatFileName = charRow.fileName.replace('.png', '.json');
-    const chatPath = path.join(paths.chats, chatFileName);
+    const chatPath = path.join(getUserPath(userId), 'chats', chatFileName);
     await removeFile(chatPath);
 
     await db.delete(chats).where(eq(chats.characterId, id));
-    await db.delete(characters).where(eq(characters.id, id));
+    await db.delete(characters).where(and(eq(characters.id, id), eq(characters.userId, userId)));
   }
 
-  async getAll(shallow?: boolean): Promise<CharacterWithId[] | ShallowCharacter[]> {
-    const rows = await db.select().from(characters).orderBy(asc(characters.name));
+  async deleteByFileNameIfExists(fileName: string, userId: string): Promise<boolean> {
+    const rows = await db
+      .select({ id: characters.id })
+      .from(characters)
+      .where(and(eq(characters.fileName, fileName), eq(characters.userId, userId)))
+      .limit(1);
+    if (rows.length === 0) return false;
+    await this.delete(Number(rows[0]!.id), userId);
+    return true;
+  }
+
+  async getAll(userId: string, shallow?: boolean): Promise<CharacterWithId[] | ShallowCharacter[]> {
+    const rows = await db
+      .select()
+      .from(characters)
+      .where(eq(characters.userId, userId))
+      .orderBy(asc(characters.name));
 
     if (shallow) {
       return rows.map((row) => {
@@ -339,29 +449,28 @@ export class CharacterService {
     });
   }
 
-  async get(id: number): Promise<CharacterWithId | null> {
-    const rows = await db.select().from(characters).where(eq(characters.id, id)).limit(1);
+  async getThumbnailPath(id: number, userId: string): Promise<string | null> {
+    const rows = await db
+      .select({ id: characters.id, avatar: characters.avatar })
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .limit(1);
     if (rows.length === 0) return null;
-    const row = rows[0]!;
-    const data = JSON.parse(row.jsonData) as CharacterData;
-    return buildCharacter(
-      Number(row.id),
-      data,
-      row.avatar,
-      row.fileName,
-      row.spec,
-      row.specVersion,
-      row.createDate,
-      row.dateAdded,
-      row.dataSize,
-    );
+    const charRow = rows[0]!;
+    const userChars = getUserCharacterPath(userId);
+    const avatarPath = path.join(userChars, charRow.avatar);
+    const thumbPath = path.join(userChars, thumbnailPathFor(charRow.avatar));
+    if (!(await fsExists(thumbPath))) {
+      await writeCharacterThumbnail(avatarPath, userId, charRow.avatar).catch(() => {});
+    }
+    return await fsExists(thumbPath) ? thumbPath : null;
   }
 
-  async getByFileName(fileName: string): Promise<CharacterWithId | null> {
+  async get(id: number, userId: string): Promise<CharacterWithId | null> {
     const rows = await db
       .select()
       .from(characters)
-      .where(eq(characters.fileName, fileName))
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
       .limit(1);
     if (rows.length === 0) return null;
     const row = rows[0]!;
@@ -379,11 +488,36 @@ export class CharacterService {
     );
   }
 
-  async getChats(fileName: string): Promise<Array<{ fileId: string; fileName: string }>> {
+  async getByFileName(fileName: string, userId: string): Promise<CharacterWithId | null> {
+    const rows = await db
+      .select()
+      .from(characters)
+      .where(and(eq(characters.fileName, fileName), eq(characters.userId, userId)))
+      .limit(1);
+    if (rows.length === 0) return null;
+    const row = rows[0]!;
+    const data = JSON.parse(row.jsonData) as CharacterData;
+    return buildCharacter(
+      Number(row.id),
+      data,
+      row.avatar,
+      row.fileName,
+      row.spec,
+      row.specVersion,
+      row.createDate,
+      row.dateAdded,
+      row.dataSize,
+    );
+  }
+
+  async getChats(
+    fileName: string,
+    userId: string,
+  ): Promise<Array<{ fileId: string; fileName: string }>> {
     const charRows = await db
       .select()
       .from(characters)
-      .where(eq(characters.fileName, fileName))
+      .where(and(eq(characters.fileName, fileName), eq(characters.userId, userId)))
       .limit(1);
     if (charRows.length === 0) return [];
     const charId = Number(charRows[0]!.id);
@@ -395,8 +529,12 @@ export class CharacterService {
     return chatRows;
   }
 
-  async duplicate(id: number): Promise<number> {
-    const row = await db.select().from(characters).where(eq(characters.id, id)).limit(1);
+  async duplicate(id: number, userId: string): Promise<number> {
+    const row = await db
+      .select()
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .limit(1);
     if (row.length === 0) {
       throw new NotFoundError(`Character with id ${id}`);
     }
@@ -405,17 +543,25 @@ export class CharacterService {
 
     const dupName = `${sourceData.name} (copy)`;
     const dupFileName = `${dupName.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
-    const sourceFilePath = path.join(paths.characters, sourceRow.avatar);
-    const dupFilePath = path.join(paths.characters, dupFileName);
+    const userChars = getUserCharacterPath(userId);
+    const sourceFilePath = path.join(userChars, sourceRow.avatar);
+    const dupFilePath = path.join(userChars, dupFileName);
 
+    const now = Date.now();
     const dupData = JSON.parse(JSON.stringify(sourceData)) as CharacterData;
     dupData.name = dupName;
+    dupData.creation_date = now;
+    dupData.modification_date = now;
     const dupJsonData = JSON.stringify(dupData);
 
     await copyFile(sourceFilePath, dupFilePath);
     await writeCharacterCard(dupFilePath, dupJsonData, dupFilePath);
+    const sourceThumbPath = path.join(userChars, thumbnailPathFor(sourceRow.avatar));
+    const dupThumbPath = path.join(userChars, thumbnailPathFor(dupFileName));
+    await copyFile(sourceThumbPath, dupThumbPath).catch(async () => {
+      await writeCharacterThumbnail(dupFilePath, userId, dupFileName).catch(() => {});
+    });
 
-    const now = Date.now();
     const createDate = new Date(now).toISOString();
 
     const result = await db
@@ -436,25 +582,35 @@ export class CharacterService {
         chatSize: 0,
         dataSize: Buffer.from(dupJsonData).length,
         fav: false,
-        userId: 'default-user',
+        userId,
       })
       .returning();
 
     return Number(result[0]!.id);
   }
 
-  async importCharacter(pngData: Buffer, jsonData: string): Promise<number> {
-    const parsed = JSON.parse(jsonData) as CharacterData & { spec?: string; spec_version?: string };
+  async importCharacter(pngData: Buffer, jsonData: string, userId: string): Promise<number> {
+    const parsed = JSON.parse(jsonData) as CharacterData & {
+      spec?: string;
+      spec_version?: string;
+    };
     const spec = parsed.spec ?? DEFAULT_SPEC;
     const specVersion = parsed.spec_version ?? DEFAULT_SPEC_VERSION;
 
     const fileName = `${parsed.name.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
-    const destPath = path.join(paths.characters, fileName);
-
-    await writeCharacterCard(pngData, jsonData, destPath);
+    const destPath = path.join(getUserCharacterPath(userId), fileName);
 
     const now = Date.now();
-    const createDate = new Date(now).toISOString();
+    parsed.modification_date = now;
+    if (parsed.creation_date == null) {
+      parsed.creation_date = now;
+    }
+    const rewrittenJsonWithDates = JSON.stringify({ ...parsed, spec, spec_version: specVersion });
+    await writeCharacterCard(pngData, rewrittenJsonWithDates, destPath);
+    await writeCharacterThumbnail(destPath, userId, fileName).catch(() => {});
+
+    const sourceCreation = parsed.creation_date;
+    const createDate = new Date(sourceCreation).toISOString();
 
     const result = await db
       .insert(characters)
@@ -462,7 +618,7 @@ export class CharacterService {
         name: parsed.name,
         avatar: fileName,
         fileName,
-        jsonData,
+        jsonData: rewrittenJsonWithDates,
         spec,
         specVersion,
         tags: parsed.tags ?? [],
@@ -472,9 +628,9 @@ export class CharacterService {
         dateAdded: now,
         dateLastChat: 0,
         chatSize: 0,
-        dataSize: Buffer.from(jsonData).length,
+        dataSize: Buffer.from(rewrittenJsonWithDates).length,
         fav: false,
-        userId: 'default-user',
+        userId,
       })
       .returning();
 
@@ -483,16 +639,21 @@ export class CharacterService {
 
   async exportCharacter(
     id: number,
+    userId: string,
     format: 'png' | 'json' | 'yaml',
   ): Promise<{ data: Buffer; mimeType: string; fileName: string }> {
-    const row = await db.select().from(characters).where(eq(characters.id, id)).limit(1);
+    const row = await db
+      .select()
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .limit(1);
     if (row.length === 0) {
       throw new NotFoundError(`Character with id ${id}`);
     }
     const charRow = row[0]!;
 
     if (format === 'png') {
-      const pngPath = path.join(paths.characters, charRow.avatar);
+      const pngPath = path.join(getUserCharacterPath(userId), charRow.avatar);
       const pngData = await readFile(pngPath);
       return {
         data: pngData,

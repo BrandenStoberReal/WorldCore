@@ -8,6 +8,7 @@ import { Modal } from '@/components/Modal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Loader2, Plus, Trash2, Search, Pencil, Layers, Hash, Flame } from 'lucide-react';
 import { cn, surfaceCard } from '@/lib/utils';
+import { apiGet, apiPost } from '@/lib/api';
 import { InlineSection } from '@/components/drawers/InlineSection';
 import type { WorldInfo, WorldInfoEntry } from '@/shared/types/worldinfo';
 
@@ -50,23 +51,13 @@ export function WorldInfoPanel() {
   } = useQuery<WorldInfo[]>({
     queryKey: ['/api/v1/worldinfo/all'],
     queryFn: async () => {
-      const res = await fetch('/api/v1/worldinfo/all');
-      if (!res.ok) throw new Error('Failed to fetch world info');
-      const data = await res.json();
-      return Array.isArray(data) ? data : (data.results ?? data.data ?? data);
+      return await apiGet<WorldInfo[]>('/worldinfo/all');
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: { entries: Record<string, WorldInfoEntry> }) => {
-      const res = await fetch('/api/v1/worldinfo/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error('Failed to create world info');
-      const result = await res.json();
-      return Array.isArray(result) ? result : (result.results ?? result.data ?? result);
+      return await apiPost<unknown>('/worldinfo/create', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/worldinfo/all'] });
@@ -83,14 +74,7 @@ export function WorldInfoPanel() {
       fileId: string;
       entries: Record<string, WorldInfoEntry>;
     }) => {
-      const res = await fetch('/api/v1/worldinfo/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_id: fileId, entries }),
-      });
-      if (!res.ok) throw new Error('Failed to update world info');
-      const result = await res.json();
-      return Array.isArray(result) ? result : (result.results ?? result.data ?? result);
+      return await apiPost<unknown>('/worldinfo/update', { file_id: fileId, entries });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/worldinfo/all'] });
@@ -102,14 +86,7 @@ export function WorldInfoPanel() {
 
   const deleteMutation = useMutation({
     mutationFn: async ({ fileId, uid }: { fileId: string; uid: string }) => {
-      const res = await fetch('/api/v1/worldinfo/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_id: fileId, entries: [uid] }),
-      });
-      if (!res.ok) throw new Error('Failed to delete world info entry');
-      const result = await res.json();
-      return Array.isArray(result) ? result : (result.results ?? result.data ?? result);
+      return await apiPost<unknown>('/worldinfo/delete', { file_id: fileId, entries: [uid] });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/worldinfo/all'] });
@@ -227,14 +204,14 @@ export function WorldInfoPanel() {
   return (
     <div data-panel="worldinfo" className="section-rhythm relative isolate">
       {/* Section header */}
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-2.5">
             <span className="mono-tag text-ember">{`[03] — ARCHIVE`}</span>
-            <span className="bg-ember/40 h-px w-10" />
+            <span className="bg-ember/40 h-px w-8" />
           </div>
-          <h2 className="display-host text-[42px] leading-none tracking-tight">Lore Tablets</h2>
-          <p className="text-muted-foreground mt-2 max-w-md text-sm">
+          <h2 className="display-host text-[30px] leading-none tracking-tight">Lore Tablets</h2>
+          <p className="text-muted-foreground mt-1.5 max-w-md text-[13px] leading-snug">
             Triggered knowledge fragments: keys, secondary keywords, depth, and probability gating
             the lore the model can summon mid-conversation.
           </p>
@@ -246,26 +223,26 @@ export function WorldInfoPanel() {
             setForm(emptyForm());
             setModalOpen(true);
           }}
-          className="ember-pulse h-9"
+          className="ember-pulse h-8"
         >
-          <Plus className="h-4 w-4" strokeWidth={2.5} />
-          <span className="text-[13px] font-semibold tracking-tight">New Tablet</span>
+          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <span className="text-[12px] font-semibold tracking-tight">New Tablet</span>
         </Button>
       </header>
 
       {/* Search rail */}
       <InlineSection panelId="worldinfo" sectionId="search" title="Search & Filter">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[260px] flex-1">
-            <Search className="text-muted-foreground/55 absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="text-muted-foreground/55 absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
             <Input
               placeholder="query · key, secondary, or content fragment..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 pl-9 font-mono text-[13px] tracking-tight"
+              className="h-8 pl-8 font-mono text-[12px] tracking-tight"
             />
           </div>
-          <div className="border-border bg-background/40 flex h-9 items-center gap-1.5 rounded-sm border px-3">
+          <div className="border-border bg-background/40 flex h-8 items-center gap-1.5 rounded-sm border px-2.5">
             <span className="mono-tag text-muted-foreground/55">tablets</span>
             <span className="mono-tag text-ember tabular-nums">
               {String(filtered?.length ?? 0).padStart(2, '0')}
@@ -279,30 +256,28 @@ export function WorldInfoPanel() {
       </InlineSection>
 
       {/* Entry list */}
-      <div className="grid gap-4">
+      <div className="grid gap-2.5">
         {filtered?.map((entry, idx) => (
           <Card
             key={entry.uid}
             className={cn(
               surfaceCard,
-              'group relative overflow-hidden rounded-sm py-0 transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
+              'group relative overflow-hidden rounded-sm py-0 transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
               entry.disable ? 'opacity-55' : '',
             )}
           >
             {/* Top rail */}
-            <div className="bg-background/30 border-border/60 flex items-center justify-between border-b px-4 py-2">
-              <div className="flex min-w-0 items-center gap-2.5">
+            <div className="bg-background/30 border-border/60 flex items-center justify-between border-b px-3 py-1.5">
+              <div className="flex min-w-0 items-center gap-2">
                 <span className="mono-tag text-muted-foreground/55 tabular-nums">
                   {`#${String(idx + 1).padStart(3, '0')}`}
                 </span>
                 <span className="mono-tag text-ember/70 truncate">{entry.key || '{no_key}'}</span>
                 {!entry.disable && (
-                  <span className="mono-tag bg-ember/15 text-ember rounded-sm px-1.5 py-0.5">
-                    ON
-                  </span>
+                  <span className="mono-tag bg-ember/15 text-ember rounded-sm px-1 py-px">ON</span>
                 )}
                 {entry.disable && (
-                  <span className="mono-tag bg-muted/50 text-muted-foreground/55 rounded-sm px-1.5 py-0.5">
+                  <span className="mono-tag bg-muted/50 text-muted-foreground/55 rounded-sm px-1 py-px">
                     OFF
                   </span>
                 )}
@@ -313,31 +288,31 @@ export function WorldInfoPanel() {
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => openEdit(entry)}
-                  className="hover:text-ember h-7 w-7"
+                  className="hover:text-ember h-6 w-6"
                 >
-                  <Pencil className="h-3 w-3" />
+                  <Pencil className="h-2.5 w-2.5" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="text-destructive hover:bg-destructive/10 h-7 w-7"
+                  className="text-destructive hover:bg-destructive/10 h-6 w-6"
                   onClick={() => setDeleteUid(entry.uid)}
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-2.5 w-2.5" />
                 </Button>
               </div>
             </div>
 
-            <CardContent className="space-y-3 px-4 py-3">
+            <CardContent className="space-y-2 px-3 py-2">
               {/* Card body */}
-              <p className="text-foreground/80 line-clamp-2 text-[13.5px] leading-relaxed">
+              <p className="text-foreground/80 line-clamp-2 text-[12px] leading-relaxed">
                 {entry.content || (
                   <span className="text-muted-foreground/40 italic">no content inscribed</span>
                 )}
               </p>
 
               {/* Badges */}
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge label="DEPTH" value={String(entry.depth)} icon={Layers} />
                 <Badge label="PROB" value={entry.probability.toFixed(2)} icon={Flame} accent />
                 <Badge label="KEYS" value={String(entry.keysecondary.length)} icon={Hash} />
@@ -357,12 +332,12 @@ export function WorldInfoPanel() {
       </div>
 
       {filtered?.length === 0 && (
-        <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-sm px-6 py-16')}>
+        <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-sm px-6 py-12')}>
           <CardContent className="flex flex-col items-center justify-center text-center">
-            <div className="border-border bg-muted/40 mb-4 flex h-14 w-14 items-center justify-center rounded-sm border">
-              <span className="display-host text-ember text-2xl">∅</span>
+            <div className="border-border bg-muted/40 mb-3 flex h-12 w-12 items-center justify-center rounded-sm border">
+              <span className="display-host text-ember text-xl">∅</span>
             </div>
-            <h3 className="display-host mb-1 text-xl">Archive empty</h3>
+            <h3 className="display-host mb-1 text-lg">Archive empty</h3>
             <p className="mono-tag text-muted-foreground/55">inscribe your first lore tablet</p>
           </CardContent>
         </Card>
@@ -567,14 +542,14 @@ function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px]',
+        'inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px]',
         accent
           ? 'border-ember/40 bg-ember/10 text-ember'
           : 'border-border bg-muted/40 text-foreground/70',
       )}
     >
       <span className="mono-tag opacity-70">{label}</span>
-      {Icon && <Icon className="h-3 w-3 opacity-70" />}
+      {Icon && <Icon className="h-2.5 w-2.5 opacity-70" />}
       <span className="mono-tag font-bold tabular-nums">{value}</span>
     </span>
   );

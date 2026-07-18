@@ -1,3 +1,5 @@
+import type { SettingsObject } from '@/shared/types/settings';
+
 const BASE = '/api/v1';
 
 export async function apiFetch(path: string, options?: RequestInit): Promise<unknown> {
@@ -11,6 +13,65 @@ export async function apiFetch(path: string, options?: RequestInit): Promise<unk
   }
   const data = await res.json();
   return Array.isArray(data) ? data : (data.results ?? data.data ?? data);
+}
+
+/** GET request reusing the apiFetch BASE + unwrap logic. */
+export async function apiGet<T>(path: string): Promise<T> {
+  return (await apiFetch(path, { method: 'GET' })) as T;
+}
+
+/** POST request with optional JSON body, reusing the apiFetch BASE + unwrap logic. */
+export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  const options: RequestInit = { method: 'POST' };
+  if (body !== undefined) options.body = JSON.stringify(body);
+  return (await apiFetch(path, options)) as T;
+}
+
+/** Read a secret by key; returns null when the secret is absent or not found. */
+export async function readSecret(key: string): Promise<string | null> {
+  try {
+    const value = await apiPost<string | null>('/secrets/read', { key });
+    return value ?? null;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('API error 404') || /not\s*found/i.test(msg)) return null;
+    throw err;
+  }
+}
+
+/** Write (create or update) a secret value with an optional display label. */
+export async function writeSecret(key: string, value: string, label?: string): Promise<void> {
+  await apiPost('/secrets/write', { key, value, label });
+}
+
+/** View all secrets (or a single secret when the backend supports a key filter). */
+export async function viewSecrets(): Promise<unknown> {
+  return await apiPost('/secrets/view', {});
+}
+
+/** Fetch the current settings object. */
+export async function getSettings<T = SettingsObject>(): Promise<T> {
+  return await apiGet<T>('/settings/get');
+}
+
+/** Save a patch of settings. */
+export async function saveSettings(patch: Record<string, unknown>): Promise<unknown> {
+  return await apiPost('/settings/save', patch);
+}
+
+/** List all presets in a category. */
+export async function listPresets(category: string): Promise<unknown[]> {
+  return await apiPost<unknown[]>('/presets/all', { category });
+}
+
+/** Get a single preset by category and name. */
+export async function getPreset(category: string, name: string): Promise<unknown> {
+  return await apiPost('/presets/get', { category, name });
+}
+
+/** Save (create or update) a preset object. */
+export async function savePreset(preset: Record<string, unknown>): Promise<unknown> {
+  return await apiPost('/presets/save', { preset });
 }
 
 export interface StreamChatRequest {

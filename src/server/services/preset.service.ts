@@ -16,6 +16,7 @@ const CATEGORY_DIR_MAP: Record<PresetCategory, string> = {
   context: paths.context,
   sysprompt: paths.sysprompt,
   reasoning: paths.reasoning,
+  generation: paths.generation,
 };
 
 const ALL_CATEGORIES: PresetCategory[] = [
@@ -28,6 +29,7 @@ const ALL_CATEGORIES: PresetCategory[] = [
   'context',
   'sysprompt',
   'reasoning',
+  'generation',
 ];
 
 export class PresetService {

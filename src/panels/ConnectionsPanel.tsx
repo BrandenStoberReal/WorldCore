@@ -20,18 +20,21 @@ import { OnlineStatus } from '@/components/connections/OnlineStatus';
 import { Modal } from '@/components/Modal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ConnectionProfileForm } from '@/components/ConnectionProfileForm';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, saveSettings } from '@/lib/api';
+import { useNavStore } from '@/lib/navStore';
 import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
 
-type ApiType = 'textgenerationwebui' | 'openai' | 'novel' | 'koboldhorde' | 'kobold';
+type ApiType = 'textgenerationwebui' | 'openai' | 'novel' | 'koboldhorde';
 
 export function ConnectionsPanel() {
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [apiType, setApiType] = useState<ApiType>('textgenerationwebui');
   const [autoConnect, setAutoConnect] = useState(false);
-  const [connected, setConnected] = useState(false);
+  const connected = useNavStore((s) => s.connected);
+  const setConnected = useNavStore((s) => s.setConnected);
 
   // Modal state for profile CRUD
   const [createOpen, setCreateOpen] = useState(false);
@@ -99,12 +102,28 @@ export function ConnectionsPanel() {
     },
   });
 
-  const handleConnect = useCallback((_config: Record<string, unknown>) => {
-    // TODO: Send config to backend for actual connection
-    setConnected(true);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }, []);
+  const handleConnect = useCallback(
+    async (config: Record<string, unknown>) => {
+      const source = (typeof config.type === 'string' && config.type) || apiType;
+      const model = (typeof config.model === 'string' && config.model) || '';
+      try {
+        await saveSettings({
+          chat_completion_source: source,
+          chat_completion_model: model,
+          api: apiType,
+          autoConnect,
+        });
+        setConnected(true);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } catch {
+        setConnected(false);
+        setSaveError(true);
+        setTimeout(() => setSaveError(false), 2000);
+      }
+    },
+    [apiType, autoConnect],
+  );
 
   const handleReset = useCallback(() => {
     setConnected(false);
@@ -184,31 +203,36 @@ export function ConnectionsPanel() {
   const selectedProfile = profiles?.find((p) => p.id === selectedProfileId);
 
   return (
-    <div data-panel="connections" className="flex h-full flex-col gap-4">
+    <div data-panel="connections" className="flex h-full flex-col gap-3">
       {/* Header */}
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-2.5">
             <span className="mono-tag text-ember">{`[06] — LINKS`}</span>
-            <span className="bg-ember/40 h-px w-10" />
+            <span className="bg-ember/40 h-px w-8" />
           </div>
-          <h2 className="display-host text-[42px] leading-none tracking-tight">Connections</h2>
-          <p className="text-muted-foreground mt-2 max-w-md text-sm">
+          <h2 className="display-host text-[30px] leading-none tracking-tight">Connections</h2>
+          <p className="text-muted-foreground mt-1.5 max-w-md text-[13px] leading-snug">
             API connections for backends, models, and generation.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {saved && (
-            <span className="text-ember inline-flex items-center gap-2">
-              <Check className="h-4 w-4" />
+            <span className="text-ember inline-flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5" />
               <span className="mono-tag">SAVED</span>
             </span>
           )}
-          <Button variant="outline" onClick={handleReset} className="h-9">
+          {error && (
+            <span className="text-destructive inline-flex items-center gap-2">
+              <span className="mono-tag">ERROR</span>
+            </span>
+          )}
+          <Button variant="outline" onClick={handleReset} className="h-8">
             <RotateCcw className="h-3.5 w-3.5" />
             <span className="mono-tag">RESET</span>
           </Button>
-          <Button onClick={() => handleConnect({})} className="ember-pulse h-9">
+          <Button onClick={() => handleConnect({})} className="ember-pulse h-8">
             <Plug className="h-3.5 w-3.5" />
             <span className="mono-tag font-bold">CONNECT</span>
           </Button>
@@ -244,7 +268,6 @@ export function ConnectionsPanel() {
             <SelectItem value="openai">Chat Completion</SelectItem>
             <SelectItem value="novel">NovelAI</SelectItem>
             <SelectItem value="koboldhorde">AI Horde</SelectItem>
-            <SelectItem value="kobold">KoboldAI Classic</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -261,17 +284,11 @@ export function ConnectionsPanel() {
         {apiType === 'koboldhorde' && (
           <KoboldHordeForm onConnect={handleConnect} connected={connected} />
         )}
-        {apiType === 'kobold' && (
-          <div className="border-border/60 bg-muted/20 space-y-4 rounded-sm border p-4">
-            <p className="text-muted-foreground text-sm">KoboldAI Classic connection</p>
-            {/* TODO: Add KoboldAI Classic form */}
-          </div>
-        )}
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-border/50 flex items-center justify-between border-t pt-3">
-        <label className="flex cursor-pointer items-center gap-2 text-[13px] select-none">
+      <div className="border-border/50 flex items-center justify-between border-t pt-2">
+        <label className="flex cursor-pointer items-center gap-2 text-[12px] select-none">
           <input
             type="checkbox"
             checked={autoConnect}
@@ -281,7 +298,7 @@ export function ConnectionsPanel() {
           Auto-connect to Last Server
         </label>
         {selectedProfile && (
-          <span className="mono-tag text-muted-foreground/50 max-w-[200px] truncate text-[11px]">
+          <span className="mono-tag text-muted-foreground/50 max-w-[200px] truncate text-[10px]">
             {selectedProfile.api} / {selectedProfile.model || 'no model'}
           </span>
         )}

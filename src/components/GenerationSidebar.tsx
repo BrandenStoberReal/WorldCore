@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Save, FolderOpen, RotateCcw, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGenerationStore } from '@/lib/stores';
@@ -10,9 +10,61 @@ interface GenerationSidebarProps {
   mode?: 'sidebar' | 'drawer';
 }
 
+type PresetStatus = 'idle' | 'saving' | 'loading' | 'ok' | 'err';
+
 export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebarProps) {
   const store = useGenerationStore();
   const { mode } = store;
+  const [presetStatus, setPresetStatus] = useState<PresetStatus>('idle');
+  const [presetMessage, setPresetMessage] = useState<string>('');
+
+  const flashStatus = (status: PresetStatus, message: string) => {
+    setPresetStatus(status);
+    setPresetMessage(message);
+    window.setTimeout(() => {
+      setPresetStatus('idle');
+      setPresetMessage('');
+    }, 2000);
+  };
+
+  const handleSavePreset = useCallback(async () => {
+    const name = window.prompt('Save generation preset as:');
+    if (!name) return;
+    setPresetStatus('saving');
+    try {
+      await store.savePresetToBackend(name);
+      flashStatus('ok', `Saved "${name.trim()}"`);
+    } catch (err) {
+      flashStatus('err', err instanceof Error ? err.message : String(err));
+    }
+  }, [store]);
+
+  const handleLoadPreset = useCallback(async () => {
+    setPresetStatus('loading');
+    let names: string[] = [];
+    try {
+      names = await store.listAvailablePresets();
+    } catch (err) {
+      flashStatus('err', err instanceof Error ? err.message : String(err));
+      return;
+    }
+    const hint =
+      names.length > 0
+        ? `Available presets:\n${names.join('\n')}\n\nEnter a name to load:`
+        : 'Enter a preset name to load:';
+    const name = window.prompt(hint);
+    if (!name) {
+      setPresetStatus('idle');
+      return;
+    }
+    setPresetStatus('loading');
+    try {
+      await store.loadPresetFromBackend(name);
+      flashStatus('ok', `Loaded "${name.trim()}"`);
+    } catch (err) {
+      flashStatus('err', err instanceof Error ? err.message : String(err));
+    }
+  }, [store]);
 
   const update = useCallback(
     <K extends keyof ReturnType<typeof useGenerationStore.getState>>(
@@ -27,13 +79,39 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
   return (
     <aside className="generation-sidebar" role="complementary" aria-label="Generation settings">
       <div className="flex h-full flex-col">
-        <div className="border-border/40 border-b px-4 pt-4 pb-3">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="text-ember h-3.5 w-3.5" strokeWidth={2} />
-              <span className="display-host text-sm">Generation</span>
+        <div className="border-border/40 border-b px-3 pt-3 pb-2.5">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Zap className="text-ember h-3 w-3" strokeWidth={2} />
+              <span className="display-host text-[13px] leading-none">Generation</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={handleSavePreset}
+                disabled={presetStatus === 'saving' || presetStatus === 'loading'}
+                className={cn(
+                  'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors',
+                  'disabled:cursor-not-allowed disabled:opacity-40',
+                )}
+                title="Save preset"
+                aria-label="Save preset"
+              >
+                <Save className="h-2.5 w-2.5" strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                onClick={handleLoadPreset}
+                disabled={presetStatus === 'saving' || presetStatus === 'loading'}
+                className={cn(
+                  'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors',
+                  'disabled:cursor-not-allowed disabled:opacity-40',
+                )}
+                title="Load preset"
+                aria-label="Load preset"
+              >
+                <FolderOpen className="h-2.5 w-2.5" strokeWidth={2} />
+              </button>
               <button
                 type="button"
                 onClick={() => store.resetDefaults()}
@@ -41,10 +119,26 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                 title="Reset to defaults"
                 aria-label="Reset to defaults"
               >
-                <RotateCcw className="h-3 w-3" strokeWidth={2} />
+                <RotateCcw className="h-2.5 w-2.5" strokeWidth={2} />
               </button>
             </div>
           </div>
+          {presetMessage && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={cn(
+                'mb-1.5 rounded-sm px-2 py-0.5 text-[10px] leading-tight',
+                presetStatus === 'ok' && 'bg-ember/10 text-ember',
+                presetStatus === 'err' && 'bg-destructive/10 text-destructive',
+                (presetStatus === 'saving' || presetStatus === 'loading') && 'text-foreground/50',
+              )}
+            >
+              {presetStatus === 'saving' && 'Saving…'}
+              {presetStatus === 'loading' && 'Loading…'}
+              {(presetStatus === 'ok' || presetStatus === 'err') && presetMessage}
+            </div>
+          )}
           <GenerationModeToggle />
         </div>
 
@@ -204,7 +298,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   onChange={(v) => update('dry_allowed_length', v)}
                   description="Allowed repeat length"
                 />
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="mono-tag text-foreground/60">Mirostat Mode</label>
                   <div className="flex gap-1">
                     {[0, 1, 2].map((m) => (
@@ -213,7 +307,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                         type="button"
                         onClick={() => update('mirostat_mode', m)}
                         className={cn(
-                          'flex-1 rounded-sm border py-1 font-mono text-[11px] transition-all',
+                          'flex-1 rounded-sm border py-0.5 font-mono text-[10px] transition-all',
                           store.mirostat_mode === m
                             ? 'bg-ember/15 text-ember border-ember/25'
                             : 'border-border text-foreground/40 hover:text-foreground/60',
@@ -223,7 +317,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                       </button>
                     ))}
                   </div>
-                  <p className="text-foreground/30 text-[10px]">0 = off, 1 = v1, 2 = v2</p>
+                  <p className="text-foreground/30 text-[9px]">0 = off, 1 = v1, 2 = v2</p>
                 </div>
                 {store.mirostat_mode !== 0 && (
                   <>
@@ -277,7 +371,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
               </>
             )}
             {mode === 'chat' && (
-              <p className="text-foreground/35 py-2 text-[11px]">
+              <p className="text-foreground/35 py-1.5 text-[10px]">
                 Advanced settings are text-completion only.
               </p>
             )}
@@ -304,7 +398,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                 description="Minimum response length"
               />
             )}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <label className="mono-tag text-foreground/60">Stop Sequences</label>
               <input
                 type="text"
@@ -320,30 +414,30 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                 }
                 placeholder="comma separated"
                 className={cn(
-                  'border-border bg-background/60 h-7 w-full rounded-sm border px-2',
-                  'text-foreground/80 placeholder:text-foreground/25 text-xs outline-none',
+                  'border-border bg-background/60 h-6 w-full rounded-sm border px-2',
+                  'text-foreground/80 placeholder:text-foreground/25 text-[11px] outline-none',
                   'focus:border-ember/50',
                 )}
                 aria-label="Stop sequences"
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <label className="mono-tag text-foreground/60">Seed</label>
               <input
                 type="number"
                 value={store.seed}
                 onChange={(e) => update('seed', parseInt(e.target.value, 10) || -1)}
                 className={cn(
-                  'border-border bg-background/60 h-7 w-full rounded-sm border px-2',
-                  'text-foreground/80 text-xs outline-none',
+                  'border-border bg-background/60 h-6 w-full rounded-sm border px-2',
+                  'text-foreground/80 text-[11px] outline-none',
                   'focus:border-ember/50',
                   '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
                 )}
                 aria-label="Seed value"
               />
-              <p className="text-foreground/30 text-[10px]">-1 for random</p>
+              <p className="text-foreground/30 text-[9px]">-1 for random</p>
             </div>
-            <div className="flex items-center justify-between py-1">
+            <div className="flex items-center justify-between py-0.5">
               <label className="mono-tag text-foreground/60">Streaming</label>
               <button
                 type="button"
@@ -351,14 +445,14 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                 aria-checked={store.streaming}
                 onClick={() => update('streaming', !store.streaming)}
                 className={cn(
-                  'relative h-5 w-9 rounded-full transition-colors duration-200',
+                  'relative h-4 w-7 rounded-full transition-colors duration-200',
                   store.streaming ? 'bg-ember/60' : 'bg-border',
                 )}
               >
                 <span
                   className={cn(
-                    'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200',
-                    store.streaming ? 'translate-x-4.5' : 'translate-x-0.5',
+                    'absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                    store.streaming ? 'translate-x-3.5' : 'translate-x-0.5',
                   )}
                 />
               </button>

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,10 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Save, RotateCcw, Check } from 'lucide-react';
+import { Loader2, RotateCcw, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { InlineSection } from '@/components/drawers/InlineSection';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, apiGet, apiPost } from '@/lib/api';
+import { useDebouncedAutoSave } from '@/hooks';
 
 interface SyspromptPreset {
   name: string;
@@ -199,6 +200,10 @@ const defaultState: TextOptionsState = {
   showReplyPrefix: false,
 };
 
+function mergeDefaults(partial?: Partial<TextOptionsState>): TextOptionsState {
+  return { ...defaultState, ...partial };
+}
+
 const CONTEXT_CHECKBOXS = [
   ['forceName2', "Always add character's name to prompt"],
   ['singleLine', 'Generate only one line per request'],
@@ -220,25 +225,34 @@ type ContextCheckboxKey = (typeof CONTEXT_CHECKBOXS)[number][0];
 type ReasoningCheckboxKey = (typeof REASONING_CHECKBOXES)[number][0];
 
 export function TextOptionsPanel() {
-  const queryClient = useQueryClient();
-  const [saved, setSaved] = useState(false);
-  const [form, setForm] = useState<TextOptionsState>(defaultState);
-
   const { data: settings, isLoading } = useQuery({
     queryKey: ['/api/v1/settings/get'],
     queryFn: async () => {
-      const res = await fetch('/api/v1/settings/get');
-      if (!res.ok) throw new Error('Failed to fetch settings');
-      const data = await res.json();
-      return Array.isArray(data) ? data : (data.results ?? data.data ?? data);
+      return await apiGet<{ textOptions?: Partial<TextOptionsState> } & Record<string, unknown>>(
+        '/settings/get',
+      );
     },
   });
 
-  useEffect(() => {
-    if (settings?.textOptions) {
-      setForm({ ...defaultState, ...settings.textOptions });
-    }
-  }, [settings]);
+  const autoSave = useDebouncedAutoSave<TextOptionsState>({
+    value: mergeDefaults(settings?.textOptions),
+    save: async (data) => {
+      await apiPost('/settings/save', { textOptions: data });
+    },
+    delayMs: 800,
+    equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+    savedDisplayMs: 2500,
+  });
+
+  const form = autoSave.local;
+  const formRef = useRef(form);
+  formRef.current = form;
+  const setForm = useCallback(
+    (action: TextOptionsState | ((prev: TextOptionsState) => TextOptionsState)) => {
+      autoSave.setLocal(typeof action === 'function' ? action(formRef.current) : action);
+    },
+    [autoSave.setLocal],
+  );
 
   const { data: syspromptPresets } = useQuery<SyspromptPreset[]>({
     queryKey: ['/api/v1/presets/all', 'sysprompt'],
@@ -276,25 +290,7 @@ export function TextOptionsPanel() {
       }) as Promise<ReasoningTemplate[]>,
   });
 
-  const saveMutation = useMutation({
-    mutationFn: async (data: TextOptionsState) => {
-      const res = await fetch('/api/v1/settings/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ textOptions: data }),
-      });
-      if (!res.ok) throw new Error('Failed to save text options');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/settings/get'] });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    },
-  });
-
-  const handleSave = () => saveMutation.mutate(form);
-  const handleReset = () => setForm({ ...defaultState });
+  const handleReset = () => setForm(defaultState);
 
   const loadPreset = (category: string, presetName: string) => {
     const presets =
@@ -384,51 +380,50 @@ export function TextOptionsPanel() {
   }
 
   return (
-    <div data-panel="textoptions" className="flex h-full flex-col gap-3">
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div data-panel="textoptions" className="flex h-full flex-col gap-2.5">
+      <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-2.5">
             <span className="mono-tag text-ember">{`[05] — TEXT`}</span>
-            <span className="bg-ember/40 h-px w-10" />
+            <span className="bg-ember/40 h-px w-8" />
           </div>
-          <h2 className="display-host text-[42px] leading-none tracking-tight">Text Options</h2>
-          <p className="text-muted-foreground mt-2 max-w-md text-sm">
+          <h2 className="display-host text-[30px] leading-none tracking-tight">Text Options</h2>
+          <p className="text-muted-foreground mt-1.5 max-w-md text-[13px] leading-snug">
             System prompts, instruct templates, context formatting, and generation controls.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {saved && (
-            <span className="text-ember inline-flex items-center gap-2">
-              <Check className="h-4 w-4" />
-              <span className="mono-tag">SAVED</span>
+        <div className="flex items-center gap-2">
+          {autoSave.status !== 'idle' && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5',
+                autoSave.status === 'error' ? 'text-destructive' : 'text-ember',
+              )}
+            >
+              {autoSave.status === 'saving' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {autoSave.status === 'saved' && <Check className="h-3.5 w-3.5" />}
+              <span className="mono-tag">
+                {autoSave.status === 'saving' ? 'SAVING...' : autoSave.status.toUpperCase()}
+              </span>
             </span>
           )}
-          <Button variant="outline" onClick={handleReset} className="h-9">
+          <Button variant="outline" onClick={handleReset} className="h-8">
             <RotateCcw className="h-3.5 w-3.5" />
             <span className="mono-tag">RESET</span>
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            className="ember-pulse h-9"
-          >
-            {saveMutation.isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Save className="h-3.5 w-3.5" />
-            )}
-            <span className="mono-tag font-bold">
-              {saveMutation.isPending ? 'SAVING...' : 'SAVE'}
-            </span>
           </Button>
         </div>
       </header>
 
       {/* 3-column responsive grid */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-3">
         {/* ─── Column 1: Context ─── */}
         <div className="space-y-3">
-          <InlineSection panelId="textoptions" sectionId="context" title="Context Template">
+          <InlineSection
+            panelId="textoptions"
+            sectionId="context"
+            title="Context Template"
+            defaultOpen
+          >
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-[13px] font-medium">Preset</Label>
@@ -585,7 +580,12 @@ export function TextOptionsPanel() {
 
         {/* ─── Column 2: Instruct ─── */}
         <div className="space-y-3">
-          <InlineSection panelId="textoptions" sectionId="instruct" title="Instruct Template">
+          <InlineSection
+            panelId="textoptions"
+            sectionId="instruct"
+            title="Instruct Template"
+            defaultOpen
+          >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-[13px] font-medium">Enable Instruct Mode</Label>

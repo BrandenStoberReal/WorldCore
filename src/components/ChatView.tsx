@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
 import { useChatStore, useGenerationStore } from '@/lib/stores';
-import { apiFetch, streamChat } from '@/lib/api';
+import { apiGet, apiPost, streamChat } from '@/lib/api';
 import { cn, frostedGlass } from '@/lib/utils';
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import type { Character } from '@/shared/types/character';
@@ -48,24 +48,14 @@ export function ChatView({ characterId }: ChatViewProps) {
   const { data: character, isLoading: charLoading } = useQuery<CharacterWithId>({
     queryKey: ['/api/v1/characters/get', characterId],
     queryFn: async () => {
-      const res = await fetch('/api/v1/characters/get', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: characterId }),
-      });
-      if (!res.ok) throw new Error('Failed to fetch character');
-      const data = await res.json();
-      return (Array.isArray(data) ? data : (data.results ?? data.data ?? data)) as CharacterWithId;
+      return await apiPost<CharacterWithId>('/characters/get', { id: characterId });
     },
   });
 
   const { data: settings } = useQuery<SettingsData>({
     queryKey: ['/api/v1/settings/get'],
     queryFn: async () => {
-      const res = await fetch('/api/v1/settings/get');
-      if (!res.ok) throw new Error('Failed to fetch settings');
-      const data = await res.json();
-      return (Array.isArray(data) ? data : (data.results ?? data.data ?? data)) as SettingsData;
+      return await apiGet<SettingsData>('/settings/get');
     },
   });
 
@@ -73,17 +63,11 @@ export function ChatView({ characterId }: ChatViewProps) {
     queryKey: ['/api/v1/chats/get', activeChatId],
     queryFn: async () => {
       if (!activeChatId) return null;
-      const res = await fetch('/api/v1/chats/get', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileId: activeChatId }),
-      });
-      if (!res.ok) throw new Error('Failed to fetch chat');
-      return res.json() as Promise<{
+      return await apiPost<{
         ok: boolean;
         messages: ChatMessageType[];
         metadata: Record<string, unknown>;
-      }>;
+      }>('/chats/get', { fileId: activeChatId });
     },
     enabled: !!activeChatId,
   });
@@ -101,14 +85,11 @@ export function ChatView({ characterId }: ChatViewProps) {
   const createChatMutation = useMutation({
     mutationFn: async (charName: string) => {
       const userName = (settings?.chat_name_your_name as string) || 'User';
-      const res = await fetch('/api/v1/chats/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ characterName: charName, userName }),
+      const result = await apiPost<{ ok: boolean; fileId: string }>('/chats/save', {
+        characterName: charName,
+        userName,
       });
-      if (!res.ok) throw new Error('Failed to create chat');
-      const data = await res.json();
-      return data.fileId as string;
+      return result.fileId as string;
     },
     onSuccess: (fileId) => {
       setActiveChat(fileId);
@@ -117,40 +98,33 @@ export function ChatView({ characterId }: ChatViewProps) {
 
   const appendMessageMutation = useMutation({
     mutationFn: async ({ fileId, message }: { fileId: string; message: ChatMessageType }) => {
-      const res = await fetch('/api/v1/chats/message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileId, action: 'append', message }),
+      return await apiPost<{ ok: boolean }>('/chats/message', {
+        fileId,
+        action: 'append',
+        message,
       });
-      if (!res.ok) throw new Error('Failed to save message');
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/chats/get'] });
     },
   });
 
-  const findExistingChat = useCallback(() => {
+  const findExistingChat = useCallback(async () => {
     if (!character) return;
     const charName = character.name;
-    fetch('/api/v1/chats/listByCharacter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ characterName: charName }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        const chats = Array.isArray(data) ? data : (data.results ?? data.data ?? data);
-        if (Array.isArray(chats) && chats.length > 0) {
-          const chat = chats[0] as { file_id: string };
-          setActiveChat(chat.file_id);
-        } else {
-          createChatMutation.mutate(charName);
-        }
-      })
-      .catch(() => {
-        createChatMutation.mutate(charName);
+    try {
+      const chats = await apiPost<Array<{ file_id: string }>>('/chats/listByCharacter', {
+        characterName: charName,
       });
+      if (Array.isArray(chats) && chats.length > 0) {
+        const chat = chats[0] as { file_id: string };
+        setActiveChat(chat.file_id);
+      } else {
+        createChatMutation.mutate(charName);
+      }
+    } catch {
+      createChatMutation.mutate(charName);
+    }
   }, [character, setActiveChat, createChatMutation]);
 
   useEffect(() => {
@@ -371,18 +345,15 @@ export function ChatView({ characterId }: ChatViewProps) {
     <div className="flex h-full flex-col">
       {/* Forge session header */}
       <header
-        className={cn(
-          frostedGlass,
-          'z-10 flex h-[68px] shrink-0 items-center justify-between px-5',
-        )}
+        className={cn(frostedGlass, 'z-10 flex h-14 shrink-0 items-center justify-between px-4')}
       >
-        <div className="flex min-w-0 items-center gap-4">
+        <div className="flex min-w-0 items-center gap-3">
           <div className="relative shrink-0">
-            <div className="border-border bg-muted/40 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border">
+            <div className="border-border bg-muted/40 flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border">
               <img
-                src={`/api/v1/characters/avatar?id=${character.id}`}
+                src={`/api/v1/characters/thumbnail?id=${character.id}`}
                 alt={character.name}
-                className="h-10 w-10 rounded-full object-cover"
+                className="h-8 w-8 rounded-full object-cover"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
@@ -390,24 +361,24 @@ export function ChatView({ characterId }: ChatViewProps) {
             </div>
             <span
               aria-hidden
-              className="border-ember/40 pointer-events-none absolute -inset-[2px] rounded-full border"
+              className="border-ember/40 pointer-events-none absolute -inset-[1.5px] rounded-full border"
             />
           </div>
           <div className="min-w-0">
-            <h3 className="display-host truncate text-[22px] leading-none tracking-tight">
+            <h3 className="display-host truncate text-[18px] leading-none tracking-tight">
               {character.name}
             </h3>
-            <div className="mt-1.5 flex items-center gap-2">
+            <div className="mt-1 flex items-center gap-1.5">
               <span className="mono-tag text-ember/80">FORGE SESSION</span>
               <span className="mono-tag text-muted-foreground/45">{`{ ${sessionLabel} }`}</span>
-              <span className="bg-border h-px w-4" />
+              <span className="bg-border h-px w-3" />
               <span className="mono-tag text-muted-foreground/55 tabular-nums">
                 {String(msgCount).padStart(2, '0')} msgs
               </span>
               {isGenerating && (
                 <>
-                  <span className="bg-border h-px w-4" />
-                  <span className="inline-flex items-center gap-1.5">
+                  <span className="bg-border h-px w-3" />
+                  <span className="inline-flex items-center gap-1">
                     <span className="dot-hot" aria-hidden>
                       <span />
                       <span />
@@ -426,9 +397,9 @@ export function ChatView({ characterId }: ChatViewProps) {
           size="sm"
           onClick={handleNewChat}
           title="Start a new conversation"
-          className="h-8"
+          className="h-7"
         >
-          <MessageSquarePlus className="h-3.5 w-3.5" />
+          <MessageSquarePlus className="h-3 w-3" />
           <span className="mono-tag">new session</span>
         </Button>
       </header>
@@ -448,7 +419,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         {msgCount === 0 ? (
           <div className="relative flex h-full items-center justify-center px-8">
             <div className="max-w-md text-center">
-              <div className="relative mx-auto mb-5 h-16 w-16">
+              <div className="relative mx-auto mb-4 h-14 w-14">
                 <span
                   className="border-ember/30 absolute inset-0 rounded-full border"
                   style={{
@@ -458,23 +429,23 @@ export function ChatView({ characterId }: ChatViewProps) {
                 />
                 <div className="border-border/60 ember-pulse absolute inset-1.5 flex items-center justify-center rounded-full border">
                   <span
-                    className="display-host text-ember text-[32px] leading-none italic"
+                    className="display-host text-ember inline-block -translate-x-[2px] text-[26px] leading-[0.8] italic"
                     aria-hidden
                   >
                     ⌑
                   </span>
                 </div>
               </div>
-              <h4 className="display-host mb-1 text-[22px] tracking-tight">
+              <h4 className="display-host mb-1 text-[20px] tracking-tight">
                 Forge {character.name}
               </h4>
-              <p className="mono-tag text-muted-foreground/55 mb-4">
+              <p className="mono-tag text-muted-foreground/55 mb-3">
                 anvil ready · submit first line
               </p>
               {character.first_mes && (
-                <div className="border-border bg-muted/30 mt-4 rounded-sm border px-4 py-3 text-left">
-                  <div className="mono-tag text-ember/70 mb-1.5">opening_line</div>
-                  <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap">
+                <div className="border-border bg-muted/30 mt-3 rounded-sm border px-3 py-2.5 text-left">
+                  <div className="mono-tag text-ember/70 mb-1">opening_line</div>
+                  <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap">
                     {character.first_mes}
                   </p>
                 </div>
@@ -482,26 +453,26 @@ export function ChatView({ characterId }: ChatViewProps) {
             </div>
           </div>
         ) : (
-          <div className="relative mx-auto max-w-3xl space-y-5 px-5 py-5 md:px-8">
+          <div className="relative mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6">
             {displayMessages.map((msg, i) => (
               <ChatMessage
                 key={`${i}-${msg.send_date ?? i}`}
                 msg={msg}
                 index={i}
-                characterAvatar={`/api/v1/characters/avatar?id=${character.id}`}
+                characterAvatar={`/api/v1/characters/thumbnail?id=${character.id}`}
               />
             ))}
             {isGenerating && !streamingContent && (
-              <div className="flex justify-start gap-3">
-                <div className="border-border bg-muted/40 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border">
+              <div className="flex justify-start gap-2.5">
+                <div className="border-border bg-muted/40 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border">
                   <span className="dot-hot" aria-hidden>
                     <span />
                     <span />
                     <span />
                   </span>
                 </div>
-                <div className="bg-muted/30 border-border flex items-center gap-2 rounded-sm border px-3 py-2">
-                  <Loader2 className="text-ember h-3.5 w-3.5 animate-spin" />
+                <div className="bg-muted/30 border-border flex items-center gap-2 rounded-sm border px-2.5 py-1.5">
+                  <Loader2 className="text-ember h-3 w-3 animate-spin" />
                   <span className="mono-tag text-muted-foreground/65">stoking the engine</span>
                 </div>
               </div>

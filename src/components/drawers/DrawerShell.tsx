@@ -3,11 +3,14 @@ import { DrawerSlot } from './DrawerSlot';
 import { NavRail } from './NavRail';
 import { CenterPageHost } from './CenterPageHost';
 import { useNavStore } from '@/lib/navStore';
-import { CharactersPanel } from '@/panels/CharactersPanel';
+import { useChatStore } from '@/lib/stores';
+import { CharacterSelector } from '@/components/CharacterSelector';
+import { DragDropOverlay } from '@/components/DragDropOverlay';
 import { WorldInfoPanel } from '@/panels/WorldInfoPanel';
 import { ExtensionsPanel } from '@/panels/ExtensionsPanel';
 import { ConnectionsPanel } from '@/panels/ConnectionsPanel';
 import { TextOptionsPanel } from '@/panels/TextOptionsPanel';
+import { SettingsPanel } from '@/panels/SettingsPanel';
 import { GenerationPanel } from '@/panels/GenerationPanel';
 
 const TOP_DRAWER_PANELS: Record<string, React.ComponentType> = {
@@ -15,7 +18,14 @@ const TOP_DRAWER_PANELS: Record<string, React.ComponentType> = {
   extensions: ExtensionsPanel,
   connections: ConnectionsPanel,
   textoptions: TextOptionsPanel,
+  settings: SettingsPanel,
 };
+
+function CharactersSidebar() {
+  const activeCharacterId = useChatStore((s) => s.activeCharacterId);
+  const setActiveCharacter = useChatStore((s) => s.setActiveCharacter);
+  return <CharacterSelector selectedId={activeCharacterId} onSelect={setActiveCharacter} />;
+}
 
 export function DrawerShell() {
   const topDrawer = useNavStore((s) => s.topDrawer);
@@ -30,6 +40,7 @@ export function DrawerShell() {
 
   return (
     <div data-drawer-shell className="bg-background flex h-screen flex-col overflow-hidden">
+      <DragDropOverlay />
       <NavRail />
 
       <DrawerSlot direction="top" open={topDrawer !== null}>
@@ -41,7 +52,7 @@ export function DrawerShell() {
         <CenterPageHost />
 
         <DrawerSlot direction="characters" open={charactersOpen}>
-          <CharactersPanel />
+          <CharactersSidebar />
         </DrawerSlot>
       </div>
     </div>

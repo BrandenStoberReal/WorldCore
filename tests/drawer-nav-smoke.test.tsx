@@ -18,7 +18,8 @@ const testQueryClient = new QueryClient({
 /** Reset the store to its initial state before every test. */
 function resetStore() {
   useNavStore.setState({
-    sectionId: 'welcome',
+    sectionId: 'chats',
+    prevSectionId: null,
     topDrawer: null,
     charactersOpen: false,
   });
@@ -45,8 +46,8 @@ function railHtml(): string {
 describe('Drawer navigation smoke — default state', () => {
   beforeEach(resetStore);
 
-  it("sectionId defaults to 'welcome'", () => {
-    expect(useNavStore.getState().sectionId).toBe('welcome');
+  it("sectionId defaults to 'chats'", () => {
+    expect(useNavStore.getState().sectionId).toBe('chats');
   });
 
   it('no top drawer is open', () => {
@@ -68,14 +69,13 @@ describe('Drawer navigation smoke — default state', () => {
     expect(html).toContain('data-topbar');
   });
 
-  it('NavRail renders all 6 section icons with correct data attributes', () => {
+  it('NavRail renders all 5 section icons with correct data attributes', () => {
     const html = railHtml();
-    expect(html).toContain('data-drawer-icon="welcome"');
     expect(html).toContain('data-drawer-icon="characters"');
     expect(html).toContain('data-drawer-icon="worldinfo"');
     expect(html).toContain('data-drawer-icon="extensions"');
     expect(html).toContain('data-drawer-icon="connections"');
-    expect(html).toContain('data-drawer-icon="settings"');
+    expect(html).toContain('data-drawer-icon="textoptions"');
   });
 
   it('DrawerShell has top drawer and characters sidebar slots', () => {
@@ -114,13 +114,13 @@ describe('Drawer navigation smoke — DrawerSlot open/close rendering', () => {
     expect(html).not.toContain('drawer-open');
   });
 
-  it('characters sidebar applies drawer-open class when open={true}', () => {
+  it('characters sidebar does not apply drawer-closed class when open={true}', () => {
     const html = renderToStaticMarkup(
       <DrawerSlot direction="characters" open={true}>
         <span>characters-panel</span>
       </DrawerSlot>,
     );
-    expect(html).toContain('drawer-open');
+    expect(html).not.toContain('drawer-closed');
     expect(html).toContain('characters-panel');
   });
 });
@@ -137,9 +137,9 @@ describe('Drawer navigation smoke — Characters sidebar toggle', () => {
     expect(useNavStore.getState().charactersOpen).toBe(true);
   });
 
-  it("sectionId remains 'welcome' when only characters sidebar opens", () => {
+  it("sectionId remains 'chats' when only characters sidebar opens", () => {
     useNavStore.getState().toggleCharacters();
-    expect(useNavStore.getState().sectionId).toBe('welcome');
+    expect(useNavStore.getState().sectionId).toBe('chats');
   });
 
   it('topDrawer is unaffected by opening characters sidebar', () => {
@@ -169,45 +169,45 @@ describe('Drawer navigation smoke — mutual exclusivity for top drawers', () =>
     expect(useNavStore.getState().topDrawer).toBe('connections');
   });
 
-  it('opening Settings replaces Connections', () => {
+  it('opening TextOptions replaces Connections', () => {
     useNavStore.getState().openTopDrawer('connections');
-    useNavStore.getState().openTopDrawer('settings');
-    expect(useNavStore.getState().topDrawer).toBe('settings');
+    useNavStore.getState().openTopDrawer('textoptions');
+    expect(useNavStore.getState().topDrawer).toBe('textoptions');
   });
 
   it('only one top drawer can be open at a time (rapid succession)', () => {
     useNavStore.getState().openTopDrawer('worldinfo');
     useNavStore.getState().openTopDrawer('extensions');
     useNavStore.getState().openTopDrawer('connections');
-    useNavStore.getState().openTopDrawer('settings');
-    expect(useNavStore.getState().topDrawer).toBe('settings');
+    useNavStore.getState().openTopDrawer('textoptions');
+    expect(useNavStore.getState().topDrawer).toBe('textoptions');
     // Verify only one value (not an array or merged state)
     expect(typeof useNavStore.getState().topDrawer).toBe('string');
   });
 });
 
 /* ------------------------------------------------------------------ */
-/*  5. Settings opens top drawer (not right drawer anymore)            */
+/*  5. TextOptions opens top drawer (not right drawer anymore)        */
 /* ------------------------------------------------------------------ */
 
-describe('Drawer navigation smoke — Settings top drawer', () => {
+describe('Drawer navigation smoke — TextOptions top drawer', () => {
   beforeEach(resetStore);
 
-  it("openTopDrawer('settings') sets topDrawer to 'settings'", () => {
-    useNavStore.getState().openTopDrawer('settings');
-    expect(useNavStore.getState().topDrawer).toBe('settings');
+  it("openTopDrawer('textoptions') sets topDrawer to 'textoptions'", () => {
+    useNavStore.getState().openTopDrawer('textoptions');
+    expect(useNavStore.getState().topDrawer).toBe('textoptions');
   });
 
   it('top drawer and characters sidebar are independent', () => {
     useNavStore.getState().toggleCharacters();
-    useNavStore.getState().openTopDrawer('settings');
+    useNavStore.getState().openTopDrawer('textoptions');
     expect(useNavStore.getState().charactersOpen).toBe(true);
-    expect(useNavStore.getState().topDrawer).toBe('settings');
+    expect(useNavStore.getState().topDrawer).toBe('textoptions');
   });
 
   it('closing top drawer does not affect characters sidebar', () => {
     useNavStore.getState().toggleCharacters();
-    useNavStore.getState().openTopDrawer('settings');
+    useNavStore.getState().openTopDrawer('textoptions');
     useNavStore.getState().closeTopDrawer();
     expect(useNavStore.getState().topDrawer).toBeNull();
     expect(useNavStore.getState().charactersOpen).toBe(true);
@@ -215,10 +215,10 @@ describe('Drawer navigation smoke — Settings top drawer', () => {
 
   it('closing characters sidebar does not affect top drawer', () => {
     useNavStore.getState().toggleCharacters();
-    useNavStore.getState().openTopDrawer('settings');
+    useNavStore.getState().openTopDrawer('textoptions');
     useNavStore.getState().toggleCharacters();
     expect(useNavStore.getState().charactersOpen).toBe(false);
-    expect(useNavStore.getState().topDrawer).toBe('settings');
+    expect(useNavStore.getState().topDrawer).toBe('textoptions');
   });
 });
 
@@ -282,11 +282,11 @@ describe('Drawer navigation smoke — toggle close', () => {
 describe('Drawer navigation smoke — center page host sections', () => {
   beforeEach(resetStore);
 
-  it("default section is 'welcome'", () => {
-    expect(useNavStore.getState().sectionId).toBe('welcome');
+  it("default section is 'chats'", () => {
+    expect(useNavStore.getState().sectionId).toBe('chats');
   });
 
-  const sections = ['welcome', 'characters', 'chats'] as const;
+  const sections = ['chats', 'characters', 'worldinfo'] as const;
 
   for (const section of sections) {
     it(`openSection('${section}') sets sectionId to '${section}'`, () => {
@@ -311,11 +311,11 @@ describe('Drawer navigation smoke — center page host sections', () => {
 describe('Drawer navigation smoke — full navigation round-trip', () => {
   beforeEach(resetStore);
 
-  it('can navigate through all sections and return to welcome', () => {
+  it('can navigate through all sections and return to chats', () => {
     const store = useNavStore.getState();
 
-    // Start at welcome
-    expect(store.sectionId).toBe('welcome');
+    // Start at chats
+    expect(store.sectionId).toBe('chats');
 
     // Visit center sections
     store.openSection('characters');
@@ -334,16 +334,16 @@ describe('Drawer navigation smoke — full navigation round-trip', () => {
     store.openTopDrawer('connections');
     expect(useNavStore.getState().topDrawer).toBe('connections');
 
-    store.openTopDrawer('settings');
-    expect(useNavStore.getState().topDrawer).toBe('settings');
+    store.openTopDrawer('textoptions');
+    expect(useNavStore.getState().topDrawer).toBe('textoptions');
 
     // Toggle characters sidebar
     store.toggleCharacters();
     expect(useNavStore.getState().charactersOpen).toBe(true);
 
-    // Return to welcome
-    store.openSection('welcome');
-    expect(useNavStore.getState().sectionId).toBe('welcome');
+    // Return to chats
+    store.openSection('chats');
+    expect(useNavStore.getState().sectionId).toBe('chats');
 
     // Close all
     store.closeTopDrawer();
@@ -353,13 +353,13 @@ describe('Drawer navigation smoke — full navigation round-trip', () => {
   });
 
   it('top drawer can cycle through all 4 top-section icons', () => {
-    const topSections = ['worldinfo', 'extensions', 'connections', 'settings'] as const;
+    const topSections = ['worldinfo', 'extensions', 'connections', 'textoptions'] as const;
     for (const section of topSections) {
       useNavStore.getState().openTopDrawer(section);
       expect(useNavStore.getState().topDrawer).toBe(section);
     }
-    // Last one should still be settings
-    expect(useNavStore.getState().topDrawer).toBe('settings');
+    // Last one should still be textoptions
+    expect(useNavStore.getState().topDrawer).toBe('textoptions');
   });
 });
 

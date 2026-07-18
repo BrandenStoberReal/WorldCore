@@ -9,6 +9,7 @@ import {
   ContextTemplateSchema,
   SyspromptSchema,
   ReasoningTemplateSchema,
+  GenerationPresetSchema,
   PresetSchema,
 } from '@/shared/schemas/preset';
 
@@ -21,4 +22,5 @@ export type InstructTemplate = z.infer<typeof InstructTemplateSchema>;
 export type ContextTemplate = z.infer<typeof ContextTemplateSchema>;
 export type Sysprompt = z.infer<typeof SyspromptSchema>;
 export type ReasoningTemplate = z.infer<typeof ReasoningTemplateSchema>;
+export type GenerationPreset = z.infer<typeof GenerationPresetSchema>;
 export type Preset = z.infer<typeof PresetSchema>;

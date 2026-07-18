@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ExternalLink, Key, Plug, RefreshCw } from 'lucide-react';
+import { ExternalLink, Key, Plug, RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
+import { useManageApiKey } from '@/lib/useManageApiKey';
 import { OnlineStatus } from './OnlineStatus';
 
 // ---------------------------------------------------------------------------
@@ -63,6 +64,14 @@ export function KoboldHordeForm({ onConnect, connected = false }: KoboldHordeFor
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelError, setModelError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [showKeyManager, setShowKeyManager] = useState(false);
+  const {
+    apiKey: managedKey,
+    setApiKey: setManagedKey,
+    save,
+    loading,
+    saved,
+  } = useManageApiKey('koboldhorde');
 
   // ------ Model fetching ------
 
@@ -106,6 +115,10 @@ export function KoboldHordeForm({ onConnect, connected = false }: KoboldHordeFor
       models: selectedModels,
     });
   }, [apiKey, adjustedContext, adjustedResponse, trustedOnly, selectedModels, onConnect]);
+
+  const handleCancel = useCallback(() => {
+    setConnecting(false);
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -207,10 +220,27 @@ export function KoboldHordeForm({ onConnect, connected = false }: KoboldHordeFor
             size="icon"
             title="Manage API keys"
             aria-label="Manage API keys"
+            onClick={() => setShowKeyManager((v) => !v)}
           >
             <Key className="h-4 w-4" />
           </Button>
         </div>
+        {showKeyManager && (
+          <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-sm border p-2">
+            <Input
+              type="password"
+              value={managedKey}
+              onChange={(e) => setManagedKey(e.target.value)}
+              placeholder={loading ? 'Loading stored key...' : 'Paste stored Horde key'}
+              className="flex-1"
+              autoComplete="off"
+              disabled={loading}
+            />
+            <Button type="button" size="sm" onClick={() => void save()} disabled={loading}>
+              {saved ? 'Saved' : 'Save'}
+            </Button>
+          </div>
+        )}
         <p className="text-muted-foreground/70 text-xs italic">
           For privacy reasons, your API key will be hidden after you click &quot;Connect&quot;.
         </p>
@@ -285,7 +315,8 @@ export function KoboldHordeForm({ onConnect, connected = false }: KoboldHordeFor
           {connected ? 'Connected' : 'Connect'}
         </Button>
         {connecting && (
-          <Button type="button" variant="outline" className="gap-1.5">
+          <Button type="button" variant="outline" onClick={handleCancel} className="gap-1.5">
+            <X className="h-4 w-4" />
             Cancel
           </Button>
         )}

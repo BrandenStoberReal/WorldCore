@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { ModelSelector } from '@/components/connections/ModelSelector';
 import { cn } from '@/lib/utils';
+import { useManageApiKey } from '@/lib/useManageApiKey';
 
 export interface OpenRouterConfig {
   apiKey: string;
@@ -25,7 +26,6 @@ export interface OpenRouterConfig {
 interface OpenRouterFormProps {
   config?: Partial<OpenRouterConfig>;
   onConfigChange?: (config: Partial<OpenRouterConfig>) => void;
-  onManageKeys?: () => void;
   className?: string;
 }
 
@@ -74,15 +74,18 @@ const QUANTIZATION_OPTIONS = [
  * Includes API key, model selection, multi-select provider filtering,
  * quantization preferences, and fallback toggles.
  */
-export function OpenRouterForm({
-  config,
-  onConfigChange,
-  onManageKeys,
-  className,
-}: OpenRouterFormProps) {
+export function OpenRouterForm({ config, onConfigChange, className }: OpenRouterFormProps) {
   const [showKey, setShowKey] = useState(false);
   const [providerSearch, setProviderSearch] = useState('');
   const [quantSearch, setQuantSearch] = useState('');
+  const [showKeyManager, setShowKeyManager] = useState(false);
+  const {
+    apiKey: managedKey,
+    setApiKey: setManagedKey,
+    save,
+    loading,
+    saved,
+  } = useManageApiKey('openrouter');
 
   const update = useCallback(
     (patch: Partial<OpenRouterConfig>) => {
@@ -176,13 +179,29 @@ export function OpenRouterForm({
             type="button"
             variant="outline"
             size="icon"
-            onClick={onManageKeys}
+            onClick={() => setShowKeyManager((v) => !v)}
             aria-label="Manage API keys"
             title="Manage API keys"
           >
             <KeyRound className="h-4 w-4" />
           </Button>
         </div>
+        {showKeyManager && (
+          <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-sm border p-2">
+            <Input
+              type="password"
+              value={managedKey}
+              onChange={(e) => setManagedKey(e.target.value)}
+              placeholder={loading ? 'Loading stored key...' : 'Paste stored OpenRouter key'}
+              className="flex-1"
+              autoComplete="off"
+              disabled={loading}
+            />
+            <Button type="button" size="sm" onClick={() => void save()} disabled={loading}>
+              {saved ? 'Saved' : 'Save'}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Model Selection */}

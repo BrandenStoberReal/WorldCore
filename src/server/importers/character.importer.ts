@@ -68,7 +68,7 @@ function normalizeToV3(raw: Record<string, unknown>): Record<string, unknown> {
   return data;
 }
 
-export async function importFromPng(uploadPath: string): Promise<number> {
+export async function importFromPng(uploadPath: string, userId: string): Promise<number> {
   const jsonData = await readCharacterCard(uploadPath);
   if (!jsonData) {
     throw new Error('No character data found in PNG');
@@ -81,10 +81,10 @@ export async function importFromPng(uploadPath: string): Promise<number> {
   await removeFile(uploadPath).catch(() => {});
 
   const normalizedJson = JSON.stringify(normalized);
-  return characterService.importCharacter(pngBuffer, normalizedJson);
+  return characterService.importCharacter(pngBuffer, normalizedJson, userId);
 }
 
-export async function importFromJson(uploadPath: string): Promise<number> {
+export async function importFromJson(uploadPath: string, userId: string): Promise<number> {
   const content = await fs.readFile(uploadPath, 'utf-8');
   const parsed = JSON.parse(content) as Record<string, unknown>;
 
@@ -94,10 +94,10 @@ export async function importFromJson(uploadPath: string): Promise<number> {
   await removeFile(uploadPath).catch(() => {});
 
   const normalizedJson = JSON.stringify(normalized);
-  return characterService.importCharacter(pngBuffer, normalizedJson);
+  return characterService.importCharacter(pngBuffer, normalizedJson, userId);
 }
 
-export async function importFromYaml(uploadPath: string): Promise<number> {
+export async function importFromYaml(uploadPath: string, userId: string): Promise<number> {
   const content = await fs.readFile(uploadPath, 'utf-8');
   const parsed = parse(content) as Record<string, unknown>;
 
@@ -126,10 +126,10 @@ export async function importFromYaml(uploadPath: string): Promise<number> {
   await removeFile(uploadPath).catch(() => {});
 
   const normalizedJson = JSON.stringify(normalized);
-  return characterService.importCharacter(pngBuffer, normalizedJson);
+  return characterService.importCharacter(pngBuffer, normalizedJson, userId);
 }
 
-export async function importFromCharX(uploadPath: string): Promise<number> {
+export async function importFromCharX(uploadPath: string, userId: string): Promise<number> {
   const content = await fs.readFile(uploadPath);
   const zip = new AdmZip(content as Buffer);
 
@@ -167,10 +167,10 @@ export async function importFromCharX(uploadPath: string): Promise<number> {
   await removeFile(uploadPath).catch(() => {});
 
   const normalizedJson = JSON.stringify(normalized);
-  return characterService.importCharacter(pngBuffer, normalizedJson);
+  return characterService.importCharacter(pngBuffer, normalizedJson, userId);
 }
 
-export async function importFromByaf(uploadPath: string): Promise<number> {
+export async function importFromByaf(uploadPath: string, userId: string): Promise<number> {
   const content = await fs.readFile(uploadPath);
   const zip = new AdmZip(content as Buffer);
 
@@ -221,7 +221,7 @@ export async function importFromByaf(uploadPath: string): Promise<number> {
   await removeFile(uploadPath).catch(() => {});
 
   const normalizedJson = JSON.stringify(normalized);
-  return characterService.importCharacter(pngBuffer, normalizedJson);
+  return characterService.importCharacter(pngBuffer, normalizedJson, userId);
 }
 
 export type ImportFormat = 'png' | 'json' | 'yaml' | 'charx' | 'byaf';
@@ -248,19 +248,23 @@ export function detectImportFormat(fileName: string): ImportFormat {
   }
 }
 
-export async function importCharacter(uploadPath: string, fileName: string): Promise<number> {
+export async function importCharacter(
+  uploadPath: string,
+  fileName: string,
+  userId: string,
+): Promise<number> {
   const format = detectImportFormat(fileName);
   switch (format) {
     case 'png':
-      return importFromPng(uploadPath);
+      return importFromPng(uploadPath, userId);
     case 'json':
-      return importFromJson(uploadPath);
+      return importFromJson(uploadPath, userId);
     case 'yaml':
-      return importFromYaml(uploadPath);
+      return importFromYaml(uploadPath, userId);
     case 'charx':
-      return importFromCharX(uploadPath);
+      return importFromCharX(uploadPath, userId);
     case 'byaf':
-      return importFromByaf(uploadPath);
+      return importFromByaf(uploadPath, userId);
     default:
       const _exhaustive: never = format;
       throw new Error(`Unsupported import format: ${_exhaustive}`);

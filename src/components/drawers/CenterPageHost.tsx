@@ -1,8 +1,12 @@
 import { useNavStore, type SectionId } from '@/lib/navStore';
 import { ChatsPanel } from '@/panels/ChatsPanel';
+import { CharactersPanel } from '@/panels/CharactersPanel';
+import { LorebookPanel } from '@/panels/LorebookPanel';
 
 const CENTER_SECTIONS: Partial<Record<SectionId, React.ComponentType>> = {
   chats: ChatsPanel,
+  characters: CharactersPanel,
+  lorebook: LorebookPanel,
 };
 
 export function CenterPageHost() {

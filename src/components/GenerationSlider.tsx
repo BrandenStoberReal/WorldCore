@@ -40,7 +40,7 @@ export function GenerationSlider({
   );
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       <div className="flex items-center justify-between gap-2">
         <label className="mono-tag text-foreground/60">{label}</label>
         <div className="flex items-center gap-1">
@@ -53,8 +53,8 @@ export function GenerationSlider({
             step={step}
             disabled={disabled}
             className={cn(
-              'border-border bg-background/60 h-6 w-16 rounded-sm border px-1.5',
-              'text-foreground/80 text-right font-mono text-[11px]',
+              'border-border bg-background/60 h-5 w-14 rounded-sm border px-1.5',
+              'text-foreground/80 text-right font-mono text-[10px]',
               'focus:border-ember/50 focus:ring-ember/20 outline-none focus:ring-1',
               'disabled:cursor-not-allowed disabled:opacity-40',
               '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
@@ -64,7 +64,7 @@ export function GenerationSlider({
         </div>
       </div>
       {description && (
-        <p className="text-foreground/35 -mt-0.5 text-[10px] leading-tight">{description}</p>
+        <p className="text-foreground/35 -mt-0.5 text-[9px] leading-tight">{description}</p>
       )}
       <input
         type="range"
