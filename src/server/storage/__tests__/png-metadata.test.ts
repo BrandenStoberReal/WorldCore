@@ -9,8 +9,9 @@ import {
 import { Jimp } from 'jimp';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { DATA_ROOT } from '@/server/storage/paths';
 
-const testDir = path.join('./data', '_test_png');
+const testDir = path.join(DATA_ROOT, '_test_png');
 
 async function createTestPng(): Promise<Buffer> {
   const img = new Jimp({ width: 1, height: 1, color: 0xff0000ff });

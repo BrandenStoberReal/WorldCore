@@ -3,8 +3,8 @@ import fs from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { db } from '@/server/db/client';
 import { chats } from '@/server/db/schema';
-import { eq, desc } from 'drizzle-orm';
-import { paths } from '@/server/storage/paths';
+import { eq, desc, and } from 'drizzle-orm';
+import { getUserChatPath, getUserGroupChatPath } from '@/server/storage/paths';
 import { readJsonl, writeJsonl, appendJsonlLine } from '@/server/storage/jsonl';
 import { listFiles, removeFile, exists } from '@/server/storage/fs';
 import { assertValidFileId } from '@/server/util/ids';
@@ -17,12 +17,16 @@ import type {
 } from '@/shared/types/chat';
 
 export class ChatService {
-  private userId = 'default-user';
-
-  async save(characterName: string, userName: string = 'User'): Promise<string> {
+  async save(
+    userId: string,
+    characterName: string,
+    userName: string = 'User',
+    characterId?: number,
+  ): Promise<string> {
     const fileId = randomUUID();
     const fileName = `${fileId}.jsonl`;
-    const filePath = path.join(paths.chats, fileName);
+    const chatDir = getUserChatPath(userId);
+    const filePath = path.join(chatDir, fileName);
 
     const metadata: ChatMetadata = {
       user_name: userName,
@@ -34,57 +38,63 @@ export class ChatService {
     await db.insert(chats).values({
       fileId,
       fileName,
-      characterId: null,
+      characterId: characterId ?? null,
       groupId: null,
       fileSize: 0,
       messageCount: 0,
       lastMessage: '',
       lastMesDate: Date.now(),
-      userId: this.userId,
+      userId,
     });
 
     return fileId;
   }
 
-  async getMessages(fileId: string): Promise<ChatMessage[]> {
-    const filePath = path.join(paths.chats, `${fileId}.jsonl`);
+  async getMessages(userId: string, fileId: string): Promise<ChatMessage[]> {
+    const chatDir = getUserChatPath(userId);
+    const filePath = path.join(chatDir, `${fileId}.jsonl`);
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
     return allLines.slice(1) as ChatMessage[];
   }
 
-  async getMetadata(fileId: string): Promise<ChatMetadata | null> {
-    const filePath = path.join(paths.chats, `${fileId}.jsonl`);
+  async getMetadata(userId: string, fileId: string): Promise<ChatMetadata | null> {
+    const chatDir = getUserChatPath(userId);
+    const filePath = path.join(chatDir, `${fileId}.jsonl`);
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
     if (allLines.length === 0) return null;
     return allLines[0] as ChatMetadata;
   }
 
-  async appendMessage(fileId: string, message: ChatMessage): Promise<void> {
+  async appendMessage(userId: string, fileId: string, message: ChatMessage): Promise<void> {
     assertValidFileId(fileId);
-    const filePath = path.join(paths.chats, `${fileId}.jsonl`);
+    const chatDir = getUserChatPath(userId);
+    const filePath = path.join(chatDir, `${fileId}.jsonl`);
     message.send_date = message.send_date || new Date().toISOString();
     await appendJsonlLine(filePath, message);
-    await this.updateChatStats(fileId);
+    await this.updateChatStats(userId, fileId);
   }
 
-  async deleteMessage(fileId: string, messageIndex: number): Promise<void> {
+  async deleteMessage(userId: string, fileId: string, messageIndex: number): Promise<void> {
     assertValidFileId(fileId);
-    const filePath = path.join(paths.chats, `${fileId}.jsonl`);
+    const chatDir = getUserChatPath(userId);
+    const filePath = path.join(chatDir, `${fileId}.jsonl`);
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
     const metadata = allLines[0] as ChatMetadata;
     const messages = allLines.slice(1) as ChatMessage[];
     messages.splice(messageIndex, 1);
     await writeJsonl<ChatMetadata | ChatMessage>(filePath, [metadata, ...messages]);
-    await this.updateChatStats(fileId);
+    await this.updateChatStats(userId, fileId);
   }
 
   async editMessage(
+    userId: string,
     fileId: string,
     messageIndex: number,
     updates: Partial<ChatMessage>,
   ): Promise<void> {
     assertValidFileId(fileId);
-    const filePath = path.join(paths.chats, `${fileId}.jsonl`);
+    const chatDir = getUserChatPath(userId);
+    const filePath = path.join(chatDir, `${fileId}.jsonl`);
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
     const messages = allLines.slice(1) as ChatMessage[];
     if (messageIndex < messages.length) {
@@ -104,13 +114,14 @@ export class ChatService {
         allLines[0] as ChatMetadata,
         ...messages,
       ]);
-      await this.updateChatStats(fileId);
+      await this.updateChatStats(userId, fileId);
     }
   }
 
-  async rename(fileId: string, newName: string): Promise<void> {
+  async rename(userId: string, fileId: string, newName: string): Promise<void> {
     assertValidFileId(fileId);
-    const filePath = path.join(paths.chats, `${fileId}.jsonl`);
+    const chatDir = getUserChatPath(userId);
+    const filePath = path.join(chatDir, `${fileId}.jsonl`);
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
     const metadata = allLines[0] as ChatMetadata;
     metadata.character_name = newName;
@@ -120,25 +131,27 @@ export class ChatService {
     ]);
   }
 
-  async delete(fileId: string): Promise<void> {
+  async delete(userId: string, fileId: string): Promise<void> {
     assertValidFileId(fileId);
-    const filePath = path.join(paths.chats, `${fileId}.jsonl`);
+    const chatDir = getUserChatPath(userId);
+    const filePath = path.join(chatDir, `${fileId}.jsonl`);
     await removeFile(filePath);
-    await db.delete(chats).where(eq(chats.fileId, fileId));
+    await db.delete(chats).where(and(eq(chats.fileId, fileId), eq(chats.userId, userId)));
   }
 
-  async listByCharacter(characterName: string): Promise<ChatInfo[]> {
-    const files = await listFiles(paths.chats, '.jsonl');
+  async listByCharacter(userId: string, characterName: string): Promise<ChatInfo[]> {
+    const chatDir = getUserChatPath(userId);
+    const files = await listFiles(chatDir, '.jsonl');
     const results: ChatInfo[] = [];
 
     for (const file of files) {
       const fileId = path.basename(file, '.jsonl');
-      const filePath = path.join(paths.chats, file);
+      const filePath = path.join(chatDir, file);
       const stat = await fs.stat(filePath);
-      const metadata = await this.getMetadata(fileId);
+      const metadata = await this.getMetadata(userId, fileId);
 
       if (metadata && metadata.character_name === characterName) {
-        const messages = await this.getMessages(fileId);
+        const messages = await this.getMessages(userId, fileId);
         const lastMsg = messages[messages.length - 1];
 
         results.push({
@@ -160,16 +173,17 @@ export class ChatService {
     });
   }
 
-  async listAll(): Promise<ChatInfo[]> {
-    const files = await listFiles(paths.chats, '.jsonl');
+  async listAll(userId: string): Promise<ChatInfo[]> {
+    const chatDir = getUserChatPath(userId);
+    const files = await listFiles(chatDir, '.jsonl');
     const results: ChatInfo[] = [];
 
     for (const file of files) {
       const fileId = path.basename(file, '.jsonl');
-      const filePath = path.join(paths.chats, file);
+      const filePath = path.join(chatDir, file);
       const stat = await fs.stat(filePath);
-      const messages = await this.getMessages(fileId);
-      const metadata = await this.getMetadata(fileId);
+      const messages = await this.getMessages(userId, fileId);
+      const metadata = await this.getMetadata(userId, fileId);
       const lastMsg = messages[messages.length - 1];
 
       results.push({
@@ -190,14 +204,15 @@ export class ChatService {
     });
   }
 
-  async search(query: string): Promise<SearchChatResult[]> {
-    const files = await listFiles(paths.chats, '.jsonl');
+  async search(userId: string, query: string): Promise<SearchChatResult[]> {
+    const chatDir = getUserChatPath(userId);
+    const files = await listFiles(chatDir, '.jsonl');
     const results: SearchChatResult[] = [];
     const lowerQuery = query.toLowerCase();
 
     for (const file of files) {
       const fileId = path.basename(file, '.jsonl');
-      const messages = await this.getMessages(fileId);
+      const messages = await this.getMessages(userId, fileId);
 
       const match = messages.find((m) => m.mes.toLowerCase().includes(lowerQuery));
       if (match) {
@@ -212,12 +227,13 @@ export class ChatService {
     return results;
   }
 
-  async getRecent(limit: number = 10): Promise<RecentChat[]> {
-    const files = await listFiles(paths.chats, '.jsonl');
+  async getRecent(userId: string, limit: number = 10): Promise<RecentChat[]> {
+    const chatDir = getUserChatPath(userId);
+    const files = await listFiles(chatDir, '.jsonl');
     const recent: Array<{ file: string; mtime: number }> = [];
 
     for (const file of files) {
-      const filePath = path.join(paths.chats, file);
+      const filePath = path.join(chatDir, file);
       try {
         const stat = await fs.stat(filePath);
         recent.push({ file, mtime: stat.mtimeMs });
@@ -239,21 +255,23 @@ export class ChatService {
     });
   }
 
-  async exportJsonl(fileId: string): Promise<{ data: Buffer; fileName: string }> {
+  async exportJsonl(userId: string, fileId: string): Promise<{ data: Buffer; fileName: string }> {
     assertValidFileId(fileId);
-    const filePath = path.join(paths.chats, `${fileId}.jsonl`);
+    const chatDir = getUserChatPath(userId);
+    const filePath = path.join(chatDir, `${fileId}.jsonl`);
     const data = await fs.readFile(filePath);
     return { data: Buffer.from(data), fileName: `${fileId}.jsonl` };
   }
 
-  async exportText(fileId: string): Promise<{ data: Buffer; fileName: string }> {
+  async exportText(userId: string, fileId: string): Promise<{ data: Buffer; fileName: string }> {
     assertValidFileId(fileId);
-    const messages = await this.getMessages(fileId);
+    const messages = await this.getMessages(userId, fileId);
     const text = messages.map((m) => `${m.name}: ${m.mes}`).join('\n\n');
     return { data: Buffer.from(text), fileName: `${fileId}.txt` };
   }
 
   async saveImported(
+    userId: string,
     messages: ChatMessage[],
     characterName: string,
     userName: string,
@@ -261,7 +279,8 @@ export class ChatService {
   ): Promise<string> {
     const fileId = randomUUID();
     const fileName = `${fileId}.jsonl`;
-    const filePath = path.join(paths.chats, fileName);
+    const chatDir = getUserChatPath(userId);
+    const filePath = path.join(chatDir, fileName);
 
     const metadata: ChatMetadata = {
       user_name: userName,
@@ -272,23 +291,28 @@ export class ChatService {
     }
 
     await writeJsonl<ChatMetadata | ChatMessage>(filePath, [metadata, ...messages]);
-    await this.updateChatStats(fileId);
+    await this.updateChatStats(userId, fileId);
 
     return fileId;
   }
 
-  async saveGroupMessage(groupId: string, message: ChatMessage): Promise<void> {
+  async saveGroupMessage(
+    userId: string,
+    groupId: string,
+    message: ChatMessage,
+  ): Promise<void> {
     const groupChat = await db
       .select()
       .from(chats)
-      .where(eq(chats.groupId, groupId))
+      .where(and(eq(chats.groupId, groupId), eq(chats.userId, userId)))
       .orderBy(desc(chats.lastMesDate))
       .limit(1);
 
     if (groupChat.length === 0) {
       const fileId = randomUUID();
       const fileName = `${fileId}.jsonl`;
-      const filePath = path.join(paths.groupChats, fileName);
+      const groupChatDir = getUserGroupChatPath(userId);
+      const filePath = path.join(groupChatDir, fileName);
 
       const metadata: ChatMetadata = {
         user_name: 'User',
@@ -306,23 +330,25 @@ export class ChatService {
         messageCount: 1,
         lastMessage: message.mes.slice(0, 100),
         lastMesDate: Date.now(),
-        userId: this.userId,
+        userId,
       });
     } else {
       const existing = groupChat[0]!;
-      const filePath = path.join(paths.groupChats, `${existing.fileId}.jsonl`);
+      const groupChatDir = getUserGroupChatPath(userId);
+      const filePath = path.join(groupChatDir, `${existing.fileId}.jsonl`);
       await appendJsonlLine(filePath, message);
-      await this.updateChatStats(existing.fileId);
+      await this.updateChatStats(userId, existing.fileId);
     }
   }
 
-  async listGroupChats(groupId: string): Promise<ChatInfo[]> {
-    const files = await listFiles(paths.groupChats, '.jsonl');
+  async listGroupChats(userId: string, groupId: string): Promise<ChatInfo[]> {
+    const groupChatDir = getUserGroupChatPath(userId);
+    const files = await listFiles(groupChatDir, '.jsonl');
     const results: ChatInfo[] = [];
 
     for (const file of files) {
       const fileId = path.basename(file, '.jsonl');
-      const filePath = path.join(paths.groupChats, file);
+      const filePath = path.join(groupChatDir, file);
       const stat = await fs.stat(filePath);
       const metadata = await this.getMetadataFromPath(filePath);
 
@@ -360,9 +386,12 @@ export class ChatService {
     return allLines.slice(1) as ChatMessage[];
   }
 
-  private async updateChatStats(fileId: string): Promise<void> {
-    const chatFile = path.join(paths.chats, `${fileId}.jsonl`);
-    const groupChatFile = path.join(paths.groupChats, `${fileId}.jsonl`);
+  private async updateChatStats(userId: string, fileId: string): Promise<void> {
+    const chatDir = getUserChatPath(userId);
+    const groupChatDir = getUserGroupChatPath(userId);
+
+    const chatFile = path.join(chatDir, `${fileId}.jsonl`);
+    const groupChatFile = path.join(groupChatDir, `${fileId}.jsonl`);
 
     let filePath: string | null = null;
     if (await exists(chatFile)) filePath = chatFile;

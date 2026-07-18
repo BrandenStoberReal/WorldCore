@@ -8,8 +8,9 @@ import {
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { characterService } from '@/server/services/character.service';
+import { DATA_ROOT } from '@/server/storage/paths';
 
-const testDir = path.join('./data', '_test_importer');
+const testDir = path.join(DATA_ROOT, '_test_importer');
 const createdIds: number[] = [];
 
 describe('detectImportFormat', () => {

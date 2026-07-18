@@ -2,17 +2,15 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { db } from '@/server/db/client';
 import { groups } from '@/server/db/schema';
-import { eq } from 'drizzle-orm';
-import { paths } from '@/server/storage/paths';
+import { eq, and } from 'drizzle-orm';
+import { getUserPath } from '@/server/storage/paths';
 import { writeFile, readFile, removeFile, exists } from '@/server/storage/fs';
 import type { Group, GroupCreateInput } from '@/shared/types/group';
 import { NotFoundError, ConflictError } from '@/server/errors';
 
 export class GroupService {
-  private userId = 'default-user';
-
-  private groupPath(id: string): string {
-    return path.join(paths.groups, `${id}.json`);
+  private groupPath(userId: string, id: string): string {
+    return path.join(getUserPath(userId), 'groups', `${id}.json`);
   }
 
   private buildGroup(row: typeof groups.$inferSelect): Group {
@@ -38,7 +36,7 @@ export class GroupService {
     };
   }
 
-  async create(input: GroupCreateInput): Promise<Group> {
+  async create(userId: string, input: GroupCreateInput): Promise<Group> {
     const id = randomUUID();
     const now = Date.now();
     const createDate = new Date(now).toISOString();
@@ -61,7 +59,7 @@ export class GroupService {
       chat_size: 0,
     };
 
-    await writeFile(this.groupPath(id), JSON.stringify(group, null, 2));
+    await writeFile(this.groupPath(userId, id), JSON.stringify(group, null, 2));
 
     await db.insert(groups).values({
       id,
@@ -82,25 +80,33 @@ export class GroupService {
       createDate,
       dateLastChat: 0,
       chatSize: 0,
-      userId: this.userId,
+      userId,
     });
 
     return group;
   }
 
-  async get(id: string): Promise<Group | null> {
-    const rows = await db.select().from(groups).where(eq(groups.id, id)).limit(1);
+  async get(userId: string, id: string): Promise<Group | null> {
+    const rows = await db
+      .select()
+      .from(groups)
+      .where(and(eq(groups.id, id), eq(groups.userId, userId)))
+      .limit(1);
     if (rows.length === 0) return null;
     return this.buildGroup(rows[0]!);
   }
 
-  async getAll(): Promise<Group[]> {
-    const rows = await db.select().from(groups);
+  async getAll(userId: string): Promise<Group[]> {
+    const rows = await db.select().from(groups).where(eq(groups.userId, userId));
     return rows.map((row) => this.buildGroup(row));
   }
 
-  async update(id: string, data: Partial<Group>): Promise<void> {
-    const rows = await db.select().from(groups).where(eq(groups.id, id)).limit(1);
+  async update(userId: string, id: string, data: Partial<Group>): Promise<void> {
+    const rows = await db
+      .select()
+      .from(groups)
+      .where(and(eq(groups.id, id), eq(groups.userId, userId)))
+      .limit(1);
     if (rows.length === 0) {
       throw new NotFoundError(`Group with id ${id}`);
     }
@@ -125,27 +131,38 @@ export class GroupService {
       dbUpdate.genModeJoinSuffix = data.generation_mode_join_suffix;
     if (data.chat_size !== undefined) dbUpdate.chatSize = data.chat_size;
 
-    await db.update(groups).set(dbUpdate).where(eq(groups.id, id));
+    await db
+      .update(groups)
+      .set(dbUpdate)
+      .where(and(eq(groups.id, id), eq(groups.userId, userId)));
 
-    const filePath = this.groupPath(id);
+    const filePath = this.groupPath(userId, id);
     if (await exists(filePath)) {
       const current = JSON.parse(await readFile(filePath, 'utf-8')) as Group;
       await writeFile(filePath, JSON.stringify({ ...current, ...data }, null, 2));
     }
   }
 
-  async delete(id: string): Promise<void> {
-    const rows = await db.select().from(groups).where(eq(groups.id, id)).limit(1);
+  async delete(userId: string, id: string): Promise<void> {
+    const rows = await db
+      .select()
+      .from(groups)
+      .where(and(eq(groups.id, id), eq(groups.userId, userId)))
+      .limit(1);
     if (rows.length === 0) {
       throw new NotFoundError(`Group with id ${id}`);
     }
 
-    await removeFile(this.groupPath(id));
-    await db.delete(groups).where(eq(groups.id, id));
+    await removeFile(this.groupPath(userId, id));
+    await db.delete(groups).where(and(eq(groups.id, id), eq(groups.userId, userId)));
   }
 
-  async addMember(id: string, characterFileName: string): Promise<void> {
-    const rows = await db.select().from(groups).where(eq(groups.id, id)).limit(1);
+  async addMember(userId: string, id: string, characterFileName: string): Promise<void> {
+    const rows = await db
+      .select()
+      .from(groups)
+      .where(and(eq(groups.id, id), eq(groups.userId, userId)))
+      .limit(1);
     if (rows.length === 0) {
       throw new NotFoundError(`Group with id ${id}`);
     }
@@ -155,9 +172,12 @@ export class GroupService {
     }
 
     const newMembers = [...row.members, characterFileName];
-    await db.update(groups).set({ members: newMembers }).where(eq(groups.id, id));
+    await db
+      .update(groups)
+      .set({ members: newMembers })
+      .where(and(eq(groups.id, id), eq(groups.userId, userId)));
 
-    const filePath = this.groupPath(id);
+    const filePath = this.groupPath(userId, id);
     if (await exists(filePath)) {
       const current = JSON.parse(await readFile(filePath, 'utf-8')) as Group;
       current.members = newMembers;
@@ -165,8 +185,12 @@ export class GroupService {
     }
   }
 
-  async removeMember(id: string, characterFileName: string): Promise<void> {
-    const rows = await db.select().from(groups).where(eq(groups.id, id)).limit(1);
+  async removeMember(userId: string, id: string, characterFileName: string): Promise<void> {
+    const rows = await db
+      .select()
+      .from(groups)
+      .where(and(eq(groups.id, id), eq(groups.userId, userId)))
+      .limit(1);
     if (rows.length === 0) {
       throw new NotFoundError(`Group with id ${id}`);
     }
@@ -176,9 +200,12 @@ export class GroupService {
     }
 
     const newMembers = row.members.filter((m: string) => m !== characterFileName);
-    await db.update(groups).set({ members: newMembers }).where(eq(groups.id, id));
+    await db
+      .update(groups)
+      .set({ members: newMembers })
+      .where(and(eq(groups.id, id), eq(groups.userId, userId)));
 
-    const filePath = this.groupPath(id);
+    const filePath = this.groupPath(userId, id);
     if (await exists(filePath)) {
       const current = JSON.parse(await readFile(filePath, 'utf-8')) as Group;
       current.members = newMembers;
@@ -186,10 +213,14 @@ export class GroupService {
     }
   }
 
-  async importGroup(data: GroupCreateInput & { id?: string }): Promise<Group> {
+  async importGroup(userId: string, data: GroupCreateInput & { id?: string }): Promise<Group> {
     const id = data.id ?? randomUUID();
 
-    const existing = await db.select().from(groups).where(eq(groups.id, id)).limit(1);
+    const existing = await db
+      .select()
+      .from(groups)
+      .where(and(eq(groups.id, id), eq(groups.userId, userId)))
+      .limit(1);
     if (existing.length > 0) {
       throw new ConflictError(`Group with id ${id} already exists`);
     }
@@ -215,7 +246,7 @@ export class GroupService {
       chat_size: 0,
     };
 
-    await writeFile(this.groupPath(id), JSON.stringify(group, null, 2));
+    await writeFile(this.groupPath(userId, id), JSON.stringify(group, null, 2));
 
     await db.insert(groups).values({
       id,
@@ -236,14 +267,14 @@ export class GroupService {
       createDate,
       dateLastChat: 0,
       chatSize: 0,
-      userId: this.userId,
+      userId,
     });
 
     return group;
   }
 
-  async exportGroup(id: string): Promise<{ data: string; fileName: string }> {
-    const group = await this.get(id);
+  async exportGroup(userId: string, id: string): Promise<{ data: string; fileName: string }> {
+    const group = await this.get(userId, id);
     if (!group) {
       throw new NotFoundError(`Group with id ${id}`);
     }

@@ -24,6 +24,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openSection = useNavStore((s) => s.openSection);
+  const activeCharacterId = useChatStore((s) => s.activeCharacterId);
   const setActiveCharacter = useChatStore((s) => s.setActiveCharacter);
 
   /* ── list-mode query (always fetched so row highlight + count work) ── */
@@ -56,6 +57,10 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
+      if (deleteId != null && deleteId === activeCharacterId) {
+        setActiveCharacter(null);
+        openSection('chats');
+      }
     },
   });
 

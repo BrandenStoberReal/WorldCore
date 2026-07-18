@@ -2,8 +2,9 @@ import { describe, expect, it, beforeEach } from 'bun:test';
 import { readLastLine } from '../jsonl';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { DATA_ROOT } from '@/server/storage/paths';
 
-const testDir = path.join('./data', '_test_jsonl_bug1');
+const testDir = path.join(DATA_ROOT, '_test_jsonl_bug1');
 
 beforeEach(async () => {
   await rm(testDir, { recursive: true, force: true }).catch(() => {});

@@ -131,11 +131,11 @@ function buildShallowCharacter(
     date_last_chat: undefined,
     chat_size: 0,
     data_size: dataSize,
-    name: data.name,
-    description: data.description,
-    tags: data.tags,
-    creator: data.creator,
-    character_version: data.character_version,
+    name: data.name ?? 'Unknown',
+    description: data.description ?? '',
+    tags: data.tags ?? [],
+    creator: data.creator ?? '',
+    character_version: data.character_version ?? '',
   };
 }
 
@@ -596,6 +596,10 @@ export class CharacterService {
     };
     const spec = parsed.spec ?? DEFAULT_SPEC;
     const specVersion = parsed.spec_version ?? DEFAULT_SPEC_VERSION;
+
+    if (!parsed.name || typeof parsed.name !== 'string') {
+      parsed.name = 'Unknown';
+    }
 
     const fileName = `${parsed.name.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
     const destPath = path.join(getUserCharacterPath(userId), fileName);

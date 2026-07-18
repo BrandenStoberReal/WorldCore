@@ -1,7 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 
-export const DATA_ROOT = path.resolve('data');
+export const DATA_ROOT = process.env.WORLDCORE_DATA_ROOT ?? path.resolve('data');
 export const USER_ROOT = path.join(DATA_ROOT, 'default-user');
 
 export const paths = {
@@ -59,6 +59,19 @@ export function getUserCharacterPath(userId: string): string {
   return path.join(DATA_ROOT, userId, 'characters');
 }
 
+export function getUserChatPath(userId: string): string {
+  return path.join(DATA_ROOT, userId, 'chats');
+}
+
+export function getUserGroupChatPath(userId: string): string {
+  return path.join(DATA_ROOT, userId, 'groupChats');
+}
+
 export function ensureUserCharacterDir(userId: string): void {
   fs.mkdirSync(getUserCharacterPath(userId), { recursive: true });
+}
+
+export function ensureUserChatDirs(userId: string): void {
+  fs.mkdirSync(getUserChatPath(userId), { recursive: true });
+  fs.mkdirSync(getUserGroupChatPath(userId), { recursive: true });
 }

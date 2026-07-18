@@ -82,7 +82,13 @@ async function shutdown(signal: string): Promise<void> {
   server.stop();
   process.exit(0);
 }
-process.on('SIGINT', () => void shutdown('SIGINT'));
-process.on('SIGTERM', () => void shutdown('SIGTERM'));
+
+// Register signal handlers only once — survives bun --hot re-evaluation.
+const g = globalThis as Record<string, unknown>;
+if (!g.__app_shutdown_registered) {
+  g.__app_shutdown_registered = true;
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+}
 
 export default server;

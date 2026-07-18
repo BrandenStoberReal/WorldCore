@@ -23,6 +23,19 @@ async function generatePlaceholderPng(): Promise<Buffer> {
 function normalizeToV3(raw: Record<string, unknown>): Record<string, unknown> {
   const data = { ...raw };
 
+  // chara_card_v2 spec nests character fields inside a `data` key.
+  // Flatten them to the top level so the rest of the pipeline sees a
+  // consistent flat structure.
+  if (data.spec && typeof data.data === 'object' && data.data !== null && !Array.isArray(data.data)) {
+    const nested = data.data as Record<string, unknown>;
+    for (const [key, value] of Object.entries(nested)) {
+      if (data[key] === undefined || data[key] === null) {
+        data[key] = value;
+      }
+    }
+    delete data.data;
+  }
+
   if (!data.spec && data.name !== undefined) {
     const rawExt = (data.extensions as Record<string, unknown>) || {};
     return {
@@ -49,6 +62,10 @@ function normalizeToV3(raw: Record<string, unknown>): Record<string, unknown> {
         ...rawExt,
       },
     };
+  }
+
+  if (!data.name || typeof data.name !== 'string') {
+    data.name = 'Unknown';
   }
 
   if (!data.extensions) {

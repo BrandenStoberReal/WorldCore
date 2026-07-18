@@ -37,6 +37,7 @@ import { extensionsRoutes } from './extensions.routes';
 import { connectionProfilesRoutes } from './connection-profiles.routes';
 import { vectorsRoutes } from './vectors.routes';
 import { ssoRoutes } from './sso.routes';
+import { promptBuilderRoutes } from './prompt-builder.routes';
 import { SHARED_CONST } from '@/shared/constants';
 
 const PREFIX = SHARED_CONST.API_VERSION_PREFIX;
@@ -108,6 +109,9 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/characters/thumbnail`] = characterRoutes.getThumbnail;
   routes[`${PREFIX}/characters/reconcile-list`] = characterRoutes.reconcileList;
   routes[`${PREFIX}/characters/reconcile-delete`] = characterRoutes.reconcileDelete;
+
+  // === Prompt Builder ===
+  routes[`${PREFIX}/prompt-builder/build`] = promptBuilderRoutes.build;
 
   // === Chats (T10) ===
   routes[`${PREFIX}/chats/save`] = chatsRoutes.save;

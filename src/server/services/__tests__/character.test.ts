@@ -4,11 +4,10 @@ import type { CharacterCreateInput } from '@/shared/types/character';
 import { db } from '@/server/db/client';
 import { characters, chats } from '@/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { getUserCharacterPath, DATA_ROOT } from '@/server/storage/paths';
+import { getUserCharacterPath } from '@/server/storage/paths';
 import { existsSync } from '@/server/storage/fs';
 import { NotFoundError } from '@/server/errors';
 import path from 'node:path';
-import fsSync from 'node:fs';
 
 const TEST_USER = 'default-user';
 
@@ -58,13 +57,6 @@ describe('CharacterService', () => {
       }
     }
     createdIds.length = 0;
-    // Clean up test user directories (NOT default-user)
-    for (const uid of ['user-A', 'user-B']) {
-      const dir = path.join(DATA_ROOT, uid);
-      if (fsSync.existsSync(dir)) {
-        fsSync.rmSync(dir, { recursive: true, force: true });
-      }
-    }
   });
 
   it('create a character and get it back by ID', async () => {

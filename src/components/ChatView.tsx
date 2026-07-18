@@ -7,7 +7,7 @@ import { ChatInput } from '@/components/ChatInput';
 import { useChatStore, useGenerationStore } from '@/lib/stores';
 import { apiGet, apiPost, streamChat } from '@/lib/api';
 import { cn, frostedGlass } from '@/lib/utils';
-import { renderMarkdown } from '@/lib/markdown';
+
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import type { Character } from '@/shared/types/character';
 
@@ -138,10 +138,10 @@ export function ChatView({ characterId }: ChatViewProps) {
         const chat = chats[0] as { file_id: string };
         setActiveChat(chat.file_id);
       } else {
-        createChatMutation.mutate(charName);
+        await createChatMutation.mutateAsync(charName);
       }
     } catch {
-      createChatMutation.mutate(charName);
+      await createChatMutation.mutateAsync(charName);
     }
   }, [character, setActiveChat, createChatMutation]);
 
@@ -180,33 +180,17 @@ export function ChatView({ characterId }: ChatViewProps) {
 
       const allMessages = [...messages, userMsg];
 
-      const historyMessages = allMessages.map((m) => ({
-        role: m.is_user ? 'user' : ('assistant' as const),
-        content: m.mes,
-        name: m.name,
-      }));
+      const promptBuildResult = await apiPost<{
+        messages: Array<{ role: string; content: string; name?: string }>;
+        tokenCount: number;
+      }>('/prompt-builder/build', {
+        characterId: characterId,
+        messages: allMessages,
+        userName: userName,
+        includeExamples: true,
+      });
 
-      const systemPrompt: Array<{ role: string; content: string; name?: string }> = [];
-      if (character.creator_notes) {
-        systemPrompt.push({ role: 'system', content: character.creator_notes, name: 'System' });
-      }
-      if (character.system_prompt) {
-        systemPrompt.push({ role: 'system', content: character.system_prompt, name: 'System' });
-      }
-
-      const charContext = [character.description, character.personality, character.scenario]
-        .filter(Boolean)
-        .join('\n\n');
-
-      if (charContext) {
-        systemPrompt.push({
-          role: 'system',
-          content: `You are ${character.name}. ${charContext}`,
-          name: 'System',
-        });
-      }
-
-      const promptMessages = [...systemPrompt, ...historyMessages];
+      const promptMessages = promptBuildResult.messages;
 
       const source = (settings?.chat_completion_source as string) || 'openai';
       const model = (settings?.chat_completion_model as string) || 'gpt-3.5-turbo';
@@ -426,72 +410,34 @@ export function ChatView({ characterId }: ChatViewProps) {
 
       {/* Messages stream */}
       <div className="relative flex-1 overflow-y-auto">
-        {msgCount === 0 ? (
-          <div className="relative flex h-full items-center justify-center px-8">
-            <div className="max-w-md text-center">
-              <div className="relative mx-auto mb-4 h-14 w-14">
-                <span
-                  className="border-ember/30 absolute inset-0 rounded-full border"
-                  style={{
-                    background:
-                      'radial-gradient(circle at 50% 60%, color-mix(in oklch, var(--ember) 25%, transparent) 0%, transparent 70%)',
-                  }}
-                />
-                <div className="border-border/60 ember-pulse absolute inset-1.5 flex items-center justify-center rounded-full border">
-                  <span
-                    className="display-host text-ember inline-block -translate-x-[2px] text-[26px] leading-[0.8] italic"
-                    aria-hidden
-                  >
-                    ⌑
-                  </span>
-                </div>
+        <div className="relative mx-auto max-w-4xl space-y-4 px-4 py-4 md:px-6">
+          {displayMessages.map((msg, i) => (
+            <ChatMessage
+              key={`${i}-${msg.send_date ?? i}`}
+              msg={msg}
+              index={i}
+              characterAvatar={`/api/v1/characters/thumbnail?id=${characterId}`}
+              userName={(settings?.chat_name_your_name as string) || 'User'}
+              characterName={character.name}
+            />
+          ))}
+          {isGenerating && !streamingContent && (
+            <div className="flex justify-start gap-2.5">
+              <div className="border-border bg-muted/40 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border">
+                <span className="dot-hot" aria-hidden>
+                  <span />
+                  <span />
+                  <span />
+                </span>
               </div>
-              <h4 className="display-host mb-1.5 text-[24px] leading-tight tracking-tight">
-                Forge {character.name}
-              </h4>
-              <p className="mono-tag text-muted-foreground/55 mb-3">
-                anvil ready · submit first line
-              </p>
-              {character.first_mes && (
-                <div className="bg-card border-border shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_6%,transparent),inset_0_-1px_0_0_color-mix(in_oklch,var(--foreground)_4%,transparent)] mt-3 rounded-sm border px-3 py-2.5 text-left">
-                  <div className="mono-tag text-ember/70 mb-1">opening_line</div>
-                  <div className="mes_text text-[13.5px] leading-relaxed">
-                    {renderMarkdown(character.first_mes)}
-                  </div>
-                </div>
-              )}
+              <div className="bg-card border-border shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)] flex items-center gap-2 rounded-sm border px-2.5 py-1.5">
+                <Loader2 className="text-ember h-3 w-3 animate-spin" />
+                <span className="mono-tag text-muted-foreground/65">stoking the engine</span>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="relative mx-auto max-w-4xl space-y-4 px-4 py-4 md:px-6">
-            {displayMessages.map((msg, i) => (
-              <ChatMessage
-                key={`${i}-${msg.send_date ?? i}`}
-                msg={msg}
-                index={i}
-                characterAvatar={`/api/v1/characters/thumbnail?id=${characterId}`}
-                userName={(settings?.chat_name_your_name as string) || 'User'}
-                characterName={character.name}
-              />
-            ))}
-            {isGenerating && !streamingContent && (
-              <div className="flex justify-start gap-2.5">
-                <div className="border-border bg-muted/40 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border">
-                  <span className="dot-hot" aria-hidden>
-                    <span />
-                    <span />
-                    <span />
-                  </span>
-                </div>
-                <div className="bg-card border-border shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)] flex items-center gap-2 rounded-sm border px-2.5 py-1.5">
-                  <Loader2 className="text-ember h-3 w-3 animate-spin" />
-                  <span className="mono-tag text-muted-foreground/65">stoking the engine</span>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
+          )}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Input */}

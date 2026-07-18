@@ -9,8 +9,9 @@ import {
 } from '../jsonl';
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
+import { DATA_ROOT } from '@/server/storage/paths';
 
-const testDir = path.join('./data', '_test_jsonl');
+const testDir = path.join(DATA_ROOT, '_test_jsonl');
 
 interface TestRecord {
   id: number;
