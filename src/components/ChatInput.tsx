@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Send, Square } from 'lucide-react';
+import { cn, surfaceCard } from '@/lib/utils';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -39,10 +40,10 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
   };
 
   return (
-    <div className="border-border bg-background/60 shrink-0 border-t p-3 backdrop-blur-sm md:p-4">
+    <div className="border-border/60 bg-background/60 shrink-0 border-t p-3 backdrop-blur-sm supports-[backdrop-filter]:bg-background/40 md:p-4">
       <div className="relative mx-auto max-w-3xl">
         {/* Stoker frame — outer ring with ember hairline */}
-        <div className="border-border bg-card/60 focus-within:border-ember/60 relative rounded-sm border shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)] transition-colors">
+        <div className={cn(surfaceCard, 'focus-within:border-ember/60 relative rounded-sm transition-colors')}>
           <div
             aria-hidden
             className="via-ember/60 pointer-events-none absolute -top-px right-6 left-6 h-px bg-gradient-to-r from-transparent to-transparent opacity-0 transition-opacity focus-within:opacity-100"

@@ -70,14 +70,14 @@ export function ChatsPanel() {
             </div>
 
             <div className="mb-2 flex items-center justify-center gap-2.5">
-              <span className="bg-border h-px w-7" />
-              <span className="mono-tag text-ember">FORGE COOLING</span>
-              <span className="bg-border h-px w-7" />
+              <span className="bg-ember/40 h-px w-8" />
+              <span className="mono-tag text-ember">{`[00] — FORGE`}</span>
+              <span className="bg-ember/40 h-px w-8" />
             </div>
-            <h2 className="display-host mb-2 text-[30px] leading-tight tracking-tight">
+            <h2 className="display-host mb-2 text-[30px] leading-none tracking-tight">
               Stoking the <span className="text-ember italic">fire</span>
             </h2>
-            <p className="text-muted-foreground mx-auto mb-5 max-w-sm text-[13px] leading-relaxed">
+            <p className="text-muted-foreground mx-auto mb-5 max-w-sm text-[13px] leading-snug">
               Select a persona from the right rail to begin a conversation. The anvil's still warm —
               your characters are waiting.
             </p>

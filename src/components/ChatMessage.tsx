@@ -1,13 +1,23 @@
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import { cn } from '@/lib/utils';
+import { substituteMacros } from '@/lib/macros';
+import { renderMarkdown } from '@/lib/markdown';
 
 interface ChatMessageProps {
   msg: ChatMessageType;
   index?: number;
   characterAvatar?: string;
+  userName?: string;
+  characterName?: string;
 }
 
-export function ChatMessage({ msg, index = 0, characterAvatar }: ChatMessageProps) {
+export function ChatMessage({
+  msg,
+  index = 0,
+  characterAvatar,
+  userName = 'User',
+  characterName = 'Character',
+}: ChatMessageProps) {
   const isUser = msg.is_user;
 
   let ts: string;
@@ -22,69 +32,83 @@ export function ChatMessage({ msg, index = 0, characterAvatar }: ChatMessageProp
 
   const initial = msg.name && msg.name.length > 0 ? msg.name[0]!.toUpperCase() : '?';
 
+  const processedText = substituteMacros(msg.mes, { userName, characterName });
+  const renderedContent = renderMarkdown(processedText);
+
   return (
-    <div className={cn('group relative flex gap-3', isUser ? 'flex-row-reverse' : 'flex-row')}>
+    <div className="group relative flex flex-col">
+      {/* Header bar — full width */}
       <div
         className={cn(
-          'flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border',
-          isUser ? 'border-ember/40 bg-ember/10' : 'border-border bg-muted/40',
+          'flex items-center gap-2 border-b px-3 py-1.5',
+          isUser
+            ? 'border-ember/20 bg-ember/5'
+            : 'border-border bg-muted/20',
         )}
       >
-        {isUser ? (
-          <span className="display-host text-ember text-[13px] font-semibold">{initial}</span>
-        ) : characterAvatar ? (
-          <img
-            src={characterAvatar}
-            alt={msg.name}
-            className="h-8 w-8 rounded-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        ) : (
-          <span className="display-host text-foreground/70 text-[13px] italic">{initial}</span>
-        )}
-      </div>
-
-      <div
-        className={cn('flex max-w-[78%] min-w-0 flex-col', isUser ? 'items-end' : 'items-start')}
-      >
+        {/* Avatar */}
         <div
           className={cn(
-            'mb-1 flex items-center gap-2 px-0.5',
-            isUser ? 'flex-row-reverse' : 'flex-row',
+            'flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border',
+            isUser ? 'border-ember/40 bg-ember/10' : 'border-border bg-muted/40',
           )}
         >
-          <span className="mono-tag text-muted-foreground/50 tabular-nums">
-            {String(index + 1).padStart(3, '0')}
-          </span>
+          {isUser ? (
+            <span className="display-host text-ember text-[13px] font-semibold">{initial}</span>
+          ) : characterAvatar ? (
+            <img
+              src={characterAvatar}
+              alt={msg.name}
+              className="h-8 w-8 rounded-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <span className="display-host text-foreground/70 text-[13px] italic">{initial}</span>
+          )}
+        </div>
+
+        {/* Name + timestamp + role tag */}
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <span
             className={cn(
-              'truncate text-[12px] font-medium tracking-tight',
+              'display-host truncate text-[13px] font-medium',
               isUser ? 'text-ember/90' : 'text-foreground/80',
             )}
-            style={{
-              fontFamily: 'var(--font-display)',
-            }}
           >
             {msg.name}
           </span>
           <span className="mono-tag text-muted-foreground/40 tabular-nums">{ts}</span>
+          <span
+            className={cn(
+              'mono-tag tabular-nums',
+              isUser ? 'text-ember/50' : 'text-muted-foreground/45',
+            )}
+          >
+            {String(index + 1).padStart(3, '0')}
+          </span>
+          <span
+            className={cn(
+              'mono-tag',
+              isUser ? 'text-ember/40' : 'text-muted-foreground/35',
+            )}
+          >
+            {isUser ? 'YOU' : 'AI'}
+          </span>
         </div>
+      </div>
 
-        <div
-          className={cn(
-            'relative rounded-sm px-3.5 py-2.5 text-[13.5px] leading-relaxed break-words whitespace-pre-wrap',
-            isUser
-              ? 'bg-ember/15 border-ember/30 text-foreground border'
-              : 'bg-card border-border text-foreground/90 border shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_6%,transparent)]',
-          )}
-        >
-          {isUser && (
-            <span aria-hidden className="bg-ember absolute top-0 bottom-0 -left-px w-px" />
-          )}
-          {msg.mes}
-        </div>
+      {/* Message body — mes_text class for ST styling */}
+      <div
+        className={cn(
+          'mes_text relative px-4 py-3 text-[13.5px] leading-relaxed break-words',
+          isUser
+            ? 'bg-ember/5 text-foreground'
+            : 'bg-transparent text-foreground/90',
+        )}
+      >
+        {renderedContent}
       </div>
     </div>
   );

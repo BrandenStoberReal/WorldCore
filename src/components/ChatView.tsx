@@ -7,6 +7,7 @@ import { ChatInput } from '@/components/ChatInput';
 import { useChatStore, useGenerationStore } from '@/lib/stores';
 import { apiGet, apiPost, streamChat } from '@/lib/api';
 import { cn, frostedGlass } from '@/lib/utils';
+import { renderMarkdown } from '@/lib/markdown';
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import type { Character } from '@/shared/types/character';
 
@@ -89,7 +90,24 @@ export function ChatView({ characterId }: ChatViewProps) {
         characterName: charName,
         userName,
       });
-      return result.fileId as string;
+      const fileId = result.fileId as string;
+
+      if (character?.first_mes) {
+        const firstMsg: ChatMessageType = {
+          name: character.name,
+          is_user: false,
+          mes: character.first_mes,
+          send_date: new Date().toISOString(),
+          extra: {},
+        };
+        await apiPost<{ ok: boolean }>('/chats/message', {
+          fileId,
+          action: 'append',
+          message: firstMsg,
+        });
+      }
+
+      return fileId;
     },
     onSuccess: (fileId) => {
       setActiveChat(fileId);
@@ -351,7 +369,7 @@ export function ChatView({ characterId }: ChatViewProps) {
           <div className="relative shrink-0">
             <div className="border-border bg-muted/40 flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border">
               <img
-                src={`/api/v1/characters/thumbnail?id=${character.id}`}
+                src={`/api/v1/characters/thumbnail?id=${characterId}`}
                 alt={character.name}
                 className="h-8 w-8 rounded-full object-cover"
                 onError={(e) => {
@@ -365,13 +383,15 @@ export function ChatView({ characterId }: ChatViewProps) {
             />
           </div>
           <div className="min-w-0">
+            <div className="mb-0.5 flex items-center gap-2.5">
+              <span className="mono-tag text-ember">{`[01] — SESSION`}</span>
+              <span className="bg-ember/40 h-px w-8" />
+              <span className="mono-tag text-muted-foreground/45">{`{ ${sessionLabel} }`}</span>
+            </div>
             <h3 className="display-host truncate text-[18px] leading-none tracking-tight">
               {character.name}
             </h3>
             <div className="mt-1 flex items-center gap-1.5">
-              <span className="mono-tag text-ember/80">FORGE SESSION</span>
-              <span className="mono-tag text-muted-foreground/45">{`{ ${sessionLabel} }`}</span>
-              <span className="bg-border h-px w-3" />
               <span className="mono-tag text-muted-foreground/55 tabular-nums">
                 {String(msgCount).padStart(2, '0')} msgs
               </span>
@@ -406,16 +426,6 @@ export function ChatView({ characterId }: ChatViewProps) {
 
       {/* Messages stream */}
       <div className="relative flex-1 overflow-y-auto">
-        {/* faint horizontal rule ticks */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(0deg, transparent, transparent 71px, var(--foreground) 71px, var(--foreground) 72px)',
-          }}
-        />
-
         {msgCount === 0 ? (
           <div className="relative flex h-full items-center justify-center px-8">
             <div className="max-w-md text-center">
@@ -436,30 +446,32 @@ export function ChatView({ characterId }: ChatViewProps) {
                   </span>
                 </div>
               </div>
-              <h4 className="display-host mb-1 text-[20px] tracking-tight">
+              <h4 className="display-host mb-1.5 text-[24px] leading-tight tracking-tight">
                 Forge {character.name}
               </h4>
               <p className="mono-tag text-muted-foreground/55 mb-3">
                 anvil ready · submit first line
               </p>
               {character.first_mes && (
-                <div className="border-border bg-muted/30 mt-3 rounded-sm border px-3 py-2.5 text-left">
+                <div className="bg-card border-border shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_6%,transparent),inset_0_-1px_0_0_color-mix(in_oklch,var(--foreground)_4%,transparent)] mt-3 rounded-sm border px-3 py-2.5 text-left">
                   <div className="mono-tag text-ember/70 mb-1">opening_line</div>
-                  <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap">
-                    {character.first_mes}
-                  </p>
+                  <div className="mes_text text-[13.5px] leading-relaxed">
+                    {renderMarkdown(character.first_mes)}
+                  </div>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <div className="relative mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6">
+          <div className="relative mx-auto max-w-4xl space-y-4 px-4 py-4 md:px-6">
             {displayMessages.map((msg, i) => (
               <ChatMessage
                 key={`${i}-${msg.send_date ?? i}`}
                 msg={msg}
                 index={i}
-                characterAvatar={`/api/v1/characters/thumbnail?id=${character.id}`}
+                characterAvatar={`/api/v1/characters/thumbnail?id=${characterId}`}
+                userName={(settings?.chat_name_your_name as string) || 'User'}
+                characterName={character.name}
               />
             ))}
             {isGenerating && !streamingContent && (
@@ -471,7 +483,7 @@ export function ChatView({ characterId }: ChatViewProps) {
                     <span />
                   </span>
                 </div>
-                <div className="bg-muted/30 border-border flex items-center gap-2 rounded-sm border px-2.5 py-1.5">
+                <div className="bg-card border-border shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)] flex items-center gap-2 rounded-sm border px-2.5 py-1.5">
                   <Loader2 className="text-ember h-3 w-3 animate-spin" />
                   <span className="mono-tag text-muted-foreground/65">stoking the engine</span>
                 </div>
