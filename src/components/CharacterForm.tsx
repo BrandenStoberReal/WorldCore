@@ -215,7 +215,7 @@ export function CharacterForm({
 
   // ── Avatar ───────────────────────────────────────────────
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
-    character ? `/api/v1/characters/avatar?id=${character.id}` : null,
+    character?.avatar ? `/api/v1/characters/avatar?id=${character.id}` : null,
   );
   const [avatarPreviewError, setAvatarPreviewError] = useState(false);
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | undefined>(undefined);
@@ -243,7 +243,7 @@ export function CharacterForm({
   );
 
   const handleClearAvatar = useCallback(() => {
-    setAvatarPreview(character ? `/api/v1/characters/avatar?id=${character.id}` : null);
+    setAvatarPreview(character?.avatar ? `/api/v1/characters/avatar?id=${character.id}` : null);
     setAvatarPreviewError(false);
     setAvatarDataUrl(undefined);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -358,7 +358,8 @@ export function CharacterForm({
     depthPromptPrompt,
     depthPromptRole,
     talkativeness,
-    character,
+    character?.creation_date,
+    character?.modification_date,
   ]);
 
   const onChangeRef = useRef(onChange);

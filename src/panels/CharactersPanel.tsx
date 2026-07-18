@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, RotateCcw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { useChatStore } from '@/lib/stores';
 import { useNavStore } from '@/lib/navStore';
 import { CharacterForm } from '@/components/CharacterForm';
 import { useDebouncedAutoSave } from '@/hooks';
 import { cn } from '@/lib/utils';
-import type { ShallowCharacter, Character, CharacterCreateInput } from '@/shared/types/character';
+import type { Character, CharacterCreateInput } from '@/shared/types/character';
 
 type CharacterWithId = Character & { id: number };
 
@@ -96,7 +96,6 @@ function PanelHeader({
 function CreateMode() {
   const queryClient = useQueryClient();
   const openSection = useNavStore((s) => s.openSection);
-  const setActiveCharacter = useChatStore((s) => s.setActiveCharacter);
 
   const createMutation = useMutation({
     mutationFn: async (data: CharacterCreateInput & { avatar?: string }) => {
@@ -115,7 +114,7 @@ function CreateMode() {
     <div className="flex h-full flex-col">
       <PanelHeader mode="create" />
       <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-4xl">
           <CharacterForm
             onSubmit={(data) => createMutation.mutate(data)}
             onCancel={() => openSection('chats')}
@@ -213,11 +212,14 @@ function EditMode({ characterId }: { characterId: number }) {
     <div className="flex h-full flex-col">
       <PanelHeader mode="edit" characterName={editCharacter.name} statusBadge={statusBadge} />
       <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-4xl">
           <CharacterForm
             character={editCharacter}
             onSubmit={(data) =>
-              editMutation.mutate({ id: editCharacter.id, data }, { onSuccess: handleExit })
+              editMutation.mutate(
+                { id: editCharacter.id, data },
+                { onSuccess: handleExit, onError: () => {} },
+              )
             }
             onCancel={handleExit}
             isSubmitting={editMutation.isPending}
