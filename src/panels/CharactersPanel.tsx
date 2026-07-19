@@ -125,7 +125,6 @@ function EditMode({ characterId }: { characterId: number }) {
   });
 
   const handleExit = () => {
-    setActiveCharacter(null);
     openSection('chats');
   };
 
