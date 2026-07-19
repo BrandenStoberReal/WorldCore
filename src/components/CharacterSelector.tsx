@@ -430,6 +430,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
 
           {/* Description */}
           <div className="pb-3">
+            <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">Description</span>
             <InlineEdit
               characterId={infoCharacter.id}
               field="description"
@@ -442,7 +443,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
 
           {/* Creator notes preview */}
           <div className="border-border/30 mb-3 border-t pt-2.5">
-            <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">notes</span>
+            <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">Notes</span>
             <InlineEdit
               characterId={infoCharacter.id}
               field="creator_notes"
@@ -457,7 +458,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
           {/* Personality / Scenario */}
           <div className="border-border/30 mb-3 border-t pt-2.5 space-y-2">
             <div>
-              <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">personality</span>
+              <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">Personality</span>
               <InlineEdit
                 characterId={infoCharacter.id}
                 field="personality"
@@ -468,7 +469,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
               />
             </div>
             <div>
-              <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">scenario</span>
+              <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">Scenario</span>
               <InlineEdit
                 characterId={infoCharacter.id}
                 field="scenario"
@@ -482,7 +483,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
 
           {/* First Message */}
           <div className="border-border/30 mb-3 border-t pt-2.5">
-            <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">first message</span>
+            <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">First Message</span>
             <InlineEdit
               characterId={infoCharacter.id}
               field="first_mes"
