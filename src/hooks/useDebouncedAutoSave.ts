@@ -51,6 +51,10 @@ export function useDebouncedAutoSave<T>(
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedDisplayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Tracks when a reseed just happened so the debounce effect can distinguish
+  // external value changes (query refetch) from user edits.
+  const reseededRef = useRef(false);
+
   // State.
   const [local, setLocalState] = useState<T>(value);
   const [status, setStatus] = useState<AutoSaveStatus>('idle');
@@ -112,22 +116,25 @@ export function useDebouncedAutoSave<T>(
 
   // Reseed effect — MUST be defined BEFORE the debounce trigger effect so valueRef updates first.
   useEffect(() => {
+    reseededRef.current = false;
     valueRef.current = value;
     if (equalsRef.current(localRef.current, baselineRef.current)) {
-      // User hasn't edited since last reseed — reseed to new value.
       baselineRef.current = value;
       localRef.current = value;
       setLocalState(value);
+      reseededRef.current = true;
     } else {
-      // User has pending edits — update baseline only, don't touch local.
       baselineRef.current = value;
     }
   }, [value]);
 
   // Debounce trigger effect (deps: [local, value] ONLY — never save/equals/delayMs/savedDisplayMs).
   useEffect(() => {
+    if (reseededRef.current) {
+      reseededRef.current = false;
+      return;
+    }
     if (equalsRef.current(local, valueRef.current)) {
-      // local matches baseline — clear 'unsaved' status if pending.
       setStatus((prev) => (prev === 'unsaved' ? 'idle' : prev));
       return;
     }

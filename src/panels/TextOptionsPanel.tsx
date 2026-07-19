@@ -397,7 +397,13 @@ export function TextOptionsPanel() {
             <span
               className={cn(
                 'inline-flex items-center gap-1.5',
-                autoSave.status === 'error' ? 'text-destructive' : 'text-ember',
+                autoSave.status === 'unsaved'
+                  ? 'text-red-500'
+                  : autoSave.status === 'saved'
+                    ? 'text-green-500'
+                    : autoSave.status === 'error'
+                      ? 'text-destructive'
+                      : 'text-muted-foreground/40',
               )}
             >
               {autoSave.status === 'saving' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

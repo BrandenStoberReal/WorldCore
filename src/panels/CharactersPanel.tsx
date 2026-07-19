@@ -1,70 +1,24 @@
-import { useMemo } from 'react';
+import { useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api';
 import { useChatStore } from '@/lib/stores';
 import { useNavStore } from '@/lib/navStore';
-import { CharacterForm } from '@/components/CharacterForm';
-import { useDebouncedAutoSave } from '@/hooks';
+import { CharacterForm, type CharacterFormHandle } from '@/components/CharacterForm';
 import { cn } from '@/lib/utils';
 import type { Character, CharacterCreateInput } from '@/shared/types/character';
 
 type CharacterWithId = Character & { id: number };
 
-const EMPTY_DRAFT: CharacterCreateInput = {
-  name: '',
-  description: '',
-  personality: '',
-  scenario: '',
-  first_mes: '',
-  mes_example: '',
-  creator_notes: '',
-  system_prompt: '',
-  post_history_instructions: '',
-  tags: [],
-  creator: '',
-  character_version: '',
-  alternate_greetings: [],
-  source: [],
-  group_only_greetings: [],
-  assets: [],
-};
-
-function mapEditCharacterToDraft(c: CharacterWithId): CharacterCreateInput {
-  const ext = c.extensions as Record<string, unknown> | undefined;
-  return {
-    name: c.name,
-    description: c.description ?? '',
-    personality: c.personality ?? '',
-    scenario: c.scenario ?? '',
-    first_mes: c.first_mes ?? '',
-    mes_example: c.mes_example ?? '',
-    creator_notes: c.creator_notes ?? '',
-    system_prompt: c.system_prompt ?? '',
-    post_history_instructions: c.post_history_instructions ?? '',
-    tags: c.tags ?? [],
-    creator: c.creator ?? '',
-    character_version: c.character_version ?? '',
-    alternate_greetings: c.alternate_greetings ?? [],
-    extensions: ext,
-    nickname: c.nickname,
-    creator_notes_multilingual: c.creator_notes_multilingual,
-    source: c.source ?? [],
-    group_only_greetings: c.group_only_greetings ?? [],
-    assets: c.assets ?? [],
-    creation_date: c.creation_date,
-    modification_date: c.modification_date,
-  };
-}
-
 function PanelHeader({
   mode,
   characterName,
-  statusBadge,
+  action,
 }: {
   mode: 'create' | 'edit';
   characterName?: string;
-  statusBadge?: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
     <header
@@ -88,7 +42,9 @@ function PanelHeader({
           )}
         </h2>
       </div>
-      {statusBadge}
+      <div className="flex items-center gap-2">
+        {action}
+      </div>
     </header>
   );
 }
@@ -164,25 +120,11 @@ function EditMode({ characterId }: { characterId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/get', characterId] });
     },
   });
 
-  const editDraft = useMemo(
-    () => (editCharacter ? mapEditCharacterToDraft(editCharacter) : null),
-    [editCharacter],
-  );
-
-  const autosave = useDebouncedAutoSave({
-    value: editDraft ?? EMPTY_DRAFT,
-    save: (draft) =>
-      editCharacter
-        ? editMutation.mutateAsync({ id: editCharacter.id, data: draft })
-        : Promise.resolve(),
-    delayMs: 800,
-  });
-
   const handleExit = () => {
-    void autosave.flush();
     setActiveCharacter(null);
     openSection('chats');
   };
@@ -196,35 +138,38 @@ function EditMode({ characterId }: { characterId: number }) {
     );
   }
 
-  const statusBadge =
-    autosave.status !== 'idle' ? (
-      <span
-        className={cn(
-          'mono-tag text-[10px]',
-          autosave.status === 'error' ? 'text-destructive' : 'text-muted-foreground/40',
-        )}
-      >
-        {autosave.status}
-      </span>
-    ) : null;
+  const formRef = useRef<CharacterFormHandle>(null);
+
+  const doneButton = (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => formRef.current?.submit()}
+      className="h-7 gap-1.5"
+    >
+      <Check className="h-3.5 w-3.5" />
+      <span className="mono-tag">DONE</span>
+    </Button>
+  );
 
   return (
     <div className="flex h-full flex-col">
-      <PanelHeader mode="edit" characterName={editCharacter.name} statusBadge={statusBadge} />
+      <PanelHeader
+        mode="edit"
+        characterName={editCharacter.name}
+        action={doneButton}
+      />
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="mx-auto max-w-4xl">
           <CharacterForm
+            ref={formRef}
             character={editCharacter}
-            onSubmit={(data) =>
-              editMutation.mutate(
-                { id: editCharacter.id, data },
-                { onSuccess: handleExit, onError: () => {} },
-              )
-            }
+            onSubmit={async (data) => {
+              await editMutation.mutateAsync({ id: editCharacter.id, data });
+              handleExit();
+            }}
             onCancel={handleExit}
             isSubmitting={editMutation.isPending}
-            onChange={(draft) => autosave.setLocal(draft)}
-            saveStatus={autosave.status}
           />
         </div>
       </div>

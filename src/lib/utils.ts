@@ -26,3 +26,7 @@ export const surfaceCard =
 /** Subtle accent bottom edge for an element */
 export const subtleEdge =
   'after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-ember/70 after:to-transparent after:opacity-0 hover:after:opacity-100 after:transition-opacity';
+
+export function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}

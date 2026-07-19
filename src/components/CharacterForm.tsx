@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo, forwardRef, useImperativeHandle, type DragEvent } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,10 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Camera, X, Loader2, Plus, GripVertical, Upload } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Camera, X, Loader2, Plus, GripVertical, Upload, RefreshCw } from 'lucide-react';
+import { cn, estimateTokens } from '@/lib/utils';
 import type { Character, CharacterCreateInput } from '@/shared/types/character';
-import type { AutoSaveStatus } from '@/hooks';
 
 type CharacterWithId = Character & { id: number };
 type FormTab = 'overview' | 'greetings' | 'prompts' | 'advanced';
@@ -24,8 +23,6 @@ interface CharacterFormProps {
   onSubmit: (data: CharacterCreateInput & { avatar?: string }) => void;
   onCancel: () => void;
   isSubmitting: boolean;
-  onChange?: (draft: CharacterCreateInput) => void;
-  saveStatus?: AutoSaveStatus;
 }
 
 type AssetEntry = { type: string; uri: string; name: string; ext: string };
@@ -80,14 +77,14 @@ function FieldLabel({
   );
 }
 
-export function CharacterForm({
-  character,
-  onSubmit,
-  onCancel,
-  isSubmitting,
-  onChange,
-  saveStatus,
-}: CharacterFormProps) {
+export interface CharacterFormHandle {
+  submit: () => void;
+}
+
+export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>(function CharacterForm(
+  { character, onSubmit, onCancel, isSubmitting },
+  ref,
+) {
   const isEdit = !!character;
 
   // ── Tab ────────────────────────────────────────────────
@@ -199,6 +196,24 @@ export function CharacterForm({
     setMultiLangNotes((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  const replaceNameWithMacro = useCallback(() => {
+    const charName = name.trim();
+    if (!charName) return;
+    const escaped = charName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(?<!\\{\\{)\\b${escaped}\\b(?!\\}\\})`, 'g');
+    const replacement = (prev: string) => prev.replace(regex, '{{char}}');
+    setDescription(replacement);
+    setPersonality(replacement);
+    setScenario(replacement);
+    setFirstMes(replacement);
+    setMesExample(replacement);
+    setCreatorNotes(replacement);
+    setSystemPrompt(replacement);
+    setPostHistoryInstructions(replacement);
+    setAlternateGreetings((prev) => prev.map(replacement));
+    setGroupOnlyGreetings((prev) => prev.map(replacement));
+  }, [name]);
+
   // ── Extensions ───────────────────────────────────────────
   const existingExtensions = character?.extensions as Record<string, unknown> | undefined;
   const existingDepthPrompt = existingExtensions?.depth_prompt as
@@ -282,9 +297,6 @@ export function CharacterForm({
   const nameError = touched.name && name.trim().length === 0;
   const firstMesError = touched.firstMes && firstMes.trim().length === 0;
 
-  // ── Autosave ─────────────────────────────────────────────
-  const autosaveActive = !!character && !!onChange;
-
   const buildDraft = useCallback((): CharacterCreateInput => {
     const tags = tagsInput
       .split(',')
@@ -297,6 +309,7 @@ export function CharacterForm({
         : undefined;
 
     const extensions: Record<string, unknown> = {
+      ...(existingExtensions ?? {}),
       talkativeness,
     };
     if (depthPrompt) extensions.depth_prompt = depthPrompt;
@@ -362,15 +375,6 @@ export function CharacterForm({
     character?.modification_date,
   ]);
 
-  const onChangeRef = useRef(onChange);
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  });
-  useEffect(() => {
-    if (!autosaveActive) return;
-    onChangeRef.current?.(buildDraft());
-  }, [autosaveActive, buildDraft]);
-
   // ── Submit ───────────────────────────────────────────────
   const handleSubmit = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -394,7 +398,25 @@ export function CharacterForm({
     [isEdit, name, firstMes, buildDraft, avatarDataUrl, onSubmit],
   );
 
+  useImperativeHandle(ref, () => ({
+    submit: () => {
+      handleSubmit({ preventDefault: () => {} } as React.MouseEvent<HTMLButtonElement>);
+    },
+  }), [handleSubmit]);
+
   const canSubmit = name.trim().length > 0 && firstMes.trim().length > 0 && !isSubmitting;
+
+  const totalTokens = useMemo(() => {
+    const allText = [
+      name, description, personality, scenario,
+      firstMes, mesExample, creatorNotes,
+      systemPrompt, postHistoryInstructions,
+      nickname, creator, characterVersion,
+      ...alternateGreetings,
+      ...groupOnlyGreetings,
+    ].join(' ');
+    return estimateTokens(allText);
+  }, [name, description, personality, scenario, firstMes, mesExample, creatorNotes, systemPrompt, postHistoryInstructions, nickname, creator, characterVersion, alternateGreetings, groupOnlyGreetings]);
 
   // ── Tab definitions ─────────────────────────────────────
   const TABS: Array<{ key: FormTab; label: string }> = [
@@ -467,17 +489,10 @@ export function CharacterForm({
               Clear
             </Button>
           )}
-          {isEdit && autosaveActive && saveStatus && saveStatus !== 'idle' && (
-            <span
-              className={cn(
-                'mono-tag text-[10px]',
-                saveStatus === 'error' ? 'text-destructive' : 'text-muted-foreground/40',
-              )}
-            >
-              {saveStatus}
-            </span>
-          )}
         </div>
+        <span className="mono-tag text-muted-foreground/40 text-[10px] tabular-nums">
+          ~{totalTokens.toLocaleString()} tokens
+        </span>
       </div>
 
       {/* ── Tab strip ────────────────────────────────────── */}
@@ -925,6 +940,32 @@ export function CharacterForm({
             </CardContent>
           </Card>
 
+          {/* Replace Name with {{char}} */}
+          <Card className="gap-4 py-4">
+            <CardHeader className="px-4">
+              <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
+                Macro Tools
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4">
+              <p className="text-muted-foreground mb-3 text-[13px] leading-snug">
+                Find every occurrence of this character&apos;s name in all fields and replace
+                it with <code className="bg-muted/50 rounded px-1 py-0.5 font-mono text-[12px]">{`{{char}}`}</code>.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={replaceNameWithMacro}
+                disabled={!name.trim()}
+                className="gap-1.5"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span className="mono-tag">REPLACE NAME WITH {`{{char}}`}</span>
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Source */}
           <Card className="gap-4 py-4">
             <CardHeader className="px-4">
@@ -1166,7 +1207,7 @@ export function CharacterForm({
         <Button variant="outline" type="button" onClick={onCancel}>
           Cancel
         </Button>
-        {isEdit && autosaveActive ? (
+        {isEdit ? (
           avatarDataUrl ? (
             <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? (
@@ -1194,4 +1235,4 @@ export function CharacterForm({
       </div>
     </form>
   );
-}
+});

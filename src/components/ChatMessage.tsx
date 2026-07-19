@@ -1,6 +1,6 @@
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import { cn } from '@/lib/utils';
-import { substituteMacros } from '@/lib/macros';
+import { substituteMacros, type MacroContext } from '@/lib/macros';
 import { renderMarkdown } from '@/lib/markdown';
 
 interface ChatMessageProps {
@@ -9,6 +9,14 @@ interface ChatMessageProps {
   characterAvatar?: string;
   userName?: string;
   characterName?: string;
+  description?: string;
+  personality?: string;
+  scenario?: string;
+  first_mes?: string;
+  mes_example?: string;
+  creator_notes?: string;
+  system_prompt?: string;
+  post_history_instructions?: string;
 }
 
 export function ChatMessage({
@@ -17,6 +25,14 @@ export function ChatMessage({
   characterAvatar,
   userName = 'User',
   characterName = 'Character',
+  description,
+  personality,
+  scenario,
+  first_mes,
+  mes_example,
+  creator_notes,
+  system_prompt,
+  post_history_instructions,
 }: ChatMessageProps) {
   const isUser = msg.is_user;
 
@@ -32,7 +48,18 @@ export function ChatMessage({
 
   const initial = msg.name && msg.name.length > 0 ? msg.name[0]!.toUpperCase() : '?';
 
-  const processedText = substituteMacros(msg.mes, { userName, characterName });
+  const processedText = substituteMacros(msg.mes, {
+    userName,
+    characterName,
+    description,
+    personality,
+    scenario,
+    first_mes,
+    mes_example,
+    creator_notes,
+    system_prompt,
+    post_history_instructions,
+  });
   const renderedContent = renderMarkdown(processedText);
 
   return (

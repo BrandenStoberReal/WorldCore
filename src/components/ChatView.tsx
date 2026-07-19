@@ -340,62 +340,12 @@ export function ChatView({ characterId }: ChatViewProps) {
       : []),
   ];
 
-  const msgCount = displayMessages.length;
-  const sessionLabel = activeChatId?.slice(0, 8) ?? '—';
-
   return (
     <div className="flex h-full flex-col">
       {/* Forge session header */}
       <header
-        className={cn(frostedGlass, 'z-10 flex h-14 shrink-0 items-center justify-between px-4')}
+        className={cn(frostedGlass, 'z-10 flex h-14 shrink-0 items-center justify-end px-4')}
       >
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="relative shrink-0">
-            <div className="border-border bg-muted/40 flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border">
-              <img
-                src={`/api/v1/characters/thumbnail?id=${characterId}`}
-                alt={character.name}
-                className="h-8 w-8 rounded-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            </div>
-            <span
-              aria-hidden
-              className="border-ember/40 pointer-events-none absolute -inset-[1.5px] rounded-full border"
-            />
-          </div>
-          <div className="min-w-0">
-            <div className="mb-0.5 flex items-center gap-2.5">
-              <span className="mono-tag text-ember">{`[01] — SESSION`}</span>
-              <span className="bg-ember/40 h-px w-8" />
-              <span className="mono-tag text-muted-foreground/45">{`{ ${sessionLabel} }`}</span>
-            </div>
-            <h3 className="display-host truncate text-[18px] leading-none tracking-tight">
-              {character.name}
-            </h3>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="mono-tag text-muted-foreground/55 tabular-nums">
-                {String(msgCount).padStart(2, '0')} msgs
-              </span>
-              {isGenerating && (
-                <>
-                  <span className="bg-border h-px w-3" />
-                  <span className="inline-flex items-center gap-1">
-                    <span className="dot-hot" aria-hidden>
-                      <span />
-                      <span />
-                      <span />
-                    </span>
-                    <span className="mono-tag text-ember">generating</span>
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
         <Button
           variant="outline"
           size="sm"
@@ -419,6 +369,14 @@ export function ChatView({ characterId }: ChatViewProps) {
               characterAvatar={`/api/v1/characters/thumbnail?id=${characterId}`}
               userName={(settings?.chat_name_your_name as string) || 'User'}
               characterName={character.name}
+              description={character.description}
+              personality={character.personality}
+              scenario={character.scenario}
+              first_mes={character.first_mes}
+              mes_example={character.mes_example}
+              creator_notes={character.creator_notes}
+              system_prompt={character.system_prompt}
+              post_history_instructions={character.post_history_instructions}
             />
           ))}
           {isGenerating && !streamingContent && (

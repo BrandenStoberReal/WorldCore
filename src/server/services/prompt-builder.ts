@@ -2,6 +2,7 @@ import type { CharacterData } from '@/shared/types/character';
 import type { ChatMessage } from '@/shared/types/chat';
 import type { ChatCompletionMessage } from '@/shared/types/backends/chatcompletions';
 import { TiktokenTokenizer } from '@/server/tokenizers/tiktoken';
+import { substituteMacros, type MacroContext } from '@/lib/macros';
 
 interface CharacterBookEntry {
   id?: string | number;
@@ -65,6 +66,18 @@ export class PromptBuilder {
     } = params;
 
     const charName = character.name;
+    const macroCtx: MacroContext = {
+      userName,
+      characterName: charName,
+      description: character.description,
+      personality: character.personality,
+      scenario: character.scenario,
+      first_mes: character.first_mes,
+      mes_example: character.mes_example,
+      creator_notes: character.creator_notes,
+      system_prompt: character.system_prompt,
+      post_history_instructions: character.post_history_instructions,
+    };
     const messagesArray: ChatCompletionMessage[] = [];
 
     // 1. Add World Info before character definitions
@@ -72,7 +85,7 @@ export class PromptBuilder {
     if (worldInfoBefore) {
       messagesArray.push({
         role: 'system',
-        content: worldInfoBefore,
+        content: substituteMacros(worldInfoBefore, macroCtx),
       });
     }
 
@@ -81,7 +94,7 @@ export class PromptBuilder {
     if (mainPrompt) {
       messagesArray.push({
         role: 'system',
-        content: mainPrompt,
+        content: substituteMacros(mainPrompt, macroCtx),
       });
     }
 
@@ -90,7 +103,7 @@ export class PromptBuilder {
     if (worldInfoAfter) {
       messagesArray.push({
         role: 'system',
-        content: worldInfoAfter,
+        content: substituteMacros(worldInfoAfter, macroCtx),
       });
     }
 
@@ -98,7 +111,7 @@ export class PromptBuilder {
     if (character.description) {
       messagesArray.push({
         role: 'system',
-        content: `Description: ${character.description}`,
+        content: substituteMacros(`Description: ${character.description}`, macroCtx),
       });
     }
 
@@ -106,7 +119,7 @@ export class PromptBuilder {
     if (character.personality) {
       messagesArray.push({
         role: 'system',
-        content: `${charName}'s personality: ${character.personality}`,
+        content: substituteMacros(`${charName}'s personality: ${character.personality}`, macroCtx),
       });
     }
 
@@ -114,7 +127,7 @@ export class PromptBuilder {
     if (character.scenario) {
       messagesArray.push({
         role: 'system',
-        content: `Scenario: ${character.scenario}`,
+        content: substituteMacros(`Scenario: ${character.scenario}`, macroCtx),
       });
     }
 
@@ -123,18 +136,18 @@ export class PromptBuilder {
     if (systemPrompt) {
       messagesArray.push({
         role: 'system',
-        content: systemPrompt,
+        content: substituteMacros(systemPrompt, macroCtx),
       });
     }
 
     // 8. Add example messages (if enabled)
     if (includeExamples && character.mes_example) {
-      const exampleMessages = this.formatExampleMessages(character.mes_example, charName, userName);
+      const exampleMessages = this.formatExampleMessages(character.mes_example, charName, userName, macroCtx);
       messagesArray.push(...exampleMessages);
     }
 
     // 9. Add chat history
-    const historyMessages = this.formatChatHistory(messages, charName, userName);
+    const historyMessages = this.formatChatHistory(messages, charName, userName, macroCtx);
     messagesArray.push(...historyMessages);
 
     // 10. Add post-history instructions (jailbreak)
@@ -142,7 +155,7 @@ export class PromptBuilder {
     if (jailbreakPrompt) {
       messagesArray.push({
         role: 'system',
-        content: jailbreakPrompt,
+        content: substituteMacros(jailbreakPrompt, macroCtx),
       });
     }
 
@@ -240,7 +253,8 @@ export class PromptBuilder {
   private formatExampleMessages(
     mesExample: string,
     charName: string,
-    userName: string
+    userName: string,
+    macroCtx: MacroContext,
   ): ChatCompletionMessage[] {
     if (!mesExample) return [];
 
@@ -262,7 +276,7 @@ export class PromptBuilder {
           if (currentContent) {
             messages.push({
               role: currentRole,
-              content: currentContent.trim(),
+              content: substituteMacros(currentContent.trim(), macroCtx),
             });
           }
           currentRole = 'user';
@@ -272,7 +286,7 @@ export class PromptBuilder {
           if (currentContent) {
             messages.push({
               role: currentRole,
-              content: currentContent.trim(),
+              content: substituteMacros(currentContent.trim(), macroCtx),
             });
           }
           currentRole = 'assistant';
@@ -287,7 +301,7 @@ export class PromptBuilder {
       if (currentContent) {
         messages.push({
           role: currentRole,
-          content: currentContent.trim(),
+          content: substituteMacros(currentContent.trim(), macroCtx),
         });
       }
     }
@@ -301,11 +315,12 @@ export class PromptBuilder {
   private formatChatHistory(
     messages: ChatMessage[],
     charName: string,
-    userName: string
+    userName: string,
+    macroCtx: MacroContext,
   ): ChatCompletionMessage[] {
     return messages.map((msg) => ({
       role: msg.is_user ? 'user' : 'assistant',
-      content: msg.mes,
+      content: substituteMacros(msg.mes, macroCtx),
       name: msg.name,
     }));
   }

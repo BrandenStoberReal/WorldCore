@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Users, Loader2, Plus, Trash2, Upload, ArrowLeft, PencilLine } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { apiFetch, apiPost } from '@/lib/api';
+import { cn, estimateTokens } from '@/lib/utils';
+import { InlineEdit } from '@/components/InlineEdit';
+import { EditableTags } from '@/components/EditableTags';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { useChatStore } from '@/lib/stores';
@@ -122,6 +124,67 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
   /* ── derived list data ── */
   const filtered = characters?.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
   const sorted = filtered?.slice().sort((a, b) => a.name.localeCompare(b.name));
+
+  const infoTokens = useMemo(() => {
+    if (!infoCharacter) return 0;
+    const allText = [
+      infoCharacter.name,
+      infoCharacter.description ?? '',
+      infoCharacter.personality ?? '',
+      infoCharacter.scenario ?? '',
+      infoCharacter.first_mes ?? '',
+      infoCharacter.mes_example ?? '',
+      infoCharacter.creator_notes ?? '',
+      infoCharacter.system_prompt ?? '',
+      infoCharacter.post_history_instructions ?? '',
+      ...(infoCharacter.alternate_greetings ?? []),
+    ].join(' ');
+    return estimateTokens(allText);
+  }, [infoCharacter]);
+
+  /* ── query keys to invalidate after inline edits ── */
+  const infoInvalidateKeys = useMemo(
+    () => [
+      ['/api/v1/characters/get', selectedId],
+      ['/api/v1/characters/all'],
+    ],
+    [selectedId],
+  );
+
+  const activeChatId = useChatStore((s) => s.activeChatId);
+  const messages = useChatStore((s) => s.messages);
+  const setMessages = useChatStore((s) => s.setMessages);
+
+  const handleFirstMesSaved = useCallback(
+    async (newFirstMes: string) => {
+      if (!activeChatId || messages.length === 0) return;
+      const hasUserMessage = messages.some((m) => m.is_user);
+      if (hasUserMessage) return;
+
+      const first = messages[0];
+      if (!first) return;
+      const updatedFirstMsg = {
+        name: first.name,
+        is_user: first.is_user,
+        mes: newFirstMes,
+        send_date: new Date().toISOString(),
+        extra: first.extra ?? {},
+      };
+      setMessages([updatedFirstMsg, ...messages.slice(1)]);
+
+      try {
+        await apiPost('/chats/message', {
+          fileId: activeChatId,
+          action: 'edit',
+          index: 0,
+          updates: updatedFirstMsg,
+        });
+      } catch (err) {
+        console.error('Failed to update first message in chat:', err);
+      }
+    },
+    [activeChatId, messages, setMessages],
+  );
 
   /* ──────────────────────── LIST MODE ──────────────────────── */
   if (sidebarMode === 'list') {
@@ -342,50 +405,98 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
               />
             </div>
             <div className="flex flex-col items-center gap-0.5">
-              <h3 className="display-host text-[16px] leading-tight">{infoCharacter.name}</h3>
-              <span className="mono-tag text-foreground/35">
-                #{String(selectedId).padStart(4, '0')}
+              <InlineEdit
+                characterId={infoCharacter.id}
+                field="name"
+                value={infoCharacter.name}
+                invalidateKeys={infoInvalidateKeys}
+                heading
+                placeholder="character name"
+              />
+              <span className="mono-tag text-foreground/35 tabular-nums">
+                ~{infoTokens.toLocaleString()} tokens
               </span>
             </div>
           </div>
 
           {/* Tags */}
-          {infoCharacter.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 pb-3">
-              {infoCharacter.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="mono-tag bg-muted/50 border-border/60 text-foreground/65 rounded-sm border px-1.5 py-0.5"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
+          <div className="pb-3">
+            <EditableTags
+              characterId={infoCharacter.id}
+              tags={infoCharacter.tags}
+              invalidateKeys={infoInvalidateKeys}
+            />
+          </div>
 
           {/* Description */}
           <div className="pb-3">
-            {infoCharacter.description ? (
-              <p className="text-foreground/70 whitespace-pre-wrap break-words text-[12px] leading-relaxed line-clamp-6">
-                {infoCharacter.description}
-              </p>
-            ) : (
-              <p className="mono-tag text-muted-foreground/40 italic text-[11px]">no description</p>
-            )}
+            <InlineEdit
+              characterId={infoCharacter.id}
+              field="description"
+              value={infoCharacter.description}
+              invalidateKeys={infoInvalidateKeys}
+              multiline
+              placeholder="no description"
+            />
           </div>
 
-          {/* Creator notes preview (if present) */}
-          {infoCharacter.creator_notes && (
-            <div className="border-border/30 mb-3 border-t pt-2.5">
-              <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">notes</span>
-              <p className="text-foreground/55 whitespace-pre-wrap break-words text-[11px] leading-relaxed line-clamp-3">
-                {infoCharacter.creator_notes}
-              </p>
+          {/* Creator notes preview */}
+          <div className="border-border/30 mb-3 border-t pt-2.5">
+            <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">notes</span>
+            <InlineEdit
+              characterId={infoCharacter.id}
+              field="creator_notes"
+              value={infoCharacter.creator_notes}
+              invalidateKeys={infoInvalidateKeys}
+              multiline
+              placeholder="no notes"
+              className="line-clamp-3"
+            />
+          </div>
+
+          {/* Personality / Scenario */}
+          <div className="border-border/30 mb-3 border-t pt-2.5 space-y-2">
+            <div>
+              <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">personality</span>
+              <InlineEdit
+                characterId={infoCharacter.id}
+                field="personality"
+                value={infoCharacter.personality}
+                invalidateKeys={infoInvalidateKeys}
+                multiline
+                placeholder="no personality"
+              />
             </div>
-          )}
+            <div>
+              <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">scenario</span>
+              <InlineEdit
+                characterId={infoCharacter.id}
+                field="scenario"
+                value={infoCharacter.scenario}
+                invalidateKeys={infoInvalidateKeys}
+                multiline
+                placeholder="no scenario"
+              />
+            </div>
+          </div>
+
+          {/* First Message */}
+          <div className="border-border/30 mb-3 border-t pt-2.5">
+            <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">first message</span>
+            <InlineEdit
+              characterId={infoCharacter.id}
+              field="first_mes"
+              value={infoCharacter.first_mes}
+              invalidateKeys={infoInvalidateKeys}
+              multiline
+              placeholder="no first message"
+              className="line-clamp-4"
+              onSave={handleFirstMesSaved}
+            />
+          </div>
 
           {/* Stats row */}
-          <div className="flex flex-wrap gap-1.5 pb-3">
+          <div className="flex flex-wrap gap-1.5">
             {infoCharacter.creator && (
               <span className="mono-tag bg-muted/30 text-foreground/45 border-border/30 rounded-sm border px-1.5 py-0.5 text-[10px]">
                 {infoCharacter.creator}
@@ -400,14 +511,11 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
               {infoCharacter.tags.length} tags
             </span>
           </div>
-
-          {/* Spacer pushes buttons to bottom */}
-          <div className="min-h-2 flex-1" />
         </div>
       )}
 
-      {/* Footer — Edit + Back */}
-      <div className="border-border/40 flex flex-col gap-1.5 border-t px-2.5 py-2.5">
+      {/* Footer — Edit */}
+      <div className="border-border/40 border-t px-2.5 py-2.5">
         <Button
           variant="default"
           size="sm"
@@ -417,10 +525,6 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
         >
           <PencilLine className="h-3.5 w-3.5" />
           Edit
-        </Button>
-        <Button variant="outline" size="sm" onClick={handleBack} className="w-full">
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back
         </Button>
       </div>
     </div>
