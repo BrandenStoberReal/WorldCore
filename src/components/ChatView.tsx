@@ -354,7 +354,7 @@ export function ChatView({ characterId }: ChatViewProps) {
           className="h-7"
         >
           <MessageSquarePlus className="h-3 w-3" />
-          <span className="mono-tag">new session</span>
+          <span className="mono-tag">New Session</span>
         </Button>
       </header>
 
