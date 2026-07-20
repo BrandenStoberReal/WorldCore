@@ -1,6 +1,8 @@
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { Database } from 'bun:sqlite';
 import * as schema from './schema';
+import { loadAppConfig } from '../config';
+import { createJsonDb } from './json-adapter';
 
 const GLOBAL_DB_KEY = '__WorldCore_db__' as const;
 
@@ -12,10 +14,26 @@ export function createDb(path: string = ':memory:') {
   return drizzle(sqlite, { schema });
 }
 
-// Check for a test override set by the preload script.
-// In production the global is absent, so we create the real file-backed DB.
+function createDbForBackend() {
+  const cfg = loadAppConfig();
+  if (!cfg) return createDb('./data/WorldCore.sqlite');
+
+  switch (cfg.backend) {
+    case 'sqlite':
+      return createDb('./data/WorldCore.sqlite');
+    case 'mongodb':
+      throw new Error(
+        'MongoDB backend must be initialized asynchronously via createMongoDb() in app.ts.',
+      );
+    case 'jsonfiles':
+      return createJsonDb() as unknown as ReturnType<typeof createDb>;
+    default:
+      return createDb('./data/WorldCore.sqlite');
+  }
+}
+
 const g = globalThis as Record<string, unknown>;
-export const db =
-  (g[GLOBAL_DB_KEY] as ReturnType<typeof createDb>) ?? createDb('./data/WorldCore.sqlite');
+const testDb = g[GLOBAL_DB_KEY] as ReturnType<typeof createDb> | undefined;
+export const db = testDb ?? createDbForBackend();
 
 export { schema };

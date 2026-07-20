@@ -1,3 +1,4 @@
+import { onboardingRoutes } from './onboarding.routes';
 import { csrfRoutes } from './csrf.routes';
 import { usersPublicRoutes } from './users.public.routes';
 import { usersPrivateRoutes } from './users.private.routes';
@@ -46,6 +47,9 @@ export type RouteHandler = (req: Request, ctx?: unknown) => Promise<Response>;
 
 export function buildApiRoutes(): Record<string, RouteHandler> {
   const routes: Record<string, RouteHandler> = {};
+
+  routes[`${PREFIX}/onboarding/status`] = onboardingRoutes.status;
+  routes[`${PREFIX}/onboarding/complete`] = onboardingRoutes.complete;
 
   routes[`${PREFIX}/csrf-token`] = csrfRoutes.GET;
 

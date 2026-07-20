@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS `characters` (
+CREATE TABLE `characters` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
 	`avatar` text NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS `characters` (
 	`user_id` text DEFAULT 'default-user' NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `chats` (
+CREATE TABLE `chats` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`file_id` text NOT NULL,
 	`file_name` text NOT NULL,
@@ -32,8 +32,18 @@ CREATE TABLE IF NOT EXISTS `chats` (
 	FOREIGN KEY (`character_id`) REFERENCES `characters`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `chats_file_id_unique` ON `chats` (`file_id`);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `extensions` (
+CREATE UNIQUE INDEX `chats_file_id_unique` ON `chats` (`file_id`);--> statement-breakpoint
+CREATE TABLE `connection_profiles` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`name` text NOT NULL,
+	`data` text NOT NULL,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE TABLE `extensions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`version` text DEFAULT '' NOT NULL,
@@ -42,7 +52,7 @@ CREATE TABLE IF NOT EXISTS `extensions` (
 	`user_id` text DEFAULT 'default-user' NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `files` (
+CREATE TABLE `files` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`file_name` text NOT NULL,
 	`original_name` text NOT NULL,
@@ -53,7 +63,7 @@ CREATE TABLE IF NOT EXISTS `files` (
 	`uploaded_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `groups` (
+CREATE TABLE `groups` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`members` text DEFAULT '[]' NOT NULL,
@@ -75,7 +85,7 @@ CREATE TABLE IF NOT EXISTS `groups` (
 	`user_id` text DEFAULT 'default-user' NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `image_metadata` (
+CREATE TABLE `image_metadata` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`file_name` text NOT NULL,
 	`folder` text NOT NULL,
@@ -86,16 +96,16 @@ CREATE TABLE IF NOT EXISTS `image_metadata` (
 	`user_id` text DEFAULT 'default-user' NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `image_metadata_file_name_unique` ON `image_metadata` (`file_name`);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `moving_ui_state` (
+CREATE UNIQUE INDEX `image_metadata_file_name_unique` ON `image_metadata` (`file_name`);--> statement-breakpoint
+CREATE TABLE `moving_ui_state` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`user_id` text DEFAULT 'default-user' NOT NULL,
 	`data` text DEFAULT '{}' NOT NULL,
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `moving_ui_state_user_id_unique` ON `moving_ui_state` (`user_id`);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `presets` (
+CREATE UNIQUE INDEX `moving_ui_state_user_id_unique` ON `moving_ui_state` (`user_id`);--> statement-breakpoint
+CREATE TABLE `presets` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
 	`category` text NOT NULL,
@@ -103,14 +113,14 @@ CREATE TABLE IF NOT EXISTS `presets` (
 	`user_id` text DEFAULT 'default-user' NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `quick_replies` (
+CREATE TABLE `quick_replies` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
 	`data` text DEFAULT '{}' NOT NULL,
 	`user_id` text DEFAULT 'default-user' NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `secrets` (
+CREATE TABLE `secrets` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`key` text NOT NULL,
 	`value` text NOT NULL,
@@ -119,15 +129,15 @@ CREATE TABLE IF NOT EXISTS `secrets` (
 	`user_id` text DEFAULT 'default-user' NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `settings` (
+CREATE TABLE `settings` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`user_id` text DEFAULT 'default-user' NOT NULL,
 	`data` text DEFAULT '{}' NOT NULL,
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `settings_user_id_unique` ON `settings` (`user_id`);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `settings_snapshots` (
+CREATE UNIQUE INDEX `settings_user_id_unique` ON `settings` (`user_id`);--> statement-breakpoint
+CREATE TABLE `settings_snapshots` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`user_id` text DEFAULT 'default-user' NOT NULL,
@@ -135,7 +145,7 @@ CREATE TABLE IF NOT EXISTS `settings_snapshots` (
 	`created_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `stats` (
+CREATE TABLE `stats` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`user_id` text DEFAULT 'default-user' NOT NULL,
 	`key` text NOT NULL,
@@ -143,15 +153,15 @@ CREATE TABLE IF NOT EXISTS `stats` (
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `themes` (
+CREATE TABLE `themes` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
 	`data` text DEFAULT '{}' NOT NULL,
 	`user_id` text DEFAULT 'default-user' NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `themes_name_unique` ON `themes` (`name`);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `users` (
+CREATE UNIQUE INDEX `themes_name_unique` ON `themes` (`name`);--> statement-breakpoint
+CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
 	`handle` text NOT NULL,
 	`name` text NOT NULL,
@@ -162,8 +172,8 @@ CREATE TABLE IF NOT EXISTS `users` (
 	`created_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `users_handle_unique` ON `users` (`handle`);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `vector_stores` (
+CREATE UNIQUE INDEX `users_handle_unique` ON `users` (`handle`);--> statement-breakpoint
+CREATE TABLE `vector_stores` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`vector` blob NOT NULL,
@@ -171,7 +181,7 @@ CREATE TABLE IF NOT EXISTS `vector_stores` (
 	`user_id` text DEFAULT 'default-user' NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `worldinfo_entries` (
+CREATE TABLE `worldinfo_entries` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`file_id` integer,
 	`uid` text NOT NULL,
@@ -215,11 +225,11 @@ CREATE TABLE IF NOT EXISTS `worldinfo_entries` (
 	FOREIGN KEY (`file_id`) REFERENCES `worldinfo_files`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `worldinfo_files` (
+CREATE TABLE `worldinfo_files` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`file_name` text NOT NULL,
 	`name` text DEFAULT '' NOT NULL,
 	`user_id` text DEFAULT 'default-user' NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `worldinfo_files_file_name_unique` ON `worldinfo_files` (`file_name`);
+CREATE UNIQUE INDEX `worldinfo_files_file_name_unique` ON `worldinfo_files` (`file_name`);

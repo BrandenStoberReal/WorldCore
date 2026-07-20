@@ -1,24 +1,35 @@
 import { serve, type Server } from 'bun';
 import path from 'node:path';
+import { isOnboardingNeeded } from './config';
 import { buildApiRoutes } from './routes';
-import { ensureUserDirs } from './storage/paths';
-import { runMigrations } from './db/migrate';
 import { safePathWithin } from './util/safePath';
 import { securityHeaders } from './errors';
-import { startCharacterWatcher, stopCharacterWatcher } from './services/character-watcher';
 
-runMigrations();
-ensureUserDirs();
-startCharacterWatcher();
+const needsOnboarding = isOnboardingNeeded();
 
-const apiRoutes = buildApiRoutes();
+const PORT = Number(process.env.PORT ?? 3000);
+const HOST = process.env.HOST ?? '127.0.0.1';
 
 const distDir = path.join(process.cwd(), 'dist');
 const distHtml = Bun.file(path.join(distDir, 'index.html'));
 const htmlContent = await distHtml.text();
 
-const PORT = Number(process.env.PORT ?? 3000);
-const HOST = process.env.HOST ?? '127.0.0.1';
+const apiRoutes = buildApiRoutes();
+
+let stopWatcher: (() => Promise<void>) | null = null;
+
+if (!needsOnboarding) {
+  const { runMigrations } = await import('./db/migrate');
+  const { ensureUserDirs } = await import('./storage/paths');
+  const { startCharacterWatcher, stopCharacterWatcher } = await import(
+    './services/character-watcher'
+  );
+
+  runMigrations();
+  ensureUserDirs();
+  startCharacterWatcher();
+  stopWatcher = stopCharacterWatcher;
+}
 
 const server = serve({
   port: PORT,
@@ -71,19 +82,22 @@ const server = serve({
   },
 });
 
-console.log(`WorldCore running at ${server.url}`);
+if (needsOnboarding) {
+  console.log(`WorldCore running (onboarding mode) at ${server.url}`);
+} else {
+  console.log(`WorldCore running at ${server.url}`);
+}
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`[app] received ${signal}, shutting down...`);
-  await stopCharacterWatcher();
+  if (stopWatcher) await stopWatcher();
   server.stop();
   process.exit(0);
 }
 
-// Register signal handlers only once — survives bun --hot re-evaluation.
 const g = globalThis as Record<string, unknown>;
 if (!g.__app_shutdown_registered) {
   g.__app_shutdown_registered = true;

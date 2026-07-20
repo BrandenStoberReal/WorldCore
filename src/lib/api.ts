@@ -74,6 +74,20 @@ export async function savePreset(preset: Record<string, unknown>): Promise<unkno
   return await apiPost('/presets/save', { preset });
 }
 
+/** Check if onboarding is needed (first boot). */
+export async function checkOnboardingStatus(): Promise<boolean> {
+  const res = await apiFetch('/onboarding/status', { method: 'GET' });
+  return (res as { onboarding: boolean }).onboarding;
+}
+
+/** Complete onboarding with the selected backend configuration. */
+export async function completeOnboarding(config: {
+  backend: 'sqlite' | 'mongodb' | 'jsonfiles';
+  mongodbUri?: string;
+}): Promise<void> {
+  await apiPost('/onboarding/complete', config);
+}
+
 export interface StreamChatRequest {
   chat_completion_source: string;
   model: string;
