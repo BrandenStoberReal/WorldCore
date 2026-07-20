@@ -7,13 +7,15 @@ import { z } from 'zod';
 
 const PromptBuildRequestSchema = z.object({
   characterId: z.number(),
-  messages: z.array(z.object({
-    name: z.string(),
-    is_user: z.boolean(),
-    mes: z.string(),
-    send_date: z.string().optional(),
-    extra: z.record(z.unknown()).optional(),
-  })),
+  messages: z.array(
+    z.object({
+      name: z.string(),
+      is_user: z.boolean(),
+      mes: z.string(),
+      send_date: z.string().optional(),
+      extra: z.record(z.unknown()).optional(),
+    }),
+  ),
   userName: z.string().default('User'),
   systemPromptOverride: z.string().optional(),
   jailbreakPromptOverride: z.string().optional(),
@@ -35,7 +37,7 @@ export const promptBuilderRoutes = {
         });
       }
 
-      const worldInfoEntries = character.character_book?.entries 
+      const worldInfoEntries = character.character_book?.entries
         ? Object.values(character.character_book.entries)
         : [];
 

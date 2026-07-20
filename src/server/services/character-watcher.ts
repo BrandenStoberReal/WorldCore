@@ -127,7 +127,9 @@ async function handleDeletion(absPath: string): Promise<void> {
     return;
   }
   if (deleted) {
-    console.log(`[character-watcher] cleaned up DB row for removed file "${fileName}" (user=${userId})`);
+    console.log(
+      `[character-watcher] cleaned up DB row for removed file "${fileName}" (user=${userId})`,
+    );
   }
   // If `deleted` is false, the file had no DB row (plain PNG ante-import temp,
   // or an orphan the user just removed via the Settings panel). Silent skip.
@@ -223,7 +225,10 @@ async function cleanupReverseOrphans(): Promise<void> {
         .from(characters)
         .where(eq(characters.userId, userId));
     } catch (err) {
-      console.error(`[character-watcher] reverse-orphans: failed to query rows for ${userId}:`, err);
+      console.error(
+        `[character-watcher] reverse-orphans: failed to query rows for ${userId}:`,
+        err,
+      );
       continue;
     }
 
@@ -236,10 +241,15 @@ async function cleanupReverseOrphans(): Promise<void> {
         try {
           const deleted = await characterService.deleteByFileNameIfExists(row.fileName, userId);
           if (deleted) {
-            console.log(`[character-watcher] cleaned up DB row for missing file "${row.fileName}" (user=${userId})`);
+            console.log(
+              `[character-watcher] cleaned up DB row for missing file "${row.fileName}" (user=${userId})`,
+            );
           }
         } catch (err) {
-          console.error(`[character-watcher] reverse-orphans: failed to clean up ${row.fileName} for ${userId}:`, err);
+          console.error(
+            `[character-watcher] reverse-orphans: failed to clean up ${row.fileName} for ${userId}:`,
+            err,
+          );
         }
       }
     }

@@ -296,11 +296,7 @@ export class ChatService {
     return fileId;
   }
 
-  async saveGroupMessage(
-    userId: string,
-    groupId: string,
-    message: ChatMessage,
-  ): Promise<void> {
+  async saveGroupMessage(userId: string, groupId: string, message: ChatMessage): Promise<void> {
     const groupChat = await db
       .select()
       .from(chats)

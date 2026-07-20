@@ -28,16 +28,16 @@ server/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Add API route | `routes/<name>.routes.ts` + edit `routes/index.ts` | 40 manual registrations |
-| Add service | `services/<name>.service.ts` | Business logic, calls db/storage |
-| Add middleware | `middleware/<name>.ts` | Call inside route handlers, not global |
-| Add auth check | `middleware/auth.ts` | `requireAuth(req)` returns session |
-| Add user scoping | `middleware/withUserId.ts` | `withUserId(req, handler)` HOF |
-| Add DB table | `db/schema.ts` | Drizzle ORM, then `db:generate` |
-| Add LLM adapter | `backends/` | See backends/AGENTS.md |
-| Add importer/exporter | `importers/` or `exporters/` | Character format conversion |
+| Task                  | File                                               | Notes                                  |
+| --------------------- | -------------------------------------------------- | -------------------------------------- |
+| Add API route         | `routes/<name>.routes.ts` + edit `routes/index.ts` | 40 manual registrations                |
+| Add service           | `services/<name>.service.ts`                       | Business logic, calls db/storage       |
+| Add middleware        | `middleware/<name>.ts`                             | Call inside route handlers, not global |
+| Add auth check        | `middleware/auth.ts`                               | `requireAuth(req)` returns session     |
+| Add user scoping      | `middleware/withUserId.ts`                         | `withUserId(req, handler)` HOF         |
+| Add DB table          | `db/schema.ts`                                     | Drizzle ORM, then `db:generate`        |
+| Add LLM adapter       | `backends/`                                        | See backends/AGENTS.md                 |
+| Add importer/exporter | `importers/` or `exporters/`                       | Character format conversion            |
 
 ## CONVENTIONS
 

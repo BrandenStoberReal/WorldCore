@@ -169,8 +169,10 @@ export function InlineEdit({
       {heading ? (
         <span className="display-host text-[16px] leading-tight">{value || placeholder}</span>
       ) : (
-        <span className="text-foreground/70 whitespace-pre-wrap break-words text-[12px] leading-relaxed">
-          {value || <span className="text-muted-foreground/40 italic text-[11px]">{placeholder}</span>}
+        <span className="text-foreground/70 text-[12px] leading-relaxed break-words whitespace-pre-wrap">
+          {value || (
+            <span className="text-muted-foreground/40 text-[11px] italic">{placeholder}</span>
+          )}
         </span>
       )}
       <Pencil className="text-foreground/0 group-hover/inline:text-foreground/30 h-2.5 w-2.5 shrink-0 transition-colors" />

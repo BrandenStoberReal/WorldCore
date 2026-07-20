@@ -21,9 +21,8 @@ let stopWatcher: (() => Promise<void>) | null = null;
 if (!needsOnboarding) {
   const { runMigrations } = await import('./db/migrate');
   const { ensureUserDirs } = await import('./storage/paths');
-  const { startCharacterWatcher, stopCharacterWatcher } = await import(
-    './services/character-watcher'
-  );
+  const { startCharacterWatcher, stopCharacterWatcher } =
+    await import('./services/character-watcher');
 
   runMigrations();
   ensureUserDirs();

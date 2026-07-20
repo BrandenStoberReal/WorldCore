@@ -29,18 +29,18 @@ slopforge/
 
 ## WHERE TO LOOK
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Add API route | `src/server/routes/` + register in `routes/index.ts` | 40 manual registrations, no auto-discovery |
-| Add LLM backend | `src/server/backends/chat-completions/` or `text-completions/` | Adapter pattern per provider |
-| Add Zod schema | `src/shared/schemas/` | Derive TS type → `src/shared/types/` |
-| Add React component | `src/components/` | shadcn primitives in `ui/` |
-| Add page panel | `src/panels/` | Drawer-based nav, not React Router |
-| Add autosave | `src/hooks/useDebouncedAutoSave.ts` | See autosave rules below |
-| Add middleware | `src/server/middleware/` | Called inside route handlers, not global |
-| Modify auth | `src/server/auth/` | Session HMAC, `withUserId` HOF |
-| Modify DB schema | `src/server/db/schema.ts` | Drizzle ORM, SQLite |
-| Add test | `src/<domain>/__tests__/` or `tests/` | Bun test runner, no mocking library |
+| Task                | Location                                                       | Notes                                      |
+| ------------------- | -------------------------------------------------------------- | ------------------------------------------ |
+| Add API route       | `src/server/routes/` + register in `routes/index.ts`           | 40 manual registrations, no auto-discovery |
+| Add LLM backend     | `src/server/backends/chat-completions/` or `text-completions/` | Adapter pattern per provider               |
+| Add Zod schema      | `src/shared/schemas/`                                          | Derive TS type → `src/shared/types/`       |
+| Add React component | `src/components/`                                              | shadcn primitives in `ui/`                 |
+| Add page panel      | `src/panels/`                                                  | Drawer-based nav, not React Router         |
+| Add autosave        | `src/hooks/useDebouncedAutoSave.ts`                            | See autosave rules below                   |
+| Add middleware      | `src/server/middleware/`                                       | Called inside route handlers, not global   |
+| Modify auth         | `src/server/auth/`                                             | Session HMAC, `withUserId` HOF             |
+| Modify DB schema    | `src/server/db/schema.ts`                                      | Drizzle ORM, SQLite                        |
+| Add test            | `src/<domain>/__tests__/` or `tests/`                          | Bun test runner, no mocking library        |
 
 ## CONVENTIONS
 

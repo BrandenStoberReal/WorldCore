@@ -276,7 +276,10 @@ function docToRow(doc: Document): any {
 }
 
 /** Prepare an insert/update values object for MongoDB storage. */
-function prepareForStorage(values: Record<string, any>, pkField: string): {
+function prepareForStorage(
+  values: Record<string, any>,
+  pkField: string,
+): {
   doc: Document;
   pkValue: any;
 } {
@@ -307,10 +310,7 @@ function buildSort(sortSpecs: SortSpec[], pkField: string): Document {
 }
 
 /** Build a MongoDB projection from selected column keys. */
-function buildProjection(
-  selectedKeys: string[] | null,
-  pkField: string,
-): Document | null {
+function buildProjection(selectedKeys: string[] | null, pkField: string): Document | null {
   if (!selectedKeys) return null; // no projection — return all fields
 
   const projection: Document = {};

@@ -68,9 +68,7 @@ export function ChatMessage({
       <div
         className={cn(
           'flex items-center gap-2 border-b px-3 py-1.5',
-          isUser
-            ? 'border-ember/20 bg-ember/5'
-            : 'border-border bg-muted/20',
+          isUser ? 'border-ember/20 bg-ember/5' : 'border-border bg-muted/20',
         )}
       >
         {/* Avatar */}
@@ -115,12 +113,7 @@ export function ChatMessage({
           >
             {String(index + 1).padStart(3, '0')}
           </span>
-          <span
-            className={cn(
-              'mono-tag',
-              isUser ? 'text-ember/40' : 'text-muted-foreground/35',
-            )}
-          >
+          <span className={cn('mono-tag', isUser ? 'text-ember/40' : 'text-muted-foreground/35')}>
             {isUser ? 'YOU' : 'AI'}
           </span>
         </div>
@@ -130,9 +123,7 @@ export function ChatMessage({
       <div
         className={cn(
           'mes_text relative px-4 py-3 text-[13.5px] leading-relaxed break-words',
-          isUser
-            ? 'bg-ember/5 text-foreground'
-            : 'bg-transparent text-foreground/90',
+          isUser ? 'bg-ember/5 text-foreground' : 'text-foreground/90 bg-transparent',
         )}
       >
         {renderedContent}

@@ -30,13 +30,13 @@ shared/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Add entity schema | `schemas/<entity>.ts` | Define Zod schema |
-| Add entity type | `types/<entity>.ts` | `z.infer<typeof Schema>` |
-| Add backend schema | `schemas/backends/<provider>.ts` | OpenAI, Anthropic, etc. |
-| Add backend type | `types/backends/<provider>.ts` | Derived from backend schema |
-| Add constant | `constants.ts` | Shared across server/client |
+| Task               | File                             | Notes                       |
+| ------------------ | -------------------------------- | --------------------------- |
+| Add entity schema  | `schemas/<entity>.ts`            | Define Zod schema           |
+| Add entity type    | `types/<entity>.ts`              | `z.infer<typeof Schema>`    |
+| Add backend schema | `schemas/backends/<provider>.ts` | OpenAI, Anthropic, etc.     |
+| Add backend type   | `types/backends/<provider>.ts`   | Derived from backend schema |
+| Add constant       | `constants.ts`                   | Shared across server/client |
 
 ## ANTI-PATTERNS
 

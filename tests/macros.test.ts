@@ -59,9 +59,7 @@ describe('substituteMacros', () => {
   });
 
   it('substitutes chained macros in the same string', () => {
-    expect(substituteMacros('{{user}} {{user}} {{char}}', ctx)).toBe(
-      'Alice Alice Bob',
-    );
+    expect(substituteMacros('{{user}} {{user}} {{char}}', ctx)).toBe('Alice Alice Bob');
   });
 
   it('substitutes macros embedded in regular text', () => {

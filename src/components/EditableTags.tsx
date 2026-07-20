@@ -13,11 +13,7 @@ interface EditableTagsProps {
   invalidateKeys?: Array<unknown[]>;
 }
 
-export function EditableTags({
-  characterId,
-  tags,
-  invalidateKeys = [],
-}: EditableTagsProps) {
+export function EditableTags({ characterId, tags, invalidateKeys = [] }: EditableTagsProps) {
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [newTag, setNewTag] = useState('');
@@ -115,7 +111,7 @@ export function EditableTags({
             className={cn(
               'text-foreground/30 hover:text-destructive rounded-sm transition-colors',
               'opacity-0 group-hover/tag:opacity-100',
-              'disabled:opacity-50 disabled:pointer-events-none',
+              'disabled:pointer-events-none disabled:opacity-50',
             )}
           >
             {isSaving ? (
@@ -137,7 +133,7 @@ export function EditableTags({
             onKeyDown={handleTagKeyDown}
             onBlur={addTag}
             placeholder="tag name"
-            className="bg-transparent text-foreground/80 w-16 outline-none text-[10px]"
+            className="text-foreground/80 w-16 bg-transparent text-[10px] outline-none"
           />
         </span>
       ) : (
@@ -150,7 +146,7 @@ export function EditableTags({
           className={cn(
             'mono-tag bg-muted/30 border-border/30 text-foreground/30 hover:text-ember hover:border-ember/30',
             'inline-flex items-center gap-0.5 rounded-sm border px-1.5 py-0.5 transition-colors',
-            'disabled:opacity-50 disabled:pointer-events-none',
+            'disabled:pointer-events-none disabled:opacity-50',
           )}
         >
           <Plus className="h-2 w-2" strokeWidth={2.5} />

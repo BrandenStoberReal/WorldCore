@@ -136,7 +136,8 @@ export function SettingsPanel() {
                 Character files
               </CardTitle>
               <p className="text-muted-foreground mt-1 text-[12px] leading-snug">
-                PNG files in your character folder that no character card in the database references.
+                PNG files in your character folder that no character card in the database
+                references.
               </p>
             </div>
             <Button
@@ -151,9 +152,7 @@ export function SettingsPanel() {
               ) : (
                 <Search className="h-3.5 w-3.5" />
               )}
-              <span className="mono-tag">
-                {scanQuery.isFetching ? 'SCANNING…' : 'SCAN FOLDER'}
-              </span>
+              <span className="mono-tag">{scanQuery.isFetching ? 'SCANNING…' : 'SCAN FOLDER'}</span>
             </Button>
           </div>
         </CardHeader>
@@ -171,9 +170,7 @@ export function SettingsPanel() {
           {scanQuery.error && (
             <div className="border-destructive/40 bg-destructive/5 rounded-sm border p-3">
               <span className="mono-tag text-destructive">error</span>
-              <p className="text-muted-foreground mt-1 text-[12px]">
-                {scanQuery.error.message}
-              </p>
+              <p className="text-muted-foreground mt-1 text-[12px]">{scanQuery.error.message}</p>
             </div>
           )}
 
@@ -222,7 +219,7 @@ export function SettingsPanel() {
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleAll}
-                  className={cn('h-3.5 w-3.5 rounded-sm border-border accent-ember')}
+                  className={cn('border-border accent-ember h-3.5 w-3.5 rounded-sm')}
                 />
                 <span className="mono-tag text-muted-foreground/55">
                   {allSelected ? 'deselect all' : 'select all'}
@@ -235,13 +232,13 @@ export function SettingsPanel() {
               {orphans.map((orphan) => (
                 <label
                   key={orphan.absolutePath}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-sm px-1 py-1.5 transition-colors hover:bg-accent/20"
+                  className="hover:bg-accent/20 flex cursor-pointer items-center gap-2.5 rounded-sm px-1 py-1.5 transition-colors"
                 >
                   <input
                     type="checkbox"
                     checked={selected.has(orphan.absolutePath)}
                     onChange={() => toggleSelect(orphan.absolutePath)}
-                    className={cn('h-3.5 w-3.5 rounded-sm border-border accent-ember')}
+                    className={cn('border-border accent-ember h-3.5 w-3.5 rounded-sm')}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -274,9 +271,7 @@ export function SettingsPanel() {
                   className="h-8"
                 >
                   <FileX className="h-3.5 w-3.5" />
-                  <span className="mono-tag font-bold">
-                    DELETE SELECTED ({selected.size})
-                  </span>
+                  <span className="mono-tag font-bold">DELETE SELECTED ({selected.size})</span>
                 </Button>
               </div>
             </>

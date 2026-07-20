@@ -343,9 +343,7 @@ export function ChatView({ characterId }: ChatViewProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Forge session header */}
-      <header
-        className={cn(frostedGlass, 'z-10 flex h-14 shrink-0 items-center justify-end px-4')}
-      >
+      <header className={cn(frostedGlass, 'z-10 flex h-14 shrink-0 items-center justify-end px-4')}>
         <Button
           variant="outline"
           size="sm"
@@ -388,7 +386,7 @@ export function ChatView({ characterId }: ChatViewProps) {
                   <span />
                 </span>
               </div>
-              <div className="bg-card border-border shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)] flex items-center gap-2 rounded-sm border px-2.5 py-1.5">
+              <div className="bg-card border-border flex items-center gap-2 rounded-sm border px-2.5 py-1.5 shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)]">
                 <Loader2 className="text-ember h-3 w-3 animate-spin" />
                 <span className="mono-tag text-muted-foreground/65">stoking the engine</span>
               </div>

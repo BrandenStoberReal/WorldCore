@@ -60,12 +60,12 @@ routes/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Add new route | `<domain>.routes.ts` + edit `index.ts` | 40 manual registrations |
-| Add route test | `__tests__/<domain>.test.ts` | Direct `new Request()` construction |
-| Modify auth | See `middleware/auth.ts` | Called inside handlers |
-| Add user scoping | See `middleware/withUserId.ts` | Character routes only |
+| Task             | File                                   | Notes                               |
+| ---------------- | -------------------------------------- | ----------------------------------- |
+| Add new route    | `<domain>.routes.ts` + edit `index.ts` | 40 manual registrations             |
+| Add route test   | `__tests__/<domain>.test.ts`           | Direct `new Request()` construction |
+| Modify auth      | See `middleware/auth.ts`               | Called inside handlers              |
+| Add user scoping | See `middleware/withUserId.ts`         | Character routes only               |
 
 ## ANTI-PATTERNS
 

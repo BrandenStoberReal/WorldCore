@@ -39,7 +39,10 @@ export class CharacterFolderService {
     }
 
     const pngFiles = entries.filter(
-      (e) => e.isFile() && e.name.toLowerCase().endsWith('.png'),
+      (e) =>
+        e.isFile() &&
+        e.name.toLowerCase().endsWith('.png') &&
+        !e.name.toLowerCase().startsWith('thumb_'),
     );
 
     // Targeted column select — do NOT use getAll(userId) / getAll(userId, true)

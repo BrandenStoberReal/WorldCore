@@ -42,9 +42,7 @@ function PanelHeader({
           )}
         </h2>
       </div>
-      <div className="flex items-center gap-2">
-        {action}
-      </div>
+      <div className="flex items-center gap-2">{action}</div>
     </header>
   );
 }
@@ -153,11 +151,7 @@ function EditMode({ characterId }: { characterId: number }) {
 
   return (
     <div className="flex h-full flex-col">
-      <PanelHeader
-        mode="edit"
-        characterName={editCharacter.name}
-        action={doneButton}
-      />
+      <PanelHeader mode="edit" characterName={editCharacter.name} action={doneButton} />
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="mx-auto max-w-4xl">
           <CharacterForm

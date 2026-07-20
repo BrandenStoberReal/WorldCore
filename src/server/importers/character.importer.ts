@@ -26,7 +26,12 @@ function normalizeToV3(raw: Record<string, unknown>): Record<string, unknown> {
   // chara_card_v2 spec nests character fields inside a `data` key.
   // Flatten them to the top level so the rest of the pipeline sees a
   // consistent flat structure.
-  if (data.spec && typeof data.data === 'object' && data.data !== null && !Array.isArray(data.data)) {
+  if (
+    data.spec &&
+    typeof data.data === 'object' &&
+    data.data !== null &&
+    !Array.isArray(data.data)
+  ) {
     const nested = data.data as Record<string, unknown>;
     for (const [key, value] of Object.entries(nested)) {
       if (data[key] === undefined || data[key] === null) {

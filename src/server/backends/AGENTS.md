@@ -48,12 +48,12 @@ backends/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Add chat provider | `chat-completions/<provider>.adapter.ts` | Implement adapter interface |
-| Add text provider | `text-completions/<provider>.adapter.ts` | Implement adapter interface |
-| Add provider schema | `@/shared/schemas/backends/<provider>.ts` | Zod schema for config |
-| Add provider type | `@/shared/types/backends/<provider>.ts` | Derived type |
+| Task                | File                                      | Notes                       |
+| ------------------- | ----------------------------------------- | --------------------------- |
+| Add chat provider   | `chat-completions/<provider>.adapter.ts`  | Implement adapter interface |
+| Add text provider   | `text-completions/<provider>.adapter.ts`  | Implement adapter interface |
+| Add provider schema | `@/shared/schemas/backends/<provider>.ts` | Zod schema for config       |
+| Add provider type   | `@/shared/types/backends/<provider>.ts`   | Derived type                |
 
 ## ANTI-PATTERNS
 

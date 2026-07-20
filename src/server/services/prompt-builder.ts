@@ -142,7 +142,12 @@ export class PromptBuilder {
 
     // 8. Add example messages (if enabled)
     if (includeExamples && character.mes_example) {
-      const exampleMessages = this.formatExampleMessages(character.mes_example, charName, userName, macroCtx);
+      const exampleMessages = this.formatExampleMessages(
+        character.mes_example,
+        charName,
+        userName,
+        macroCtx,
+      );
       messagesArray.push(...exampleMessages);
     }
 
@@ -174,7 +179,7 @@ export class PromptBuilder {
   private getWorldInfoBefore(entries: CharacterBookEntry[], messages: ChatMessage[]): string {
     const activatedEntries = this.getActivatedEntries(entries, messages);
     const beforeEntries = activatedEntries.filter(
-      (entry) => entry.position === 'before_char' || entry.position === 0
+      (entry) => entry.position === 'before_char' || entry.position === 0,
     );
 
     if (beforeEntries.length === 0) return '';
@@ -192,7 +197,7 @@ export class PromptBuilder {
   private getWorldInfoAfter(entries: CharacterBookEntry[], messages: ChatMessage[]): string {
     const activatedEntries = this.getActivatedEntries(entries, messages);
     const afterEntries = activatedEntries.filter(
-      (entry) => entry.position === 'after_char' || entry.position === 1
+      (entry) => entry.position === 'after_char' || entry.position === 1,
     );
 
     if (afterEntries.length === 0) return '';
@@ -207,10 +212,16 @@ export class PromptBuilder {
    * Get World Info entries that are activated by the current chat context.
    * Scans messages for matching keys.
    */
-  private getActivatedEntries(entries: CharacterBookEntry[], messages: ChatMessage[]): CharacterBookEntry[] {
+  private getActivatedEntries(
+    entries: CharacterBookEntry[],
+    messages: ChatMessage[],
+  ): CharacterBookEntry[] {
     const scanDepth = 10;
     const recentMessages = messages.slice(-scanDepth);
-    const chatText = recentMessages.map((m) => m.mes).join('\n').toLowerCase();
+    const chatText = recentMessages
+      .map((m) => m.mes)
+      .join('\n')
+      .toLowerCase();
 
     return entries.filter((entry) => {
       if (!entry.enabled) return false;
@@ -218,13 +229,11 @@ export class PromptBuilder {
 
       const keys = entry.keys;
       if (!keys || keys.length === 0) return false;
-      
+
       const keyMatch = keys.some((key) => {
         if (!key) return false;
         const keyLower = key.toLowerCase();
-        return entry.case_sensitive
-          ? chatText.includes(keyLower)
-          : chatText.includes(keyLower);
+        return entry.case_sensitive ? chatText.includes(keyLower) : chatText.includes(keyLower);
       });
 
       if (!keyMatch) return false;

@@ -60,18 +60,12 @@ function isSql(obj: unknown): obj is SqlChunk {
 }
 
 function isParam(obj: unknown): obj is ParamChunk {
-  return (
-    obj !== null && typeof obj === 'object' && 'value' in obj && 'encoder' in obj
-  );
+  return obj !== null && typeof obj === 'object' && 'value' in obj && 'encoder' in obj;
 }
 
 function isColumn(obj: unknown): obj is ColumnChunk {
   return (
-    obj !== null &&
-    typeof obj === 'object' &&
-    'name' in obj &&
-    'table' in obj &&
-    'dataType' in obj
+    obj !== null && typeof obj === 'object' && 'name' in obj && 'table' in obj && 'dataType' in obj
   );
 }
 
@@ -94,9 +88,7 @@ function isStringChunk(obj: unknown): obj is StringChunk {
 /** Get the SQL table name from a Drizzle table object. */
 function getTableName(table: unknown): string {
   const t = table as Record<string | symbol, unknown>;
-  const sym = Object.getOwnPropertySymbols(t).find((s) =>
-    s.toString().includes('Name'),
-  );
+  const sym = Object.getOwnPropertySymbols(t).find((s) => s.toString().includes('Name'));
   if (sym) return String(t[sym]);
   // Fallback – shouldn't happen with proper Drizzle tables
   return (table as { name?: string }).name ?? 'unknown';
@@ -121,10 +113,7 @@ function buildColumnMap(table: unknown): ColumnLookup {
 }
 
 /** Resolve a Drizzle Column chunk to its JS property name. */
-function resolveJsKey(
-  column: ColumnChunk,
-  columnMap: ColumnLookup,
-): string {
+function resolveJsKey(column: ColumnChunk, columnMap: ColumnLookup): string {
   const meta = columnMap.get(column);
   if (meta) return meta.jsKey;
   // Fallback: look up by DB name
@@ -184,29 +173,13 @@ function evaluateCondition(
     if (isStringChunk(chunk)) {
       const val = chunk.value.join('');
       if (val === ' and ') {
-        const left = evaluateCondition(
-          { queryChunks: chunks.slice(0, i) },
-          row,
-          columnMap,
-        );
-        const right = evaluateCondition(
-          { queryChunks: chunks.slice(i + 1) },
-          row,
-          columnMap,
-        );
+        const left = evaluateCondition({ queryChunks: chunks.slice(0, i) }, row, columnMap);
+        const right = evaluateCondition({ queryChunks: chunks.slice(i + 1) }, row, columnMap);
         return left && right;
       }
       if (val === ' or ') {
-        const left = evaluateCondition(
-          { queryChunks: chunks.slice(0, i) },
-          row,
-          columnMap,
-        );
-        const right = evaluateCondition(
-          { queryChunks: chunks.slice(i + 1) },
-          row,
-          columnMap,
-        );
+        const left = evaluateCondition({ queryChunks: chunks.slice(0, i) }, row, columnMap);
+        const right = evaluateCondition({ queryChunks: chunks.slice(i + 1) }, row, columnMap);
         return left || right;
       }
     }
@@ -270,9 +243,7 @@ function evaluateComparison(
     case 'LIKE':
     case 'like': {
       if (typeof rowVal !== 'string' || typeof value !== 'string') return false;
-      const pattern = (value as string)
-        .replace(/%/g, '.*')
-        .replace(/_/g, '.');
+      const pattern = (value as string).replace(/%/g, '.*').replace(/_/g, '.');
       return new RegExp(`^${pattern}$`, 'i').test(rowVal);
     }
     default:
@@ -289,10 +260,7 @@ interface OrderBySpec {
   direction: 'asc' | 'desc';
 }
 
-function parseOrderByExpression(
-  expr: unknown,
-  columnMap: ColumnLookup,
-): OrderBySpec | null {
+function parseOrderByExpression(expr: unknown, columnMap: ColumnLookup): OrderBySpec | null {
   if (!isSql(expr)) return null;
   const chunks = expr.queryChunks;
 
@@ -339,10 +307,7 @@ function readTableData(tableName: string): Record<string, unknown>[] {
   }
 }
 
-function writeTableData(
-  tableName: string,
-  rows: Record<string, unknown>[],
-): void {
+function writeTableData(tableName: string, rows: Record<string, unknown>[]): void {
   ensureStoreDir();
   const fp = filePathFor(tableName);
   const tmp = `${fp}.tmp.${Date.now()}.${Math.random().toString(36).slice(2, 8)}`;
@@ -356,10 +321,7 @@ function writeTableData(
 
 const lockQueues = new Map<string, Promise<unknown>>();
 
-async function withTableLock<T>(
-  tableName: string,
-  fn: () => T | Promise<T>,
-): Promise<T> {
+async function withTableLock<T>(tableName: string, fn: () => T | Promise<T>): Promise<T> {
   const prev = lockQueues.get(tableName) ?? Promise.resolve();
   let release!: () => void;
   const current = new Promise<void>((r) => {
@@ -383,10 +345,7 @@ async function withTableLock<T>(
 
 const autoIncrements = new Map<string, number>();
 
-function computeNextId(
-  tableName: string,
-  rows: Record<string, unknown>[],
-): number {
+function computeNextId(tableName: string, rows: Record<string, unknown>[]): number {
   // Use cached next-id if it is still ahead of any existing row
   let next = autoIncrements.get(tableName) ?? 0;
   for (const row of rows) {
@@ -407,10 +366,7 @@ export function resetAutoIncrement(tableName: string): void {
 // Default-value helpers – mirrors what Drizzle/SQLite applies automatically
 // ---------------------------------------------------------------------------
 
-function applyDefaults(
-  table: unknown,
-  data: Record<string, unknown>,
-): Record<string, unknown> {
+function applyDefaults(table: unknown, data: Record<string, unknown>): Record<string, unknown> {
   const t = table as Record<string, unknown>;
   const result = { ...data };
   for (const key of Object.keys(t)) {
@@ -506,9 +462,7 @@ class SelectQuery {
 
       // Filter by condition
       if (this._condition !== null) {
-        rows = rows.filter((row) =>
-          evaluateCondition(this._condition, row, this._columnMap),
-        );
+        rows = rows.filter((row) => evaluateCondition(this._condition, row, this._columnMap));
       }
 
       // Sort
@@ -599,12 +553,10 @@ class InsertQuery {
         const data = applyDefaults(table, raw);
 
         // Auto-increment ID if the table has an auto-increment primary key
-        const idCol = Object.keys(table as Record<string, unknown>).find(
-          (k) => {
-            const col = (table as Record<string, unknown>)[k];
-            return isColumn(col) && isAutoIncrement(col);
-          },
-        );
+        const idCol = Object.keys(table as Record<string, unknown>).find((k) => {
+          const col = (table as Record<string, unknown>)[k];
+          return isColumn(col) && isAutoIncrement(col);
+        });
         if (idCol && data.id === undefined) {
           data.id = computeNextId(tableName, rows);
         }
@@ -751,8 +703,7 @@ class DeleteQuery {
     await withTableLock(tableName, () => {
       const rows = readTableData(tableName);
       const kept = rows.filter(
-        (row) =>
-          condition === null || !evaluateCondition(condition, row, columnMap),
+        (row) => condition === null || !evaluateCondition(condition, row, columnMap),
       );
       writeTableData(tableName, kept);
     });

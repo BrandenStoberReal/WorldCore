@@ -37,13 +37,13 @@ components/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Add shadcn component | `ui/` | Use `bunx shadcn-ui add <component>` |
-| Add page panel | `src/panels/` | Not here |
-| Add LLM provider form | `connections/<provider>Form.tsx` | Follow existing pattern |
-| Modify character editing | `CharacterForm.tsx` | Complex — read carefully |
-| Modify chat UI | `ChatView.tsx`, `ChatInput.tsx`, `ChatMessage.tsx` | |
+| Task                     | File                                               | Notes                                |
+| ------------------------ | -------------------------------------------------- | ------------------------------------ |
+| Add shadcn component     | `ui/`                                              | Use `bunx shadcn-ui add <component>` |
+| Add page panel           | `src/panels/`                                      | Not here                             |
+| Add LLM provider form    | `connections/<provider>Form.tsx`                   | Follow existing pattern              |
+| Modify character editing | `CharacterForm.tsx`                                | Complex — read carefully             |
+| Modify chat UI           | `ChatView.tsx`, `ChatInput.tsx`, `ChatMessage.tsx` |                                      |
 
 ## ANTI-PATTERNS
 

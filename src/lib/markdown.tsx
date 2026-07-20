@@ -153,11 +153,7 @@ function prepareBlock(text: string): {
 // Block-level rendering  (works on RAW input for > detection)
 // ---------------------------------------------------------------------------
 
-function renderBlock(
-  block: string,
-  depth: number,
-  key: number,
-): ReactNode {
+function renderBlock(block: string, depth: number, key: number): ReactNode {
   // Blockquote run: first line starts with `> ` (or is just `>`).
   if (block.startsWith('> ') || block === '>' || block.startsWith('>\n')) {
     return renderBlockquote(block, depth, key);
@@ -165,19 +161,11 @@ function renderBlock(
   return renderParagraphBlock(block, key);
 }
 
-function renderBlockquote(
-  block: string,
-  depth: number,
-  key: number,
-): ReactNode {
+function renderBlockquote(block: string, depth: number, key: number): ReactNode {
   if (depth >= MAX_BLOCKQUOTE_DEPTH) {
     // Depth exceeded — escape and render as paragraph to avoid infinite recursion.
     const prepared = prepareBlock(block);
-    return (
-      <p key={key}>
-        {renderInlineTokens(prepared.text, prepared.fences, prepared.codes, 0)}
-      </p>
-    );
+    return <p key={key}>{renderInlineTokens(prepared.text, prepared.fences, prepared.codes, 0)}</p>;
   }
 
   const lines = block.split('\n');
@@ -200,13 +188,7 @@ function renderBlockquote(
 
 function renderParagraphBlock(block: string, key: number): ReactNode {
   const prepared = prepareBlock(block);
-  return renderParagraph(
-    prepared.text,
-    prepared.fences,
-    prepared.codes,
-    0,
-    key,
-  );
+  return renderParagraph(prepared.text, prepared.fences, prepared.codes, 0, key);
 }
 
 function renderParagraph(
@@ -264,7 +246,14 @@ function renderInlineTokens(
     if (text.charCodeAt(pos) === 0x22) {
       const closeQuote = text.indexOf('"', pos + 1);
       if (closeQuote !== -1) {
-        pushToken(tokens, <span key={`q${pos}`} style={{ color: 'var(--dialogue)' }}>{'"'}{text.slice(pos + 1, closeQuote)}{'"'}</span>);
+        pushToken(
+          tokens,
+          <span key={`q${pos}`} style={{ color: 'var(--dialogue)' }}>
+            {'"'}
+            {text.slice(pos + 1, closeQuote)}
+            {'"'}
+          </span>,
+        );
         pos = closeQuote + 1;
         continue;
       }
@@ -347,7 +336,9 @@ function tryMatchEmphasis(
     const inner = text.slice(boldStar.contentStart, boldStar.contentEnd);
     if (isValidEmphContent(inner)) {
       return {
-        node: <strong key={`b${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1)}</strong>,
+        node: (
+          <strong key={`b${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1)}</strong>
+        ),
         end: boldStar.contentEnd + 2,
       };
     }
@@ -358,7 +349,9 @@ function tryMatchEmphasis(
     const inner = text.slice(boldUnder.contentStart, boldUnder.contentEnd);
     if (isValidEmphContent(inner)) {
       return {
-        node: <strong key={`B${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1)}</strong>,
+        node: (
+          <strong key={`B${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1)}</strong>
+        ),
         end: boldUnder.contentEnd + 2,
       };
     }

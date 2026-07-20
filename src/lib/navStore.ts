@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 
 export type SectionId =
-  'characters' | 'chats' | 'worldinfo' | 'extensions' | 'connections' | 'textoptions' | 'lorebook' | 'settings';
+  | 'characters'
+  | 'chats'
+  | 'worldinfo'
+  | 'extensions'
+  | 'connections'
+  | 'textoptions'
+  | 'lorebook'
+  | 'settings';
 
 /** Top drawers fold down from the top bar */
 export type TopDrawerId = 'worldinfo' | 'extensions' | 'connections' | 'textoptions' | 'settings';

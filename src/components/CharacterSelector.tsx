@@ -144,10 +144,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
 
   /* ── query keys to invalidate after inline edits ── */
   const infoInvalidateKeys = useMemo(
-    () => [
-      ['/api/v1/characters/get', selectedId],
-      ['/api/v1/characters/all'],
-    ],
+    () => [['/api/v1/characters/get', selectedId], ['/api/v1/characters/all']],
     [selectedId],
   );
 
@@ -216,7 +213,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
                 disabled={importMutation.isPending}
                 title="Import character PNG"
                 aria-label="Import character PNG"
-                className="text-foreground/40 hover:text-ember hover:bg-accent/30 rounded-sm p-0.5 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                className="text-foreground/40 hover:text-ember hover:bg-accent/30 rounded-sm p-0.5 transition-colors disabled:pointer-events-none disabled:opacity-50"
               >
                 {importMutation.isPending ? (
                   <Loader2 className="h-3 w-3 animate-spin" strokeWidth={2.25} />
@@ -286,16 +283,16 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
                         {String(idx + 1).padStart(2, '0')}
                       </span>
                       <div className="relative shrink-0">
-                          <div className="border-border bg-accent/40 flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border">
-                            <img
-                              src={`/api/v1/characters/thumbnail?id=${char.id}`}
-                              alt={char.name}
-                              className="h-7 w-7 rounded-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                          </div>
+                        <div className="border-border bg-accent/40 flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border">
+                          <img
+                            src={`/api/v1/characters/thumbnail?id=${char.id}`}
+                            alt={char.name}
+                            className="h-7 w-7 rounded-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
                         {active && (
                           <span className="border-ember/60 pointer-events-none absolute -inset-[1.5px] rounded-full border" />
                         )}
@@ -456,9 +453,11 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
           </div>
 
           {/* Personality / Scenario */}
-          <div className="border-border/30 mb-3 border-t pt-2.5 space-y-2">
+          <div className="border-border/30 mb-3 space-y-2 border-t pt-2.5">
             <div>
-              <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">Personality</span>
+              <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">
+                Personality
+              </span>
               <InlineEdit
                 characterId={infoCharacter.id}
                 field="personality"
@@ -483,7 +482,9 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
 
           {/* First Message */}
           <div className="border-border/30 mb-3 border-t pt-2.5">
-            <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">First Message</span>
+            <span className="mono-tag text-foreground/35 mb-1 block text-[10px]">
+              First Message
+            </span>
             <InlineEdit
               characterId={infoCharacter.id}
               field="first_mes"

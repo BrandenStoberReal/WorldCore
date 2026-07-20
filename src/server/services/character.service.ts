@@ -463,7 +463,7 @@ export class CharacterService {
     if (!(await fsExists(thumbPath))) {
       await writeCharacterThumbnail(avatarPath, userId, charRow.avatar).catch(() => {});
     }
-    return await fsExists(thumbPath) ? thumbPath : null;
+    return (await fsExists(thumbPath)) ? thumbPath : null;
   }
 
   async get(id: number, userId: string): Promise<CharacterWithId | null> {

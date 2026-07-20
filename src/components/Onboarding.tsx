@@ -64,7 +64,9 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
     <div className="bg-background flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-2xl space-y-8">
         <div className="space-y-2 text-center">
-          <h1 className="display-host text-3xl font-semibold tracking-tight">Welcome to WorldCore</h1>
+          <h1 className="display-host text-3xl font-semibold tracking-tight">
+            Welcome to WorldCore
+          </h1>
           <p className="text-muted-foreground mx-auto max-w-md text-sm">
             Choose how you'd like to store your data. You can change this later in settings.
           </p>
@@ -99,7 +101,9 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                     <div className="flex items-center gap-2">
                       <span className="text-foreground text-sm font-medium">{backend.label}</span>
                       {backend.recommended && (
-                        <span className="mono-tag bg-ember/15 text-ember text-[10px]">RECOMMENDED</span>
+                        <span className="mono-tag bg-ember/15 text-ember text-[10px]">
+                          RECOMMENDED
+                        </span>
                       )}
                     </div>
                     <p className="text-muted-foreground mt-0.5 text-[13px] leading-snug">
@@ -125,14 +129,12 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                   <div
                     className={cn(
                       'mt-1 h-4 w-4 shrink-0 rounded-full border-2',
-                      isSelected
-                        ? 'border-ember bg-ember'
-                        : 'border-muted-foreground/40',
+                      isSelected ? 'border-ember bg-ember' : 'border-muted-foreground/40',
                     )}
                   >
                     {isSelected && (
                       <div className="flex h-full items-center justify-center">
-                        <div className="h-1.5 w-1.5 rounded-full bg-background" />
+                        <div className="bg-background h-1.5 w-1.5 rounded-full" />
                       </div>
                     )}
                   </div>

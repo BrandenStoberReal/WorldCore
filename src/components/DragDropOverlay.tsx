@@ -123,27 +123,21 @@ export function DragDropOverlay() {
         const idx = i;
         i += 1;
         setFiles((prev) =>
-          prev.map((f, j) =>
-            j === idx ? { ...f, status: 'uploading' as FileStatus } : f,
-          ),
+          prev.map((f, j) => (j === idx ? { ...f, status: 'uploading' as FileStatus } : f)),
         );
         try {
           await postImport(file);
           if (sessionRef.current !== sessionId) return;
           anySuccess = true;
           setFiles((prev) =>
-            prev.map((f, j) =>
-              j === idx ? { ...f, status: 'success' as FileStatus } : f,
-            ),
+            prev.map((f, j) => (j === idx ? { ...f, status: 'success' as FileStatus } : f)),
           );
         } catch (err) {
           if (sessionRef.current !== sessionId) return;
           const message = err instanceof Error ? err.message : String(err);
           setFiles((prev) =>
             prev.map((f, j) =>
-              j === idx
-                ? { ...f, status: 'error' as FileStatus, error: message }
-                : f,
+              j === idx ? { ...f, status: 'error' as FileStatus, error: message } : f,
             ),
           );
         }
@@ -198,18 +192,16 @@ export function DragDropOverlay() {
       >
         {rejected ? (
           <div className="flex flex-col items-center gap-3 text-center">
-            <AlertCircle className="h-10 w-10 text-ember" />
+            <AlertCircle className="text-ember h-10 w-10" />
             <h2 className="display-host text-[20px] leading-none tracking-tight">
               PNG character cards only
             </h2>
-            <p className="mono-tag text-muted-foreground/60">
-              {`{ rejected }`}
-            </p>
+            <p className="mono-tag text-muted-foreground/60">{`{ rejected }`}</p>
           </div>
         ) : isProcessing ? (
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <Loader2 className="h-5 w-5 animate-spin text-ember" />
+              <Loader2 className="text-ember h-5 w-5 animate-spin" />
               <h2 className="display-host text-[20px] leading-none tracking-tight">
                 Importing character cards
               </h2>
@@ -220,50 +212,36 @@ export function DragDropOverlay() {
                   key={`${f.fileName}-${idx}`}
                   className="border-border/60 bg-background/40 flex items-center justify-between gap-3 rounded-sm border px-3 py-2"
                 >
-                  <span className="text-foreground/80 truncate text-sm">
-                    {f.fileName}
-                  </span>
+                  <span className="text-foreground/80 truncate text-sm">{f.fileName}</span>
                   <span className="flex items-center gap-1.5">
                     {f.status === 'pending' && (
-                      <span className="mono-tag text-muted-foreground/60">
-                        pending
-                      </span>
+                      <span className="mono-tag text-muted-foreground/60">pending</span>
                     )}
                     {f.status === 'uploading' && (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-ember" />
+                      <Loader2 className="text-ember h-3.5 w-3.5 animate-spin" />
                     )}
-                    {f.status === 'success' && (
-                      <Check className="h-3.5 w-3.5 text-ember" />
-                    )}
-                    {f.status === 'error' && (
-                      <X className="h-3.5 w-3.5 text-ember" />
-                    )}
+                    {f.status === 'success' && <Check className="text-ember h-3.5 w-3.5" />}
+                    {f.status === 'error' && <X className="text-ember h-3.5 w-3.5" />}
                   </span>
                 </li>
               ))}
             </ul>
             {files.some((f) => f.status === 'error') && (
-              <p className="mono-tag text-ember/70 text-xs">
-                some files failed — see server logs
-              </p>
+              <p className="mono-tag text-ember/70 text-xs">some files failed — see server logs</p>
             )}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="bg-accent/30 flex h-16 w-16 items-center justify-center rounded-sm">
-              <Upload className="h-7 w-7 text-ember" />
+              <Upload className="text-ember h-7 w-7" />
             </div>
             <div className="flex flex-col gap-1.5">
               <h2 className="display-host text-[20px] leading-none tracking-tight">
                 Drop PNG character cards
               </h2>
-              <p className="mono-tag text-muted-foreground/60">
-                Release to import
-              </p>
+              <p className="mono-tag text-muted-foreground/60">Release to import</p>
             </div>
-            <p className="mono-tag text-muted-foreground/40 text-xs">
-              {`{ esc to dismiss }`}
-            </p>
+            <p className="mono-tag text-muted-foreground/40 text-xs">{`{ esc to dismiss }`}</p>
           </div>
         )}
       </div>
