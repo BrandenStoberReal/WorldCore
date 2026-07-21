@@ -1,7 +1,9 @@
-import { useCallback, useState } from 'react';
-import { ChevronDown, Loader2, MessageSquare, Plug, Send } from 'lucide-react';
+import { useCallback, useState, useEffect } from 'react';
+import { Eye, EyeOff, Loader2, MessageSquare, Plug, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -19,6 +21,7 @@ import { OpenRouterForm } from '@/components/connections/OpenRouterForm';
 import { ModelSelector } from '@/components/connections/ModelSelector';
 import { writeSecret } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
 
 /* ── Types ── */
 
@@ -52,16 +55,12 @@ export type ChatSourceId =
   | 'ollama';
 
 export interface ChatCompletionPanelProps {
-  /** Called when the user clicks Connect with the assembled config. */
   onConnect?: (config: Record<string, unknown>) => void;
-  /** Called when the user clicks "Send Test Message". */
   onTestMessage?: (source: ChatSourceId, message: string) => void;
-  /** Whether the panel is currently connected. */
   connected?: boolean;
-  /** The currently active source (if any). */
   activeSource?: ChatSourceId;
-  /** Called when the active source changes. */
   onSourceChange?: (source: ChatSourceId) => void;
+  profile?: ConnectionProfile | null;
   className?: string;
 }
 
@@ -180,6 +179,7 @@ export function ChatCompletionPanel({
   connected = false,
   activeSource,
   onSourceChange,
+  profile,
   className,
 }: ChatCompletionPanelProps) {
   const [source, setSource] = useState<ChatSourceId>(activeSource ?? 'openai');
@@ -194,6 +194,16 @@ export function ChatCompletionPanel({
   const [proxyName, setProxyName] = useState('');
   const [proxyUrl, setProxyUrl] = useState('');
   const [proxyPassword, setProxyPassword] = useState('');
+
+  useEffect(() => {
+    if (profile) {
+      if (profile.model) setModel(profile.model);
+      if (profile.promptPostProcessing) {
+        setPromptPostProcessing(profile.promptPostProcessing as PromptPostProcessing);
+      }
+      if (profile.proxy) setProxyPreset(profile.proxy);
+    }
+  }, [profile]);
 
   const handleSourceChange = useCallback(
     (value: string) => {
@@ -339,30 +349,28 @@ export function ChatCompletionPanel({
       </div>
 
       {/* ── Connect + Test Message Buttons ── */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3 pt-2">
         <Button
           type="button"
           onClick={() => void handleConnect()}
           disabled={connecting}
-          className="flex-1"
+          className={cn('relative h-9 pr-5 pl-4', !connected && 'ember-pulse')}
         >
           {connecting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Connecting...
-            </>
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <>
-              <Plug className="h-4 w-4" />
-              Connect
-            </>
+            <Plug className="h-4 w-4" />
           )}
+          <span className="text-[13px] font-semibold tracking-tight">
+            {connecting ? 'Connecting...' : 'Connect'}
+          </span>
         </Button>
         <Button
           type="button"
           variant="outline"
           onClick={handleTestMessage}
           disabled={!connected}
+          className="h-9"
           title={
             connected
               ? 'Send a test message to verify the connection'
@@ -370,7 +378,7 @@ export function ChatCompletionPanel({
           }
         >
           <Send className="h-4 w-4" />
-          Test Message
+          <span className="text-[13px]">Test Message</span>
         </Button>
       </div>
 
@@ -378,15 +386,12 @@ export function ChatCompletionPanel({
       {connected && (
         <div className="space-y-2">
           <Label>Test Message</Label>
-          <div className="flex items-center gap-2">
-            <textarea
-              value={testMessage}
-              onChange={(e) => setTestMessage(e.target.value)}
-              placeholder="Enter a test message..."
-              rows={2}
-              className="border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 flex min-h-16 w-full resize-none rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] md:text-sm"
-            />
-          </div>
+          <Textarea
+            value={testMessage}
+            onChange={(e) => setTestMessage(e.target.value)}
+            placeholder="Enter a test message..."
+            rows={2}
+          />
         </div>
       )}
 
@@ -478,27 +483,23 @@ function SimpleProviderForm({
       <div className="space-y-2">
         <Label>{sourceLabel} API Key</Label>
         <div className="flex items-center gap-2">
-          <input
+          <Input
             type={showKey ? 'text' : 'password'}
             value={apiKey}
             onChange={(e) => onApiKeyChange(e.target.value)}
             placeholder={`Enter your ${sourceLabel} API key`}
             autoComplete="off"
-            className="border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 flex h-9 w-full min-w-0 flex-1 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] md:text-sm"
+            className="flex-1 font-mono text-[13px]"
           />
           <Button
             type="button"
             variant="outline"
-            size="icon"
+            size="icon-sm"
             onClick={() => setShowKey((v) => !v)}
             aria-label={showKey ? 'Hide key' : 'Show key'}
             title={showKey ? 'Hide key' : 'Show key'}
           >
-            {showKey ? (
-              <ChevronDown className="h-4 w-4 rotate-180" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           </Button>
         </div>
       </div>

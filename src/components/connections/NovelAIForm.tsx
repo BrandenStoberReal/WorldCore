@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { ExternalLink, HelpCircle, Key, Plug, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useManageApiKey } from '@/lib/useManageApiKey';
 import { OnlineStatus } from './OnlineStatus';
+import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -21,6 +22,7 @@ import { OnlineStatus } from './OnlineStatus';
 interface NovelAIFormProps {
   onConnect?: (config: Record<string, unknown>) => void;
   connected?: boolean;
+  profile?: ConnectionProfile | null;
 }
 
 const NOVELAI_MODELS = [
@@ -36,7 +38,7 @@ const MODELS_DOCS_URL = 'https://docs.sillytavern.app/usage/api-connections/nove
 // Component
 // ---------------------------------------------------------------------------
 
-export function NovelAIForm({ onConnect, connected = false }: NovelAIFormProps) {
+export function NovelAIForm({ onConnect, connected = false, profile }: NovelAIFormProps) {
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('kayra-v1');
   const [connecting, setConnecting] = useState(false);
@@ -48,6 +50,12 @@ export function NovelAIForm({ onConnect, connected = false }: NovelAIFormProps) 
     loading,
     saved,
   } = useManageApiKey('novel');
+
+  useEffect(() => {
+    if (profile) {
+      if (profile.model) setModel(profile.model);
+    }
+  }, [profile]);
 
   const handleConnect = useCallback(() => {
     setConnecting(true);

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/select';
 import { ProviderForm } from './ProviderForm';
 import { TEXTGEN_PROVIDERS, sourcesForCategory } from './providerConfigs';
+import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
 
 // ---------------------------------------------------------------------------
 // Sub-type definitions (mirrors SillyTavern #textgen_type select)
@@ -33,6 +34,7 @@ interface TextGenPanelProps {
   onConnect?: (config: Record<string, unknown>) => void;
   connected?: boolean;
   activeSource?: string;
+  profile?: ConnectionProfile | null;
 }
 
 /**
@@ -43,12 +45,19 @@ interface TextGenPanelProps {
  * sub-type renders a `ProviderForm` with the appropriate field config from
  * `providerConfigs`.
  */
-export function TextGenPanel({ onConnect, connected = false }: TextGenPanelProps) {
+export function TextGenPanel({ onConnect, connected = false, profile }: TextGenPanelProps) {
   const [subType, setSubType] = useState<TextGenSubType>('llamacpp');
   const [deriveContext, setDeriveContext] = useState(true);
   const [bypassStatus, setBypassStatus] = useState(false);
   const [url, setUrl] = useState('');
   const [model, setModel] = useState('');
+
+  useEffect(() => {
+    if (profile) {
+      if (profile.model) setModel(profile.model);
+      if (profile.apiUrl) setUrl(profile.apiUrl);
+    }
+  }, [profile]);
 
   const config = TEXTGEN_PROVIDERS[subType];
   const showBypass = BYPASS_STATUS_TYPES.has(subType);

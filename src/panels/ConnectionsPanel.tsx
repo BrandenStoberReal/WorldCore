@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -46,6 +46,9 @@ export function ConnectionsPanel() {
   const [editProfile, setEditProfile] = useState<ConnectionProfile | null>(null);
   const [deleteProfile, setDeleteProfile] = useState<ConnectionProfile | null>(null);
 
+  // Key to force child panel re-mount on profile reload
+  const [profileKey, setProfileKey] = useState(0);
+
   // Fetch profiles
   const {
     data: profiles,
@@ -61,6 +64,17 @@ export function ConnectionsPanel() {
   });
 
   const selectedProfile = profiles?.find((p) => p.id === selectedProfileId);
+
+  // Sync apiType from selected profile
+  useEffect(() => {
+    if (selectedProfile) {
+      const profileApi = selectedProfile.api as ApiType;
+      if (profileApi && ['textgenerationwebui', 'openai', 'novel', 'koboldhorde'].includes(profileApi)) {
+        setApiType(profileApi);
+        setMode(modeForApiType(profileApi));
+      }
+    }
+  }, [selectedProfile, setMode]);
 
   // Create mutation
   const createMutation = useMutation({
@@ -164,6 +178,7 @@ export function ConnectionsPanel() {
     setSelectedProfileId(null);
     setApiType('textgenerationwebui');
     setAutoConnect(false);
+    setProfileKey((k) => k + 1);
   }, []);
 
   // Profile action handlers
@@ -199,13 +214,14 @@ export function ConnectionsPanel() {
 
   const handleReloadProfile = useCallback(
     (id: string) => {
-      // Force re-fetch the profile data
       void queryClient.invalidateQueries({
         queryKey: ['/api/v1/connection-profiles/all'],
       });
-      void id;
+      if (id === selectedProfileId) {
+        setProfileKey((k) => k + 1);
+      }
     },
-    [queryClient],
+    [queryClient, selectedProfileId],
   );
 
   // Loading state
@@ -315,14 +331,36 @@ export function ConnectionsPanel() {
       {/* Dynamic Form Area */}
       <div className="flex-1 space-y-4 overflow-y-auto">
         {apiType === 'textgenerationwebui' && (
-          <TextGenPanel onConnect={handleConnect} connected={connected} />
+          <TextGenPanel
+            key={`textgen-${profileKey}`}
+            onConnect={handleConnect}
+            connected={connected}
+            profile={selectedProfile}
+          />
         )}
         {apiType === 'openai' && (
-          <ChatCompletionPanel onConnect={handleConnect} connected={connected} />
+          <ChatCompletionPanel
+            key={`chat-${profileKey}`}
+            onConnect={handleConnect}
+            connected={connected}
+            profile={selectedProfile}
+          />
         )}
-        {apiType === 'novel' && <NovelAIForm onConnect={handleConnect} connected={connected} />}
+        {apiType === 'novel' && (
+          <NovelAIForm
+            key={`novel-${profileKey}`}
+            onConnect={handleConnect}
+            connected={connected}
+            profile={selectedProfile}
+          />
+        )}
         {apiType === 'koboldhorde' && (
-          <KoboldHordeForm onConnect={handleConnect} connected={connected} />
+          <KoboldHordeForm
+            key={`kobold-${profileKey}`}
+            onConnect={handleConnect}
+            connected={connected}
+            profile={selectedProfile}
+          />
         )}
       </div>
 

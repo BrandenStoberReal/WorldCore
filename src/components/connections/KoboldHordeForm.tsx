@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
 import { useManageApiKey } from '@/lib/useManageApiKey';
 import { OnlineStatus } from './OnlineStatus';
+import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -15,6 +16,7 @@ import { OnlineStatus } from './OnlineStatus';
 interface KoboldHordeFormProps {
   onConnect?: (config: Record<string, unknown>) => void;
   connected?: boolean;
+  profile?: ConnectionProfile | null;
 }
 
 interface HordeModel {
@@ -54,7 +56,7 @@ const HORDE_LINKS = [
 // Component
 // ---------------------------------------------------------------------------
 
-export function KoboldHordeForm({ onConnect, connected = false }: KoboldHordeFormProps) {
+export function KoboldHordeForm({ onConnect, connected = false, profile }: KoboldHordeFormProps) {
   const [apiKey, setApiKey] = useState('');
   const [adjustedContext, setAdjustedContext] = useState(true);
   const [adjustedResponse, setAdjustedResponse] = useState(true);
@@ -72,6 +74,12 @@ export function KoboldHordeForm({ onConnect, connected = false }: KoboldHordeFor
     loading,
     saved,
   } = useManageApiKey('koboldhorde');
+
+  useEffect(() => {
+    if (profile) {
+      if (profile.model) setSelectedModels(profile.model.split(',').map((m) => m.trim()));
+    }
+  }, [profile]);
 
   // ------ Model fetching ------
 
