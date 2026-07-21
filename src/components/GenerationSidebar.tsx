@@ -167,28 +167,35 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                 <>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (isCurrentPresetDefault) {
-                        handleClonePreset();
-                      } else {
-                        setSaveName(store.preset);
-                        setShowSaveInput(true);
-                      }
-                    }}
+                    onClick={handleClonePreset}
                     disabled={presetStatus === 'saving' || presetStatus === 'loading'}
                     className={cn(
                       'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors',
                       'disabled:cursor-not-allowed disabled:opacity-40',
                     )}
-                    title={isCurrentPresetDefault ? 'Clone default preset' : 'Save preset'}
-                    aria-label={isCurrentPresetDefault ? 'Clone default preset' : 'Save preset'}
+                    title="Clone current preset"
+                    aria-label="Clone current preset"
                   >
-                    {isCurrentPresetDefault ? (
-                      <Copy className="h-2.5 w-2.5" strokeWidth={2} />
-                    ) : (
-                      <Save className="h-2.5 w-2.5" strokeWidth={2} />
-                    )}
+                    <Copy className="h-2.5 w-2.5" strokeWidth={2} />
                   </button>
+                  {!isCurrentPresetDefault && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSaveName(store.preset);
+                        setShowSaveInput(true);
+                      }}
+                      disabled={presetStatus === 'saving' || presetStatus === 'loading'}
+                      className={cn(
+                        'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors',
+                        'disabled:cursor-not-allowed disabled:opacity-40',
+                      )}
+                      title="Overwrite preset"
+                      aria-label="Overwrite preset"
+                    >
+                      <Save className="h-2.5 w-2.5" strokeWidth={2} />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => store.resetDefaults()}
@@ -249,7 +256,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
               max={2.5}
               step={0.01}
               onChange={(v) => update('temperature', v)}
-              description="Randomness of output"
+              description="How creative vs focused the output is. Lower = more predictable and repetitive. Higher = more random and surprising."
             />
             <GenerationSlider
               label="Top P"
@@ -258,7 +265,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
               max={1}
               step={0.001}
               onChange={(v) => update('top_p', v)}
-              description="Nucleus sampling threshold"
+              description="Cuts off less likely words. 1.0 = consider everything. 0.5 = only consider the top 50% most likely words. Lower = more focused."
             />
             <GenerationSlider
               label="Top K"
@@ -267,7 +274,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
               max={300}
               step={1}
               onChange={(v) => update('top_k', v)}
-              description="Top-K sampling"
+              description="Only consider the K most likely next words. 50 = pick from the top 50. 0 = no limit. Lower = more focused, higher = more variety."
             />
             {mode === 'text' && (
               <>
@@ -278,7 +285,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={1}
                   step={0.001}
                   onChange={(v) => update('min_p', v)}
-                  description="Minimum probability threshold"
+                  description="Removes tokens below a probability threshold relative to the best option. 0.1 = ignore tokens less than 10% as likely as the top pick."
                 />
                 <GenerationSlider
                   label="Typical P"
@@ -287,7 +294,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={1}
                   step={0.001}
                   onChange={(v) => update('typical_p', v)}
-                  description="Typicality sampling"
+                  description="Prefers 'typical' word choices over the most probable ones. Lower = stranger but more interesting. 1.0 = disabled."
                 />
                 <GenerationSlider
                   label="Top A"
@@ -296,7 +303,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={1}
                   step={0.001}
                   onChange={(v) => update('top_a', v)}
-                  description="Top-A sampling"
+                  description="Keeps the top words whose probability is at least Top A squared. Higher = more variety. 0 = disabled."
                 />
                 <GenerationSlider
                   label="TFS"
@@ -305,7 +312,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={1}
                   step={0.001}
                   onChange={(v) => update('tfs', v)}
-                  description="Tail-free sampling"
+                  description="Tail-free sampling. Trims the long tail of unlikely words. 1.0 = disabled. Lower = more aggressive trimming."
                 />
               </>
             )}
@@ -321,7 +328,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={8}
                   step={0.025}
                   onChange={(v) => update('rep_pen', v)}
-                  description="Repetition penalty"
+                  description="Penalizes the model for repeating words. 1.0 = no penalty. Higher = less repetition but may lose coherence."
                 />
                 <GenerationSlider
                   label="Rep Pen Range"
@@ -330,7 +337,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={8192}
                   step={1}
                   onChange={(v) => update('rep_pen_range', v)}
-                  description="Token range for penalty"
+                  description="How many recent tokens to look at for repetition. 0 = whole text. 256 = only check last 256 tokens."
                 />
                 <GenerationSlider
                   label="Rep Pen Slope"
@@ -339,7 +346,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={10}
                   step={0.01}
                   onChange={(v) => update('rep_pen_slope', v)}
-                  description="Penalty slope"
+                  description="How quickly the repetition penalty fades for older tokens. Higher = penalty fades faster."
                 />
               </>
             ) : (
@@ -351,7 +358,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={2}
                   step={0.01}
                   onChange={(v) => update('frequency_penalty', v)}
-                  description="Reduce frequency of tokens"
+                  description="Penalizes words based on how often they appear. Positive = less frequent words preferred. Negative = common words preferred."
                 />
                 <GenerationSlider
                   label="Pres Penalty"
@@ -360,7 +367,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={2}
                   step={0.01}
                   onChange={(v) => update('presence_penalty', v)}
-                  description="Reduce presence of tokens"
+                  description="Penalizes any word that has appeared at all. Positive = encourages new topics. Negative = sticks to what was said."
                 />
               </>
             )}
@@ -376,7 +383,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={10}
                   step={0.1}
                   onChange={(v) => update('dry_multiplier', v)}
-                  description="Don't Repeat Yourself"
+                  description="DRY repetition penalty strength. Higher = stronger penalty for repeated phrases. 0 = disabled."
                 />
                 <GenerationSlider
                   label="DRY Base"
@@ -385,7 +392,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={10}
                   step={0.1}
                   onChange={(v) => update('dry_base', v)}
-                  description="DRY penalty base"
+                  description="How aggressively DRY scales penalty with repetition length. Higher = penalty grows faster with each repeat."
                 />
                 <GenerationSlider
                   label="DRY Allowed Length"
@@ -394,7 +401,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={20}
                   step={1}
                   onChange={(v) => update('dry_allowed_length', v)}
-                  description="Allowed repeat length"
+                  description="How many tokens of repetition are allowed before DRY kicks in. 0 = no repeats allowed."
                 />
                 <div className="space-y-1">
                   <label className="mono-tag text-foreground/60">Mirostat Mode</label>
@@ -426,7 +433,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                       max={10}
                       step={0.1}
                       onChange={(v) => update('mirostat_tau', v)}
-                      description="Target entropy"
+                      description="Target perplexity for Mirostat. Lower = more focused and coherent. Higher = more diverse and creative."
                     />
                     <GenerationSlider
                       label="Mirostat Eta"
@@ -435,7 +442,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                       max={1}
                       step={0.01}
                       onChange={(v) => update('mirostat_eta', v)}
-                      description="Learning rate"
+                      description="How quickly Mirostat adapts to maintain target perplexity. Higher = faster adaptation."
                     />
                   </>
                 )}
@@ -446,7 +453,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={10}
                   step={0.1}
                   onChange={(v) => update('smoothing_factor', v)}
-                  description="Quadratic sampling"
+                  description="Smooths the probability distribution for more natural word choices. Higher = smoother distribution."
                 />
                 <GenerationSlider
                   label="Epsilon Cutoff"
@@ -455,7 +462,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={9}
                   step={0.01}
                   onChange={(v) => update('epsilon_cutoff', v)}
-                  description="Epsilon cutoff"
+                  description="Hard cutoff: removes any word with probability below this value. 0 = disabled."
                 />
                 <GenerationSlider
                   label="Eta Cutoff"
@@ -464,7 +471,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   max={20}
                   step={0.01}
                   onChange={(v) => update('eta_cutoff', v)}
-                  description="Eta cutoff"
+                  description="Softer version of epsilon cutoff. 0 = disabled. Lower = more aggressive filtering."
                 />
               </>
             )}
@@ -483,7 +490,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
               max={8192}
               step={1}
               onChange={(v) => update('max_tokens', v)}
-              description="Maximum response length"
+              description="Maximum number of tokens to generate. Higher = longer possible response."
             />
             {mode === 'text' && (
               <GenerationSlider
@@ -493,7 +500,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                 max={2048}
                 step={1}
                 onChange={(v) => update('min_tokens', v)}
-                description="Minimum response length"
+                description="Minimum tokens before the response stops. Useful for ensuring complete answers."
               />
             )}
             <div className="space-y-1">
