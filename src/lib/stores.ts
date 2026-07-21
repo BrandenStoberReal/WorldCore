@@ -217,13 +217,25 @@ const PARAM_KEYS = [
   'preset',
 ] as const satisfies readonly (keyof GenerationParams)[];
 
+const FIELD_ALIASES: Record<string, string> = {
+  temp: 'temperature',
+  freq_pen: 'frequency_penalty',
+  presence_pen: 'presence_penalty',
+};
+
 function extractParams(value: unknown): Partial<GenerationParams> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   const raw = value as Record<string, unknown>;
   const out: Partial<GenerationParams> = {};
   for (const key of PARAM_KEYS) {
+    if (key === 'mode' || key === 'preset') continue;
     if (key in raw) {
       (out as Record<string, unknown>)[key] = raw[key];
+    }
+  }
+  for (const [alias, canonical] of Object.entries(FIELD_ALIASES)) {
+    if (alias in raw && !(canonical in out)) {
+      (out as Record<string, unknown>)[canonical] = raw[alias];
     }
   }
   return out;
@@ -271,9 +283,18 @@ export const useGenerationStore = create<GenerationState>()(
       loadPresetFromBackend: async (name) => {
         const trimmed = name.trim();
         if (!trimmed) throw new Error('Preset name is required');
-        let result = await getPreset('generation', trimmed);
+        let result: unknown = null;
+        try {
+          result = await getPreset('generation', trimmed);
+        } catch (err) {
+          if (!(err instanceof Error && /404|not\s*found/i.test(err.message))) throw err;
+        }
         if (!result) {
-          result = await getPreset('textgenerationwebui', trimmed);
+          try {
+            result = await getPreset('textgenerationwebui', trimmed);
+          } catch (err) {
+            if (!(err instanceof Error && /404|not\s*found/i.test(err.message))) throw err;
+          }
         }
         const params = extractParams(
           result && typeof result === 'object' && 'data' in result
@@ -283,7 +304,7 @@ export const useGenerationStore = create<GenerationState>()(
         if (Object.keys(params).length === 0) {
           throw new Error(`Preset "${trimmed}" has no loadable params`);
         }
-        set(params);
+        set({ ...params, preset: trimmed });
       },
 
       listAvailablePresets: async () => {
