@@ -1,10 +1,20 @@
 import { useCallback, useState } from 'react';
-import { Save, FolderOpen, RotateCcw, Zap } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Save, RotateCcw, Zap, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGenerationStore } from '@/lib/stores';
 import { GenerationModeToggle } from '@/components/GenerationModeToggle';
 import { GenerationSlider } from '@/components/GenerationSlider';
 import { InlineSection } from '@/components/drawers/InlineSection';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { apiPost } from '@/lib/api';
 
 interface GenerationSidebarProps {
   mode?: 'sidebar' | 'drawer';
@@ -17,6 +27,42 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
   const { mode } = store;
   const [presetStatus, setPresetStatus] = useState<PresetStatus>('idle');
   const [presetMessage, setPresetMessage] = useState<string>('');
+  const [saveName, setSaveName] = useState('');
+  const [showSaveInput, setShowSaveInput] = useState(false);
+
+  const { data: presetNames = [] } = useQuery<string[]>({
+    queryKey: ['/api/v1/presets/all', 'generation+textgenerationwebui'],
+    queryFn: async () => {
+      const [genPresets, tgPresets] = await Promise.all([
+        apiPost<Array<{ data?: { name?: string } }>>('/presets/all', { category: 'generation' }),
+        apiPost<Array<{ data?: { name?: string } }>>('/presets/all', { category: 'textgenerationwebui' }),
+      ]);
+      const names = new Set<string>();
+      for (const p of [...genPresets, ...tgPresets]) {
+        const name = (p.data?.name as string) ?? '';
+        if (name) names.add(name);
+      }
+      return [...names].sort();
+    },
+  });
+
+  const { data: defaultPresets = new Set<string>() } = useQuery({
+    queryKey: ['/api/v1/presets/all', 'generation+textgenerationwebui', 'defaults'],
+    queryFn: async () => {
+      const [genPresets, tgPresets] = await Promise.all([
+        apiPost<Array<{ data?: { name?: string }; isDefault?: boolean }>>('/presets/all', { category: 'generation' }),
+        apiPost<Array<{ data?: { name?: string }; isDefault?: boolean }>>('/presets/all', { category: 'textgenerationwebui' }),
+      ]);
+      const defaults = new Set<string>();
+      for (const p of [...genPresets, ...tgPresets]) {
+        if (p.isDefault) {
+          const name = (p.data?.name as string) ?? '';
+          if (name) defaults.add(name);
+        }
+      }
+      return defaults;
+    },
+  });
 
   const flashStatus = (status: PresetStatus, message: string) => {
     setPresetStatus(status);
@@ -27,44 +73,45 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
     }, 2000);
   };
 
+  const isCurrentPresetDefault = defaultPresets.has(store.preset);
+
   const handleSavePreset = useCallback(async () => {
-    const name = window.prompt('Save generation preset as:');
+    const name = saveName.trim();
     if (!name) return;
+    if (isCurrentPresetDefault && name === store.preset) {
+      flashStatus('err', `Cannot overwrite default preset "${name}". Choose a different name.`);
+      return;
+    }
     setPresetStatus('saving');
     try {
       await store.savePresetToBackend(name);
-      flashStatus('ok', `Saved "${name.trim()}"`);
+      flashStatus('ok', `Saved "${name}"`);
+      setSaveName('');
+      setShowSaveInput(false);
     } catch (err) {
       flashStatus('err', err instanceof Error ? err.message : String(err));
     }
-  }, [store]);
+  }, [store, saveName, isCurrentPresetDefault, flashStatus]);
 
-  const handleLoadPreset = useCallback(async () => {
-    setPresetStatus('loading');
-    let names: string[] = [];
-    try {
-      names = await store.listAvailablePresets();
-    } catch (err) {
-      flashStatus('err', err instanceof Error ? err.message : String(err));
-      return;
-    }
-    const hint =
-      names.length > 0
-        ? `Available presets:\n${names.join('\n')}\n\nEnter a name to load:`
-        : 'Enter a preset name to load:';
-    const name = window.prompt(hint);
-    if (!name) {
-      setPresetStatus('idle');
-      return;
-    }
-    setPresetStatus('loading');
-    try {
-      await store.loadPresetFromBackend(name);
-      flashStatus('ok', `Loaded "${name.trim()}"`);
-    } catch (err) {
-      flashStatus('err', err instanceof Error ? err.message : String(err));
-    }
-  }, [store]);
+  const handleClonePreset = useCallback(() => {
+    const baseName = store.preset || 'Preset';
+    setSaveName(`${baseName} (Copy)`);
+    setShowSaveInput(true);
+  }, [store.preset]);
+
+  const handleLoadPreset = useCallback(
+    async (name: string) => {
+      if (!name) return;
+      setPresetStatus('loading');
+      try {
+        await store.loadPresetFromBackend(name);
+        flashStatus('ok', `Loaded "${name}"`);
+      } catch (err) {
+        flashStatus('err', err instanceof Error ? err.message : String(err));
+      }
+    },
+    [store],
+  );
 
   const update = useCallback(
     <K extends keyof ReturnType<typeof useGenerationStore.getState>>(
@@ -86,41 +133,73 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
               <span className="display-host text-[13px] leading-none">Generation</span>
             </div>
             <div className="flex items-center gap-0.5">
-              <button
-                type="button"
-                onClick={handleSavePreset}
-                disabled={presetStatus === 'saving' || presetStatus === 'loading'}
-                className={cn(
-                  'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors',
-                  'disabled:cursor-not-allowed disabled:opacity-40',
-                )}
-                title="Save preset"
-                aria-label="Save preset"
-              >
-                <Save className="h-2.5 w-2.5" strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                onClick={handleLoadPreset}
-                disabled={presetStatus === 'saving' || presetStatus === 'loading'}
-                className={cn(
-                  'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors',
-                  'disabled:cursor-not-allowed disabled:opacity-40',
-                )}
-                title="Load preset"
-                aria-label="Load preset"
-              >
-                <FolderOpen className="h-2.5 w-2.5" strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                onClick={() => store.resetDefaults()}
-                className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors"
-                title="Reset to defaults"
-                aria-label="Reset to defaults"
-              >
-                <RotateCcw className="h-2.5 w-2.5" strokeWidth={2} />
-              </button>
+              {showSaveInput ? (
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="text"
+                    value={saveName}
+                    onChange={(e) => setSaveName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSavePreset();
+                      if (e.key === 'Escape') {
+                        setShowSaveInput(false);
+                        setSaveName('');
+                      }
+                    }}
+                    placeholder={isCurrentPresetDefault ? 'Clone as new name...' : 'Preset name'}
+                    className="h-5 w-24 text-[10px]"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSavePreset}
+                    disabled={!saveName.trim() || presetStatus === 'saving'}
+                    className={cn(
+                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors',
+                      'disabled:cursor-not-allowed disabled:opacity-40',
+                    )}
+                    title="Confirm save"
+                  >
+                    <Save className="h-2.5 w-2.5" strokeWidth={2} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isCurrentPresetDefault) {
+                        handleClonePreset();
+                      } else {
+                        setSaveName(store.preset);
+                        setShowSaveInput(true);
+                      }
+                    }}
+                    disabled={presetStatus === 'saving' || presetStatus === 'loading'}
+                    className={cn(
+                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors',
+                      'disabled:cursor-not-allowed disabled:opacity-40',
+                    )}
+                    title={isCurrentPresetDefault ? 'Clone default preset' : 'Save preset'}
+                    aria-label={isCurrentPresetDefault ? 'Clone default preset' : 'Save preset'}
+                  >
+                    {isCurrentPresetDefault ? (
+                      <Copy className="h-2.5 w-2.5" strokeWidth={2} />
+                    ) : (
+                      <Save className="h-2.5 w-2.5" strokeWidth={2} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => store.resetDefaults()}
+                    className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors"
+                    title="Reset to defaults"
+                    aria-label="Reset to defaults"
+                  >
+                    <RotateCcw className="h-2.5 w-2.5" strokeWidth={2} />
+                  </button>
+                </>
+              )}
             </div>
           </div>
           {presetMessage && (
@@ -140,6 +219,25 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
             </div>
           )}
           <GenerationModeToggle />
+          <div className="mt-2">
+            <Select value={store.preset} onValueChange={handleLoadPreset}>
+              <SelectTrigger className="h-6 text-[11px]">
+                <SelectValue placeholder="Load preset..." />
+              </SelectTrigger>
+              <SelectContent>
+                {presetNames.map((name) => (
+                  <SelectItem key={name} value={name} className="text-[11px]">
+                    <span className="flex items-center gap-1.5">
+                      {name}
+                      {defaultPresets.has(name) && (
+                        <span className="text-foreground/30 text-[9px]">built-in</span>
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">

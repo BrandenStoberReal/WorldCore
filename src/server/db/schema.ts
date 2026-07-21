@@ -123,6 +123,7 @@ export const presets = sqliteTable('presets', {
   name: text('name').notNull(),
   category: text('category').notNull(),
   data: text('data', { mode: 'json' }).$type<Record<string, unknown>>().notNull().default({}),
+  isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
   userId: text('user_id').notNull().default('default-user'),
 });
 

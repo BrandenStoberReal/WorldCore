@@ -23,4 +23,4 @@ export type ContextTemplate = z.infer<typeof ContextTemplateSchema>;
 export type Sysprompt = z.infer<typeof SyspromptSchema>;
 export type ReasoningTemplate = z.infer<typeof ReasoningTemplateSchema>;
 export type GenerationPreset = z.infer<typeof GenerationPresetSchema>;
-export type Preset = z.infer<typeof PresetSchema>;
+export type Preset = z.infer<typeof PresetSchema> & { isDefault?: boolean };

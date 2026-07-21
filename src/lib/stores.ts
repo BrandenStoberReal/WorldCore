@@ -271,10 +271,10 @@ export const useGenerationStore = create<GenerationState>()(
       loadPresetFromBackend: async (name) => {
         const trimmed = name.trim();
         if (!trimmed) throw new Error('Preset name is required');
-        const result = await getPreset('generation', trimmed);
-        // apiFetch unwraps `data.data` for the { category, data } envelope, so
-        // `result` is usually the params object directly. Tolerate both the
-        // unwrapped shape and a residual { data: ... } wrapper.
+        let result = await getPreset('generation', trimmed);
+        if (!result) {
+          result = await getPreset('textgenerationwebui', trimmed);
+        }
         const params = extractParams(
           result && typeof result === 'object' && 'data' in result
             ? (result as { data: unknown }).data
@@ -287,22 +287,23 @@ export const useGenerationStore = create<GenerationState>()(
       },
 
       listAvailablePresets: async () => {
-        const presets = await listPresets('generation');
-        const names: string[] = [];
-        for (const entry of presets) {
+        const [genPresets, tgPresets] = await Promise.all([
+          listPresets('generation'),
+          listPresets('textgenerationwebui'),
+        ]);
+        const names = new Set<string>();
+        for (const entry of [...genPresets, ...tgPresets]) {
           if (!entry || typeof entry !== 'object') continue;
           const raw = entry as Record<string, unknown>;
-          // Name lives inside `data.name` per the Preset shape; fall back to a
-          // top-level `name` for forward compatibility.
           let name: unknown;
           if (raw.data && typeof raw.data === 'object') {
             name = (raw.data as Record<string, unknown>).name;
           } else {
             name = raw.name;
           }
-          if (typeof name === 'string' && name.length > 0) names.push(name);
+          if (typeof name === 'string' && name.length > 0) names.add(name);
         }
-        return names;
+        return [...names].sort();
       },
     }),
     {

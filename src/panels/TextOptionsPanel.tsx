@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,11 @@ import { cn } from '@/lib/utils';
 import { InlineSection } from '@/components/drawers/InlineSection';
 import { apiFetch, apiGet, apiPost } from '@/lib/api';
 import { useDebouncedAutoSave } from '@/hooks';
+
+interface PresetResponse {
+  category: string;
+  data: Record<string, unknown>;
+}
 
 interface SyspromptPreset {
   name: string;
@@ -53,6 +58,13 @@ interface InstructTemplate {
   skip_examples: boolean;
   names_behavior: 'none' | 'force' | 'always';
   activation_regex: string;
+  system_prompt: string;
+  separator_sequence: string;
+  system_sequence_prefix: string;
+  system_sequence_suffix: string;
+  names: boolean;
+  names_force_groups: boolean;
+  system_same_as_user: boolean;
 }
 
 interface ReasoningTemplate {
@@ -110,6 +122,13 @@ interface TextOptionsState {
     namesBehavior: 'none' | 'force' | 'always';
     activationRegex: string;
     bindToContext: boolean;
+    systemPrompt: string;
+    separatorSequence: string;
+    systemSequencePrefix: string;
+    systemSequenceSuffix: string;
+    names: boolean;
+    namesForceGroups: boolean;
+    systemSameAsUser: boolean;
   };
   stoppingStrings: string;
   tokenizer: string;
@@ -134,12 +153,12 @@ interface TextOptionsState {
 const defaultState: TextOptionsState = {
   sysprompt: {
     enabled: false,
-    selectedPreset: 'default',
+    selectedPreset: 'Blank',
     content: '',
     postHistoryInstructions: '',
   },
   context: {
-    selectedPreset: 'default',
+    selectedPreset: 'ChatML',
     storyString: "{{char}}'s Description:\n{{description}}",
     chatStart: '',
     exampleSeparator: '',
@@ -156,7 +175,7 @@ const defaultState: TextOptionsState = {
   },
   instruct: {
     enabled: false,
-    selectedPreset: 'default',
+    selectedPreset: 'ChatML',
     storyStringPrefix: '',
     storyStringSuffix: '',
     inputSequence: '<|user|>\n',
@@ -179,12 +198,19 @@ const defaultState: TextOptionsState = {
     namesBehavior: 'none',
     activationRegex: '',
     bindToContext: false,
+    systemPrompt: '',
+    separatorSequence: '',
+    systemSequencePrefix: '',
+    systemSequenceSuffix: '',
+    names: false,
+    namesForceGroups: false,
+    systemSameAsUser: false,
   },
   stoppingStrings: '[]',
   tokenizer: 'best',
   tokenPadding: 0,
   reasoning: {
-    selectedPreset: 'default',
+    selectedPreset: 'Blank',
     prefix: '',
     suffix: '',
     separator: '',
@@ -234,8 +260,13 @@ export function TextOptionsPanel() {
     },
   });
 
+  const textOptionsValue = useMemo(
+    () => mergeDefaults(settings?.textOptions),
+    [settings?.textOptions],
+  );
+
   const autoSave = useDebouncedAutoSave<TextOptionsState>({
-    value: mergeDefaults(settings?.textOptions),
+    value: textOptionsValue,
     save: async (data) => {
       await apiPost('/settings/save', { textOptions: data });
     },
@@ -256,38 +287,46 @@ export function TextOptionsPanel() {
 
   const { data: syspromptPresets } = useQuery<SyspromptPreset[]>({
     queryKey: ['/api/v1/presets/all', 'sysprompt'],
-    queryFn: () =>
-      apiFetch('/presets/all', {
+    queryFn: async () => {
+      const res = (await apiFetch('/presets/all', {
         method: 'POST',
         body: JSON.stringify({ category: 'sysprompt' }),
-      }) as Promise<SyspromptPreset[]>,
+      })) as PresetResponse[];
+      return res.map((p) => p.data as unknown as SyspromptPreset);
+    },
   });
 
   const { data: contextPresets } = useQuery<ContextTemplate[]>({
     queryKey: ['/api/v1/presets/all', 'context'],
-    queryFn: () =>
-      apiFetch('/presets/all', {
+    queryFn: async () => {
+      const res = (await apiFetch('/presets/all', {
         method: 'POST',
         body: JSON.stringify({ category: 'context' }),
-      }) as Promise<ContextTemplate[]>,
+      })) as PresetResponse[];
+      return res.map((p) => p.data as unknown as ContextTemplate);
+    },
   });
 
   const { data: instructPresets } = useQuery<InstructTemplate[]>({
     queryKey: ['/api/v1/presets/all', 'instruct'],
-    queryFn: () =>
-      apiFetch('/presets/all', {
+    queryFn: async () => {
+      const res = (await apiFetch('/presets/all', {
         method: 'POST',
         body: JSON.stringify({ category: 'instruct' }),
-      }) as Promise<InstructTemplate[]>,
+      })) as PresetResponse[];
+      return res.map((p) => p.data as unknown as InstructTemplate);
+    },
   });
 
   const { data: reasoningPresets } = useQuery<ReasoningTemplate[]>({
     queryKey: ['/api/v1/presets/all', 'reasoning'],
-    queryFn: () =>
-      apiFetch('/presets/all', {
+    queryFn: async () => {
+      const res = (await apiFetch('/presets/all', {
         method: 'POST',
         body: JSON.stringify({ category: 'reasoning' }),
-      }) as Promise<ReasoningTemplate[]>,
+      })) as PresetResponse[];
+      return res.map((p) => p.data as unknown as ReasoningTemplate);
+    },
   });
 
   const handleReset = () => setForm(defaultState);
@@ -353,6 +392,13 @@ export function TextOptionsPanel() {
           skipExamples: inst.skip_examples,
           namesBehavior: inst.names_behavior,
           activationRegex: inst.activation_regex,
+          systemPrompt: inst.system_prompt,
+          separatorSequence: inst.separator_sequence,
+          systemSequencePrefix: inst.system_sequence_prefix,
+          systemSequenceSuffix: inst.system_sequence_suffix,
+          names: inst.names,
+          namesForceGroups: inst.names_force_groups,
+          systemSameAsUser: inst.system_same_as_user,
         },
       }));
     } else if (category === 'reasoning') {
@@ -653,6 +699,34 @@ export function TextOptionsPanel() {
               </div>
 
               <div className="space-y-1.5">
+                <Label className="text-[13px] font-medium">Story String Prefix</Label>
+                <Textarea
+                  value={form.instruct.storyStringPrefix}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      instruct: { ...f.instruct, storyStringPrefix: e.target.value },
+                    }))
+                  }
+                  className="min-h-[60px] font-mono text-[13px]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[13px] font-medium">Story String Suffix</Label>
+                <Textarea
+                  value={form.instruct.storyStringSuffix}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      instruct: { ...f.instruct, storyStringSuffix: e.target.value },
+                    }))
+                  }
+                  className="min-h-[60px] font-mono text-[13px]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
                 <Label className="text-[13px] font-medium">Activation Regex</Label>
                 <Input
                   value={form.instruct.activationRegex}
@@ -747,6 +821,35 @@ export function TextOptionsPanel() {
                       setForm((f) => ({
                         ...f,
                         instruct: { ...f.instruct, systemSuffix: e.target.value },
+                      }))
+                    }
+                    className="min-h-[60px] font-mono text-[13px]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">System Sequence Prefix</Label>
+                  <Textarea
+                    value={form.instruct.systemSequencePrefix}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        instruct: { ...f.instruct, systemSequencePrefix: e.target.value },
+                      }))
+                    }
+                    className="min-h-[60px] font-mono text-[13px]"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">System Sequence Suffix</Label>
+                  <Textarea
+                    value={form.instruct.systemSequenceSuffix}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        instruct: { ...f.instruct, systemSequenceSuffix: e.target.value },
                       }))
                     }
                     className="min-h-[60px] font-mono text-[13px]"
@@ -855,6 +958,34 @@ export function TextOptionsPanel() {
                 />
               </div>
 
+              <div className="space-y-1.5">
+                <Label className="text-[13px] font-medium">System Prompt</Label>
+                <Textarea
+                  value={form.instruct.systemPrompt}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      instruct: { ...f.instruct, systemPrompt: e.target.value },
+                    }))
+                  }
+                  className="min-h-[80px] font-mono text-[13px]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[13px] font-medium">Separator Sequence</Label>
+                <Textarea
+                  value={form.instruct.separatorSequence}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      instruct: { ...f.instruct, separatorSequence: e.target.value },
+                    }))
+                  }
+                  className="min-h-[60px] font-mono text-[13px]"
+                />
+              </div>
+
               <div className="flex flex-wrap gap-4">
                 {(
                   [
@@ -862,6 +993,9 @@ export function TextOptionsPanel() {
                     ['macro', 'Replace Macro'],
                     ['sequencesAsStopStrings', 'Sequences as Stop Strings'],
                     ['skipExamples', 'Skip Example Formatting'],
+                    ['names', 'Include Names'],
+                    ['namesForceGroups', 'Force Group Names'],
+                    ['systemSameAsUser', 'System Same as User'],
                   ] as const
                 ).map(([key, label]) => (
                   <label key={key} className="flex items-center gap-2 text-[13px]">

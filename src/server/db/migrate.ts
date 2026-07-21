@@ -17,6 +17,7 @@ const SEED_SQL = [
     updated_at integer NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE no action ON DELETE no action
   )`,
+  `ALTER TABLE presets ADD COLUMN is_default integer NOT NULL DEFAULT 0`,
 ];
 
 export function runMigrations(dbInstance?: DrizzleDb) {

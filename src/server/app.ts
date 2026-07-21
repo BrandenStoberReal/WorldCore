@@ -30,6 +30,13 @@ if (!needsOnboarding) {
   stopWatcher = stopCharacterWatcher;
 }
 
+{
+  const { ensureUserDirs } = await import('./storage/paths');
+  ensureUserDirs();
+  const { presetService } = await import('./services/preset.service');
+  await presetService.seedDefaults();
+}
+
 const server = serve({
   port: PORT,
   hostname: HOST,
