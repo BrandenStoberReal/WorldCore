@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm';
 import { db } from '@/server/db/client';
-import { connectionProfiles } from '@/server/db/schema';
+import { connectionProfiles, users } from '@/server/db/schema';
 import { NotFoundError } from '@/server/errors';
 import type {
   ConnectionProfileCreateInput,
@@ -40,7 +40,56 @@ export const connectionProfileService = {
       .select()
       .from(connectionProfiles)
       .where(eq(connectionProfiles.userId, userId));
-    return rows.map((row) => JSON.parse(row.data) as ConnectionProfile);
+    const profiles = rows.map((row) => JSON.parse(row.data) as ConnectionProfile);
+
+    if (profiles.length === 0) {
+      try {
+        const defaultProfile = await this.createDefault(userId);
+        return [defaultProfile];
+      } catch {
+        return [];
+      }
+    }
+
+    return profiles;
+  },
+
+  async createDefault(userId: string): Promise<ConnectionProfile> {
+    const existing = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (existing.length === 0) {
+      await db.insert(users).values({
+        id: userId,
+        handle: userId,
+        name: userId,
+        role: 'admin',
+        enabled: true,
+        createdAt: Math.floor(Date.now() / 1000),
+      });
+    }
+
+    const id = 'default';
+    const now = new Date();
+    const profile: ConnectionProfile = {
+      id,
+      name: 'Default',
+      api: 'openai',
+      model: '',
+      mode: 'chat',
+      isDefault: true,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+
+    await db.insert(connectionProfiles).values({
+      id,
+      userId,
+      name: profile.name,
+      data: JSON.stringify(profile),
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return profile;
   },
 
   async getOne(userId: string, id: string): Promise<ConnectionProfile | null> {

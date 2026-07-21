@@ -1,5 +1,5 @@
 // Used in modals for profile CRUD (create/edit). Not a standalone panel.
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectLabel,
   SelectTrigger,
@@ -28,6 +29,7 @@ const EMPTY_FORM: Omit<ConnectionProfile, 'id' | 'createdAt' | 'updatedAt'> = {
   name: '',
   api: 'openai',
   model: '',
+  mode: 'chat',
   apiUrl: '',
   secretId: '',
   preset: '',
@@ -108,6 +110,25 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
     return { ...EMPTY_FORM };
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debouncedSave = useCallback(
+    (data: typeof form) => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = setTimeout(() => {
+        const result: ConnectionProfile = {
+          ...data,
+          id: profile?.id ?? crypto.randomUUID(),
+          createdAt: profile?.createdAt ?? new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        onSave(result);
+      }, 500);
+    },
+    [profile, onSave],
+  );
 
   // Collapsible sections
   const [openSections, setOpenSections] = useState({
@@ -126,9 +147,15 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
 
   const updateField = useCallback(
     <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
-      setForm((prev) => ({ ...prev, [key]: value }));
+      setForm((prev) => {
+        const next = { ...prev, [key]: value };
+        if (isEdit) {
+          debouncedSave(next);
+        }
+        return next;
+      });
     },
-    [],
+    [isEdit, debouncedSave],
   );
 
   const toggleExclude = useCallback((item: string) => {
@@ -193,18 +220,22 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
                   <SelectValue placeholder="Select API type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectLabel>Chat Completions</SelectLabel>
-                  {SHARED_CONST.CHAT_COMPLETION_SOURCES.map((src) => (
-                    <SelectItem key={src} value={src}>
-                      {src}
-                    </SelectItem>
-                  ))}
-                  <SelectLabel>Text Completions</SelectLabel>
-                  {SHARED_CONST.TEXT_COMPLETION_SOURCES.map((src) => (
-                    <SelectItem key={src} value={src}>
-                      {src}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectLabel>Chat Completions</SelectLabel>
+                    {SHARED_CONST.CHAT_COMPLETION_SOURCES.map((src) => (
+                      <SelectItem key={src} value={src}>
+                        {src}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Text Completions</SelectLabel>
+                    {SHARED_CONST.TEXT_COMPLETION_SOURCES.map((src) => (
+                      <SelectItem key={src} value={src}>
+                        {src}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>

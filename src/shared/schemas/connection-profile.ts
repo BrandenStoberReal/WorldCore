@@ -27,12 +27,16 @@ export const ConnectionProfileSchema = z.object({
   // Text Completion Specific
   tokenizer: z.string().optional(), // Tokenizer selection
 
+  // Generation Mode
+  mode: z.enum(['chat', 'text']).optional(), // Chat or text completion mode
+
   // Other
   proxy: z.string().optional(), // Proxy preset name
   regexPreset: z.string().optional(), // Regex preset ID
   exclude: z.array(z.string()).optional(), // Commands to exclude from profile
 
   // Metadata
+  isDefault: z.boolean().optional(), // Built-in default profile (editable, autosaves, non-deletable)
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });

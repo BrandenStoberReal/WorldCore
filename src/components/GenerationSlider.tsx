@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GenerationSliderProps {
@@ -43,17 +42,9 @@ export function GenerationSlider({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <label className="mono-tag text-foreground/60">{label}</label>
-          {description && (
-            <span className="group/tooltip relative">
-              <Info className="text-foreground/25 h-2.5 w-2.5 cursor-help" />
-              <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 -translate-x-1/2 whitespace-normal rounded-sm border border-border/60 bg-popover px-2 py-1 text-[10px] leading-tight text-foreground/70 shadow-md opacity-0 transition-opacity duration-150 group-hover/tooltip:opacity-100 w-48 text-left">
-                {description}
-              </span>
-            </span>
-          )}
-        </div>
+        <label className="mono-tag text-foreground/60" title={description}>
+          {label}
+        </label>
         <div className="flex items-center gap-1">
           <input
             type="number"

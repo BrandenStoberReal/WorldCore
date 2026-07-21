@@ -16,15 +16,19 @@ import { TextGenPanel } from '@/components/connections/TextGenPanel';
 import { ChatCompletionPanel } from '@/components/connections/ChatCompletionPanel';
 import { KoboldHordeForm } from '@/components/connections/KoboldHordeForm';
 import { NovelAIForm } from '@/components/connections/NovelAIForm';
-import { OnlineStatus } from '@/components/connections/OnlineStatus';
 import { Modal } from '@/components/Modal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ConnectionProfileForm } from '@/components/ConnectionProfileForm';
 import { apiFetch, saveSettings } from '@/lib/api';
 import { useNavStore } from '@/lib/navStore';
+import { useGenerationStore } from '@/lib/stores';
 import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
 
 type ApiType = 'textgenerationwebui' | 'openai' | 'novel' | 'koboldhorde';
+
+function modeForApiType(api: ApiType): 'chat' | 'text' {
+  return api === 'textgenerationwebui' ? 'text' : 'chat';
+}
 
 export function ConnectionsPanel() {
   const queryClient = useQueryClient();
@@ -35,6 +39,7 @@ export function ConnectionsPanel() {
   const [autoConnect, setAutoConnect] = useState(false);
   const connected = useNavStore((s) => s.connected);
   const setConnected = useNavStore((s) => s.setConnected);
+  const setMode = useGenerationStore((s) => s.setMode);
 
   // Modal state for profile CRUD
   const [createOpen, setCreateOpen] = useState(false);
@@ -54,6 +59,8 @@ export function ConnectionsPanel() {
         body: JSON.stringify({}),
       }) as Promise<ConnectionProfile[]>,
   });
+
+  const selectedProfile = profiles?.find((p) => p.id === selectedProfileId);
 
   // Create mutation
   const createMutation = useMutation({
@@ -101,6 +108,33 @@ export function ConnectionsPanel() {
       });
     },
   });
+
+  const handleCloneProfile = useCallback(
+    (id: string) => {
+      const profile = profiles?.find((p) => p.id === id);
+      if (!profile) return;
+
+      const baseName = profile.name.replace(/\s*\(\d+\)$/, '');
+      const existingNames = new Set((profiles ?? []).map((p) => p.name));
+      let cloneName = `${baseName} (1)`;
+      let counter = 2;
+      while (existingNames.has(cloneName)) {
+        cloneName = `${baseName} (${counter})`;
+        counter++;
+      }
+
+      const now = new Date().toISOString();
+      createMutation.mutate({
+        ...profile,
+        id: crypto.randomUUID(),
+        name: cloneName,
+        isDefault: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+    },
+    [profiles, createMutation],
+  );
 
   const handleConnect = useCallback(
     async (config: Record<string, unknown>) => {
@@ -200,8 +234,6 @@ export function ConnectionsPanel() {
     );
   }
 
-  const selectedProfile = profiles?.find((p) => p.id === selectedProfileId);
-
   return (
     <div data-panel="connections" className="flex h-full flex-col gap-3">
       {/* Header */}
@@ -251,6 +283,7 @@ export function ConnectionsPanel() {
           if (p) setEditProfile(p);
         }}
         onEdit={handleEditProfile}
+        onClone={handleCloneProfile}
         onReload={handleReloadProfile}
         onDelete={handleDeleteProfile}
         loading={isLoading}
@@ -259,7 +292,14 @@ export function ConnectionsPanel() {
       {/* API Type Selector */}
       <div className="space-y-1.5">
         <Label className="text-[13px] font-medium">API</Label>
-        <Select value={apiType} onValueChange={(v) => setApiType(v as ApiType)}>
+        <Select
+          value={apiType}
+          onValueChange={(v) => {
+            const next = v as ApiType;
+            setApiType(next);
+            setMode(modeForApiType(next));
+          }}
+        >
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -303,9 +343,6 @@ export function ConnectionsPanel() {
           </span>
         )}
       </div>
-
-      {/* Connection Status */}
-      <OnlineStatus connected={connected} text={connected ? 'Connected' : 'No connection...'} />
 
       {/* Create Modal */}
       <Modal

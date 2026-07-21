@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { OnlineStatus } from './OnlineStatus';
 import { ProviderForm } from './ProviderForm';
 import { TEXTGEN_PROVIDERS, sourcesForCategory } from './providerConfigs';
 
@@ -139,12 +138,6 @@ export function TextGenPanel({ onConnect, connected = false }: TextGenPanelProps
           </label>
         )}
       </div>
-
-      {/* Connection status */}
-      <OnlineStatus
-        connected={connected}
-        text={connected ? `Connected to ${config?.name ?? subType}` : undefined}
-      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Info, Plus, Save, Pencil, RefreshCw, Trash2, Loader2, HelpCircle } from 'lucide-react';
+import { Info, Plus, Save, Pencil, RefreshCw, Trash2, Loader2, HelpCircle, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConnectionProfile {
@@ -17,6 +17,7 @@ interface ConnectionProfileSelectorProps {
   onCreate?: () => void;
   onUpdate?: (id: string) => void;
   onEdit?: (id: string) => void;
+  onClone?: (id: string) => void;
   onReload?: (id: string) => void;
   onDelete?: (id: string) => void;
   loading?: boolean;
@@ -35,6 +36,7 @@ export function ConnectionProfileSelector({
   onCreate,
   onUpdate,
   onEdit,
+  onClone,
   onReload,
   onDelete,
   loading = false,
@@ -112,6 +114,12 @@ export function ConnectionProfileSelector({
           icon={Pencil}
           title="Edit a connection profile"
           onClick={() => selectedId && onEdit?.(selectedId)}
+          disabled={!selectedId}
+        />
+        <ActionButton
+          icon={Copy}
+          title="Clone this connection profile"
+          onClick={() => selectedId && onClone?.(selectedId)}
           disabled={!selectedId}
         />
         <ActionButton

@@ -1,9 +1,8 @@
 import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Save, RotateCcw, Zap, Copy } from 'lucide-react';
+import { Save, RotateCcw, Zap, Copy, PanelLeftClose } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGenerationStore } from '@/lib/stores';
-import { GenerationModeToggle } from '@/components/GenerationModeToggle';
 import { GenerationSlider } from '@/components/GenerationSlider';
 import { InlineSection } from '@/components/drawers/InlineSection';
 import {
@@ -18,11 +17,12 @@ import { apiPost } from '@/lib/api';
 
 interface GenerationSidebarProps {
   mode?: 'sidebar' | 'drawer';
+  onToggle?: () => void;
 }
 
 type PresetStatus = 'idle' | 'saving' | 'loading' | 'ok' | 'err';
 
-export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebarProps) {
+export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: GenerationSidebarProps) {
   const store = useGenerationStore();
   const { mode } = store;
   const [presetStatus, setPresetStatus] = useState<PresetStatus>('idle');
@@ -94,10 +94,17 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
   }, [store, saveName, isCurrentPresetDefault, flashStatus]);
 
   const handleClonePreset = useCallback(() => {
-    const baseName = store.preset || 'Preset';
-    setSaveName(`${baseName} (Copy)`);
+    const baseName = (store.preset || 'Preset').replace(/\s*\(\d+\)$/, '');
+    const existingNames = new Set(presetNames);
+    let cloneName = `${baseName} (1)`;
+    let counter = 2;
+    while (existingNames.has(cloneName)) {
+      cloneName = `${baseName} (${counter})`;
+      counter++;
+    }
+    setSaveName(cloneName);
     setShowSaveInput(true);
-  }, [store.preset]);
+  }, [store.preset, presetNames]);
 
   const handleLoadPreset = useCallback(
     async (name: string) => {
@@ -127,12 +134,12 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
     <aside className="generation-sidebar" role="complementary" aria-label="Generation settings">
       <div className="flex h-full flex-col">
         <div className="border-border/40 border-b px-3 pt-3 pb-2.5">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Zap className="text-ember h-3 w-3" strokeWidth={2} />
-              <span className="display-host text-[13px] leading-none">Generation</span>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <Zap className="text-ember h-3 w-3 shrink-0" strokeWidth={2} />
+              <span className="display-host truncate text-[13px] leading-none">Generation</span>
             </div>
-            <div className="flex items-center gap-0.5">
+            <div className="flex shrink-0 items-center gap-0.5">
               {showSaveInput ? (
                 <div className="flex items-center gap-1">
                   <Input
@@ -147,7 +154,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                       }
                     }}
                     placeholder={isCurrentPresetDefault ? 'Clone as new name...' : 'Preset name'}
-                    className="h-5 w-24 text-[10px]"
+                    className="h-5 w-20 text-[10px]"
                     autoFocus
                   />
                   <button
@@ -205,6 +212,17 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
                   >
                     <RotateCcw className="h-2.5 w-2.5" strokeWidth={2} />
                   </button>
+                  {onToggle && (
+                    <button
+                      type="button"
+                      onClick={onToggle}
+                      className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors"
+                      title="Hide generation options"
+                      aria-label="Hide generation options"
+                    >
+                      <PanelLeftClose className="h-2.5 w-2.5" strokeWidth={2} />
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -225,7 +243,6 @@ export function GenerationSidebar({ mode: _mode = 'sidebar' }: GenerationSidebar
               {(presetStatus === 'ok' || presetStatus === 'err') && presetMessage}
             </div>
           )}
-          <GenerationModeToggle />
           <div className="mt-2">
             <Select value={store.preset} onValueChange={handleLoadPreset}>
               <SelectTrigger className="h-6 text-[11px]">
