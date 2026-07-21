@@ -11,15 +11,15 @@ bun dev
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `bun dev` | Hot-reload dev server |
-| `bun start` | Production server |
-| `bun run build` | Production bundle |
-| `bun test` | Run tests |
-| `bun run typecheck` | TypeScript check |
-| `bun run format` | Prettier write |
-| `bun run db:migrate` | Run Drizzle migrations |
+| Command               | Description              |
+| --------------------- | ------------------------ |
+| `bun dev`             | Hot-reload dev server    |
+| `bun start`           | Production server        |
+| `bun run build`       | Production bundle        |
+| `bun test`            | Run tests                |
+| `bun run typecheck`   | TypeScript check         |
+| `bun run format`      | Prettier write           |
+| `bun run db:migrate`  | Run Drizzle migrations   |
 | `bun run db:generate` | Generate migration files |
 
 ## Tech Stack

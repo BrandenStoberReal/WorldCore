@@ -92,7 +92,7 @@ export function ReverseProxySection({
         />
       </button>
 
-      {open && (
+      <div className={cn('accordion-content', open && 'accordion-open')}>
         <div className="border-border/40 space-y-3 border-t px-3 pt-1 pb-3">
           {/* Proxy Preset */}
           <div className="space-y-2 pt-2">
@@ -158,7 +158,7 @@ export function ReverseProxySection({
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
 import { SHARED_CONST } from '@/shared/constants';
@@ -81,6 +81,7 @@ function SectionHeader({
     <button
       type="button"
       onClick={onToggle}
+      aria-expanded={open}
       className="group/section flex w-full items-center justify-between py-2"
     >
       <div className="flex items-center gap-2">
@@ -88,11 +89,12 @@ function SectionHeader({
         <span className="bg-ember/30 h-px w-6" />
         <span className="text-foreground/80 text-[13px] font-semibold tracking-tight">{label}</span>
       </div>
-      {open ? (
-        <ChevronUp className="text-muted-foreground/50 group-hover/section:text-ember h-3.5 w-3.5 transition-colors" />
-      ) : (
-        <ChevronDown className="text-muted-foreground/50 group-hover/section:text-ember h-3.5 w-3.5 transition-colors" />
-      )}
+      <ChevronDown
+        className={cn(
+          'text-muted-foreground/50 group-hover/section:text-ember h-3.5 w-3.5 transition-transform duration-200',
+          open && 'rotate-180',
+        )}
+      />
     </button>
   );
 }
@@ -170,7 +172,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
             onToggle={() => toggleSection('basic')}
           />
         </CardContent>
-        {openSections.basic && (
+        <div className={cn('accordion-content', openSections.basic && 'accordion-open')}>
           <CardContent className="border-border/40 space-y-3 border-t px-4 pt-0 pb-4 md:px-5">
             <div className="space-y-2 pt-3">
               <Label>
@@ -207,7 +209,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
               </Select>
             </div>
           </CardContent>
-        )}
+        </div>
       </Card>
 
       {/* ── Connection ── */}
@@ -220,7 +222,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
             onToggle={() => toggleSection('connection')}
           />
         </CardContent>
-        {openSections.connection && (
+        <div className={cn('accordion-content', openSections.connection && 'accordion-open')}>
           <CardContent className="border-border/40 space-y-3 border-t px-4 pt-0 pb-4 md:px-5">
             <div className="space-y-2 pt-3">
               <Label>Model</Label>
@@ -247,7 +249,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
               />
             </div>
           </CardContent>
-        )}
+        </div>
       </Card>
 
       {/* ── Presets & Templates ── */}
@@ -260,7 +262,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
             onToggle={() => toggleSection('presets')}
           />
         </CardContent>
-        {openSections.presets && (
+        <div className={cn('accordion-content', openSections.presets && 'accordion-open')}>
           <CardContent className="border-border/40 space-y-3 border-t px-4 pt-0 pb-4 md:px-5">
             <div className="space-y-2 pt-3">
               <Label>Preset Name</Label>
@@ -287,7 +289,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
               />
             </div>
           </CardContent>
-        )}
+        </div>
       </Card>
 
       {/* ── System Prompt ── */}
@@ -300,7 +302,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
             onToggle={() => toggleSection('sysprompt')}
           />
         </CardContent>
-        {openSections.sysprompt && (
+        <div className={cn('accordion-content', openSections.sysprompt && 'accordion-open')}>
           <CardContent className="border-border/40 space-y-3 border-t px-4 pt-0 pb-4 md:px-5">
             <div className="space-y-2 pt-3">
               <Label>System Prompt Name</Label>
@@ -355,7 +357,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
               </button>
             </div>
           </CardContent>
-        )}
+        </div>
       </Card>
 
       {/* ── Generation ── */}
@@ -368,7 +370,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
             onToggle={() => toggleSection('generation')}
           />
         </CardContent>
-        {openSections.generation && (
+        <div className={cn('accordion-content', openSections.generation && 'accordion-open')}>
           <CardContent className="border-border/40 space-y-3 border-t px-4 pt-0 pb-4 md:px-5">
             <div className="space-y-2 pt-3">
               <Label>Stop Strings</Label>
@@ -396,7 +398,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
               />
             </div>
           </CardContent>
-        )}
+        </div>
       </Card>
 
       {/* ── Advanced ── */}
@@ -409,7 +411,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
             onToggle={() => toggleSection('advanced')}
           />
         </CardContent>
-        {openSections.advanced && (
+        <div className={cn('accordion-content', openSections.advanced && 'accordion-open')}>
           <CardContent className="border-border/40 space-y-3 border-t px-4 pt-0 pb-4 md:px-5">
             <div className="space-y-2 pt-3">
               <Label>Tokenizer</Label>
@@ -454,7 +456,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
               />
             </div>
           </CardContent>
-        )}
+        </div>
       </Card>
 
       {/* ── Exclude ── */}
@@ -467,7 +469,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
             onToggle={() => toggleSection('exclude')}
           />
         </CardContent>
-        {openSections.exclude && (
+        <div className={cn('accordion-content', openSections.exclude && 'accordion-open')}>
           <CardContent className="border-border/40 border-t px-4 pt-0 pb-4">
             <p className="text-muted-foreground/55 mt-3 mb-3 text-[12px]">
               Toggle settings to exclude from this profile
@@ -494,7 +496,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
               })}
             </div>
           </CardContent>
-        )}
+        </div>
       </Card>
 
       {/* ── Actions ── */}

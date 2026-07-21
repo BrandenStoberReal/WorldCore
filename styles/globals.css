@@ -123,6 +123,8 @@
   --drawer-duration: 250ms;
   --drawer-easing: cubic-bezier(0.16, 1, 0.3, 1);
   --accordion-duration: 200ms;
+  --modal-duration: 200ms;
+  --modal-easing: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark {
@@ -438,6 +440,41 @@
   }
   .inline-drawer-expanded + .inline-drawer-expanded {
     margin-top: 0;
+  }
+
+  /* Modal overlay — backdrop fade */
+  .modal-overlay {
+    transition: opacity var(--modal-duration) ease;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .modal-overlay.modal-closed {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Modal content — scale + fade */
+  .modal-content {
+    transition:
+      opacity var(--modal-duration) ease,
+      transform var(--modal-duration) var(--modal-easing);
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  .modal-closed .modal-content {
+    opacity: 0;
+    transform: scale(0.95) translateY(4px);
+  }
+
+  /* Overlay — generic fade for DragDropOverlay and similar */
+  .overlay-fade {
+    transition: opacity 200ms ease;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .overlay-fade.overlay-hidden {
+    opacity: 0;
+    pointer-events: none;
   }
 }
 

@@ -172,11 +172,13 @@ export function DragDropOverlay() {
   }, [queryClient, isProcessing, resetOverlay]);
 
   const visible = isDragging || isProcessing || rejected;
-  if (!visible) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+      className={cn(
+        'overlay-fade fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm',
+        !visible && 'overlay-hidden',
+      )}
       style={{
         background:
           'radial-gradient(circle at 78% 18%, color-mix(in oklch, var(--ember) 12%, transparent) 0%, transparent 50%), color-mix(in oklch, var(--background) 82%, transparent)',

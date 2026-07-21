@@ -18,12 +18,14 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     }
   };
 
-  if (!open) return null;
-
   return (
     <div
-      className="bg-background/80 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+      className={cn(
+        'modal-overlay bg-background/80 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm',
+        !open && 'modal-closed',
+      )}
       onClick={handleOverlayClick}
+      aria-hidden={!open}
       style={{
         background:
           'radial-gradient(circle at 78% 18%, color-mix(in oklch, var(--ember) 12%, transparent) 0%, transparent 50%), color-mix(in oklch, var(--background) 82%, transparent)',
@@ -31,7 +33,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     >
       <div
         className={cn(
-          'relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-sm',
+          'modal-content relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-sm',
           'border-border bg-card text-card-foreground border',
           'shadow-[0_24px_70px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
           'before:via-ember before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:to-transparent',
