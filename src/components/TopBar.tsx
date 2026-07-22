@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 function LogoMark() {
   return (
     <div
-      className="bg-muted/60 border-border relative flex h-8 w-8 items-center justify-center rounded-[3px] border"
+      className="bg-muted/60 border-border relative flex h-8 w-8 items-center justify-center rounded-md border"
       aria-hidden
     >
       <span className="display-host text-foreground text-[14px] leading-none">
@@ -37,7 +37,7 @@ export function TopBar() {
           type="button"
           onClick={() => setTheme(themeNext)}
           className={cn(
-            'flex h-8 items-center justify-center rounded-sm px-2.5',
+            'flex h-8 items-center justify-center rounded-md px-2.5',
             'border-border bg-background/60 hover:bg-accent/40 border transition-colors',
           )}
           aria-label={`Switch to ${themeNext} theme`}
@@ -47,7 +47,7 @@ export function TopBar() {
         </button>
 
         <div className="border-border/60 flex items-center gap-2 border-l pl-2">
-          <div className="bg-muted/60 border-border flex h-7 w-7 items-center justify-center rounded-sm border">
+          <div className="bg-muted/60 border-border flex h-7 w-7 items-center justify-center rounded-md border">
             <span className="display-host text-foreground/80 text-[13px]">
               {user ? (user.name[0]?.toUpperCase() ?? 'G') : 'G'}
             </span>

@@ -212,7 +212,7 @@ export function FeatherlessForm({ config, onConfigChange, className }: Featherle
           </Button>
         </div>
         {showKeyManager && (
-          <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-sm border p-2">
+          <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-md border p-2">
             <Input
               type="password"
               value={managedKey}
@@ -425,7 +425,7 @@ function ModelCard({
       onClick={() => onSelect(model.id)}
       className={cn(
         'w-full text-left transition-colors outline-none',
-        viewMode === 'grid' ? 'hover:bg-accent/40 rounded-sm p-2' : 'hover:bg-accent/30 px-3 py-2',
+        viewMode === 'grid' ? 'hover:bg-accent/40 rounded-md p-2' : 'hover:bg-accent/30 px-3 py-2',
         selected && 'bg-accent/60 ring-ember/30 ring-1',
       )}
     >

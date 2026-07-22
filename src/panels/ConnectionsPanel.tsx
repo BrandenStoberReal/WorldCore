@@ -69,7 +69,10 @@ export function ConnectionsPanel() {
   useEffect(() => {
     if (selectedProfile) {
       const profileApi = selectedProfile.api as ApiType;
-      if (profileApi && ['textgenerationwebui', 'openai', 'novel', 'koboldhorde'].includes(profileApi)) {
+      if (
+        profileApi &&
+        ['textgenerationwebui', 'openai', 'novel', 'koboldhorde'].includes(profileApi)
+      ) {
         setApiType(profileApi);
         setMode(modeForApiType(profileApi));
       }
@@ -242,7 +245,7 @@ export function ConnectionsPanel() {
     return (
       <div
         data-panel="connections"
-        className="border-destructive/40 bg-card flex h-64 flex-col items-center justify-center gap-2 rounded-sm border p-8"
+        className="border-destructive/40 bg-card flex h-64 flex-col items-center justify-center gap-2 rounded-md border p-8"
       >
         <span className="mono-tag text-destructive">error</span>
         <p className="text-muted-foreground text-sm">{error.message}</p>

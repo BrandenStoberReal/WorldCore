@@ -654,7 +654,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
                         .map((tag, i) => (
                           <span
                             key={`${tag}-${i}`}
-                            className="mono-tag bg-muted/50 border-border/60 text-foreground/65 rounded-sm border px-1.5 py-0.5"
+                            className="mono-tag bg-muted/50 border-border/60 text-foreground/65 rounded-md border px-1.5 py-0.5"
                           >
                             #{tag}
                           </span>

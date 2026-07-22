@@ -55,7 +55,7 @@ export function GenerationSlider({
             step={step}
             disabled={disabled}
             className={cn(
-              'border-border bg-background/60 h-5 w-14 rounded-sm border px-1.5',
+              'border-border bg-background/60 h-5 w-14 rounded-md border px-1.5',
               'text-foreground/80 text-right font-mono text-[10px]',
               'focus:border-ember/50 focus:ring-ember/20 outline-none focus:ring-1',
               'disabled:cursor-not-allowed disabled:opacity-40',

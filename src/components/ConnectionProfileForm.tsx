@@ -190,7 +190,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
   return (
     <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
       {/* ── Basic ── */}
-      <Card className="border-border/60 overflow-hidden rounded-sm py-0">
+      <Card className="border-border/60 overflow-hidden rounded-md py-0">
         <CardContent className="px-4 py-0">
           <SectionHeader
             label="Basic"
@@ -244,7 +244,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
       </Card>
 
       {/* ── Connection ── */}
-      <Card className="border-border/60 overflow-hidden rounded-sm py-0">
+      <Card className="border-border/60 overflow-hidden rounded-md py-0">
         <CardContent className="px-4 py-0">
           <SectionHeader
             label="Connection"
@@ -284,7 +284,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
       </Card>
 
       {/* ── Presets & Templates ── */}
-      <Card className="border-border/60 overflow-hidden rounded-sm py-0">
+      <Card className="border-border/60 overflow-hidden rounded-md py-0">
         <CardContent className="px-4 py-0">
           <SectionHeader
             label="Presets & Templates"
@@ -324,7 +324,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
       </Card>
 
       {/* ── System Prompt ── */}
-      <Card className="border-border/60 overflow-hidden rounded-sm py-0">
+      <Card className="border-border/60 overflow-hidden rounded-md py-0">
         <CardContent className="px-4 py-0">
           <SectionHeader
             label="System Prompt"
@@ -392,7 +392,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
       </Card>
 
       {/* ── Generation ── */}
-      <Card className="border-border/60 overflow-hidden rounded-sm py-0">
+      <Card className="border-border/60 overflow-hidden rounded-md py-0">
         <CardContent className="px-4 py-0">
           <SectionHeader
             label="Generation"
@@ -433,7 +433,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
       </Card>
 
       {/* ── Advanced ── */}
-      <Card className="border-border/60 overflow-hidden rounded-sm py-0">
+      <Card className="border-border/60 overflow-hidden rounded-md py-0">
         <CardContent className="px-4 py-0">
           <SectionHeader
             label="Advanced"
@@ -491,7 +491,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
       </Card>
 
       {/* ── Exclude ── */}
-      <Card className="border-border/60 overflow-hidden rounded-sm py-0">
+      <Card className="border-border/60 overflow-hidden rounded-md py-0">
         <CardContent className="px-4 py-0">
           <SectionHeader
             label="Exclude from Profile"
@@ -514,7 +514,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
                     type="button"
                     onClick={() => toggleExclude(item)}
                     className={cn(
-                      'mono-tag rounded-sm border px-2 py-1 text-[12px] transition-all',
+                      'mono-tag rounded-md border px-2 py-1 text-[12px] transition-all',
                       active
                         ? 'bg-ember/15 border-ember/40 text-ember'
                         : 'bg-muted/50 border-border/60 text-foreground/50 hover:border-ember/20 hover:text-foreground/70',

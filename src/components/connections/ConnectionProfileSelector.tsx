@@ -1,5 +1,15 @@
 import { useState } from 'react';
-import { Info, Plus, Save, Pencil, RefreshCw, Trash2, Loader2, HelpCircle, Copy } from 'lucide-react';
+import {
+  Info,
+  Plus,
+  Save,
+  Pencil,
+  RefreshCw,
+  Trash2,
+  Loader2,
+  HelpCircle,
+  Copy,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConnectionProfile {
@@ -77,7 +87,7 @@ export function ConnectionProfileSelector({
         <select
           value={selectedId ?? ''}
           onChange={(e) => handleSelect(e.target.value)}
-          className="bg-background border-border focus:ring-ember/50 focus:border-ember/50 h-9 flex-1 rounded-sm border px-3 font-mono text-[13px] tracking-tight transition-colors focus:ring-1 focus:outline-none"
+          className="bg-background border-border focus:ring-ember/50 focus:border-ember/50 h-9 flex-1 rounded-md border px-3 font-mono text-[13px] tracking-tight transition-colors focus:ring-1 focus:outline-none"
         >
           <option value="">&lt;None&gt;</option>
           {profiles.map((p) => (
@@ -139,7 +149,7 @@ export function ConnectionProfileSelector({
 
       {/* Expandable details */}
       {detailsOpen && selected && (
-        <div className="border-border/60 bg-muted/20 mt-2 space-y-1 rounded-sm border p-3 text-[13px]">
+        <div className="border-border/60 bg-muted/20 mt-2 space-y-1 rounded-md border p-3 text-[13px]">
           <DetailRow label="API" value={selected.api} />
           <DetailRow label="Model" value={selected.model} />
           <DetailRow
@@ -175,7 +185,7 @@ function ActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'inline-flex h-9 w-9 items-center justify-center rounded-sm border transition-colors',
+        'inline-flex h-9 w-9 items-center justify-center rounded-md border transition-colors',
         'focus:ring-ember/50 focus:ring-1 focus:outline-none',
         disabled
           ? 'border-border/40 bg-muted/30 text-muted-foreground/30 cursor-not-allowed'

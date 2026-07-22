@@ -25,7 +25,7 @@ export function CharacterCard({
       className={cn(
         surfaceCard,
         subtleEdge,
-        'group relative cursor-pointer overflow-hidden rounded-sm p-0',
+        'group relative cursor-pointer overflow-hidden rounded-md p-0',
         'transition-all duration-200',
         'hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-12px_color-mix(in_oklch,var(--ember)_55%,transparent)]',
         'after:translate-x-[-100%] hover:after:translate-x-0',
@@ -87,7 +87,7 @@ export function CharacterCard({
           {character.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="mono-tag bg-muted/50 border-border/60 text-foreground/65 rounded-sm border px-1 py-px"
+              className="mono-tag bg-muted/50 border-border/60 text-foreground/65 rounded-md border px-1 py-px"
             >
               #{tag}
             </span>

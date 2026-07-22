@@ -234,7 +234,7 @@ export function KoboldHordeForm({ onConnect, connected = false, profile }: Kobol
           </Button>
         </div>
         {showKeyManager && (
-          <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-sm border p-2">
+          <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-md border p-2">
             <Input
               type="password"
               value={managedKey}

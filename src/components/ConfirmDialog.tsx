@@ -29,7 +29,7 @@ export function ConfirmDialog({
   return (
     <Modal open={open} onClose={onClose} title={title} className="max-w-md">
       <div className="mb-5 flex items-start gap-3">
-        <div className="border-destructive/40 bg-destructive/10 text-destructive flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border">
+        <div className="border-destructive/40 bg-destructive/10 text-destructive flex h-9 w-9 shrink-0 items-center justify-center rounded-md border">
           <AlertTriangle className="h-4 w-4" />
         </div>
         <p className="text-muted-foreground pt-1.5 text-[13.5px] leading-relaxed">{message}</p>

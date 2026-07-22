@@ -122,8 +122,8 @@ export function ChatMessage({
       {/* Message body — mes_text class for ST styling */}
       <div
         className={cn(
-          'mes_text relative px-4 py-3 text-[13.5px] leading-relaxed break-words',
-          isUser ? 'bg-ember/5 text-foreground' : 'text-foreground/90 bg-transparent',
+          'mes_text relative rounded-md px-4 py-3 text-[13.5px] leading-relaxed break-words',
+          isUser ? 'bg-ember/5 shadow-sm' : 'bg-card/40 text-foreground/90 shadow-xs',
         )}
       >
         {renderedContent}

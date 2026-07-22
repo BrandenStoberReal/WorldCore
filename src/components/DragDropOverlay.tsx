@@ -186,7 +186,7 @@ export function DragDropOverlay() {
     >
       <div
         className={cn(
-          'relative w-full max-w-lg overflow-y-auto rounded-sm border border-dashed',
+          'relative w-full max-w-lg overflow-y-auto rounded-md border border-dashed',
           'border-border bg-card text-card-foreground',
           'shadow-[0_24px_70px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
           'px-6 py-10',
@@ -212,7 +212,7 @@ export function DragDropOverlay() {
               {files.map((f, idx) => (
                 <li
                   key={`${f.fileName}-${idx}`}
-                  className="border-border/60 bg-background/40 flex items-center justify-between gap-3 rounded-sm border px-3 py-2"
+                  className="border-border/60 bg-background/40 flex items-center justify-between gap-3 rounded-md border px-3 py-2"
                 >
                   <span className="text-foreground/80 truncate text-sm">{f.fileName}</span>
                   <span className="flex items-center gap-1.5">
@@ -234,7 +234,7 @@ export function DragDropOverlay() {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="bg-accent/30 flex h-16 w-16 items-center justify-center rounded-sm">
+            <div className="bg-accent/30 flex h-16 w-16 items-center justify-center rounded-md">
               <Upload className="text-ember h-7 w-7" />
             </div>
             <div className="flex flex-col gap-1.5">

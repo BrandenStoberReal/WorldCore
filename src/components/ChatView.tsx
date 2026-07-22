@@ -349,7 +349,7 @@ export function ChatView({ characterId }: ChatViewProps) {
           size="sm"
           onClick={handleNewChat}
           title="Start a new conversation"
-          className="h-7"
+          className="h-7 transition-transform hover:scale-105"
         >
           <MessageSquarePlus className="h-3 w-3" />
           <span className="mono-tag">New Session</span>
@@ -386,7 +386,7 @@ export function ChatView({ characterId }: ChatViewProps) {
                   <span />
                 </span>
               </div>
-              <div className="bg-card border-border flex items-center gap-2 rounded-sm border px-2.5 py-1.5 shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)]">
+              <div className="bg-card border-border flex items-center gap-2 rounded-md border px-2.5 py-1.5 shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)]">
                 <Loader2 className="text-ember h-3 w-3 animate-spin" />
                 <span className="mono-tag text-muted-foreground/65">stoking the engine</span>
               </div>

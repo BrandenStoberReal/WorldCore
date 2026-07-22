@@ -55,6 +55,22 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
+  --shadow-sm:
+    0 1px 2px 0 color-mix(in oklch, var(--foreground) 3%, transparent),
+    0 1px 4px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
+  --shadow-md:
+    0 2px 6px 0 color-mix(in oklch, var(--foreground) 4%, transparent),
+    0 4px 12px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
+  --shadow-lg:
+    0 4px 12px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
+    0 8px 24px 0 color-mix(in oklch, var(--foreground) 6%, transparent);
+  --shadow-xl:
+    0 8px 24px 0 color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 16px 40px 0 color-mix(in oklch, var(--foreground) 8%, transparent);
+
+  --spring-start: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+
   --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
   --font-display: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
@@ -120,11 +136,11 @@
 
   /* Drawer & accordion animation tokens */
   --drawer-width: 330px;
-  --drawer-duration: 250ms;
-  --drawer-easing: cubic-bezier(0.16, 1, 0.3, 1);
-  --accordion-duration: 200ms;
-  --modal-duration: 200ms;
-  --modal-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --drawer-duration: 280ms;
+  --drawer-easing: var(--spring-ease);
+  --accordion-duration: 220ms;
+  --modal-duration: 220ms;
+  --modal-easing: var(--spring-ease);
 }
 
 .dark {
@@ -332,7 +348,7 @@
     background: color-mix(in oklch, var(--background) 90%, transparent);
     border-right: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
     transition:
-      width 300ms cubic-bezier(0.16, 1, 0.3, 1),
+      width 300ms var(--spring-ease),
       opacity 200ms ease;
   }
   .generation-sidebar.closed {
@@ -379,7 +395,7 @@
     transform: translateY(-100%) scale(0.98);
     opacity: 0;
     transition:
-      transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 280ms var(--spring-ease),
       opacity 200ms ease;
     pointer-events: none;
   }
@@ -397,7 +413,7 @@
     -webkit-backdrop-filter: blur(24px);
     border-left: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
     transition:
-      width 300ms cubic-bezier(0.16, 1, 0.3, 1),
+      width 300ms var(--spring-ease),
       opacity 200ms ease;
   }
   .drawer-characters.drawer-closed {
@@ -410,7 +426,7 @@
   .accordion-content {
     overflow: hidden;
     height: 0;
-    transition: height var(--accordion-duration) var(--drawer-easing);
+    transition: height var(--accordion-duration) var(--spring-ease);
   }
   .accordion-content.accordion-open {
     height: auto;
@@ -457,7 +473,7 @@
   .modal-content {
     transition:
       opacity var(--modal-duration) ease,
-      transform var(--modal-duration) var(--modal-easing);
+      transform var(--modal-duration) var(--spring-ease);
     opacity: 1;
     transform: scale(1) translateY(0);
   }

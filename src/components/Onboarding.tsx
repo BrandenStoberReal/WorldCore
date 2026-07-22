@@ -82,7 +82,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                 key={backend.id}
                 className={cn(
                   surfaceCard,
-                  'cursor-pointer rounded-sm transition-all',
+                  'cursor-pointer rounded-md transition-all',
                   isSelected && 'ring-ember/50 ring-2',
                   'hover:border-border/80',
                 )}
@@ -91,7 +91,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                 <CardContent className="flex items-start gap-4 px-4 py-4">
                   <div
                     className={cn(
-                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-sm',
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-md',
                       isSelected ? 'bg-ember/10 text-ember' : 'bg-accent/40 text-muted-foreground',
                     )}
                   >
@@ -120,7 +120,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                           value={mongodbUri}
                           onChange={(e) => setMongodbUri(e.target.value)}
                           placeholder="mongodb://localhost:27017/worldcore"
-                          className="h-8 rounded-sm text-[13px]"
+                          className="h-8 rounded-md text-[13px]"
                         />
                       </div>
                     )}
@@ -145,7 +145,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
         </div>
 
         {error && (
-          <div className="border-destructive/40 bg-destructive/5 rounded-sm border p-3">
+          <div className="border-destructive/40 bg-destructive/5 rounded-md border p-3">
             <p className="text-destructive text-[13px]">{error}</p>
           </div>
         )}
@@ -154,7 +154,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
           <Button
             onClick={handleSubmit}
             disabled={loading || (selected === 'mongodb' && !mongodbUri.trim())}
-            className="bg-ember hover:bg-ember/90 h-10 rounded-sm px-8 text-[13px] font-medium"
+            className="bg-ember hover:bg-ember/90 h-10 rounded-md px-8 text-[13px] font-medium"
           >
             {loading ? (
               <>

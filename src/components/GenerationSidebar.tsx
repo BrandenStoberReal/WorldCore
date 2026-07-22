@@ -35,7 +35,9 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
     queryFn: async () => {
       const [genPresets, tgPresets] = await Promise.all([
         apiPost<Array<{ data?: { name?: string } }>>('/presets/all', { category: 'generation' }),
-        apiPost<Array<{ data?: { name?: string } }>>('/presets/all', { category: 'textgenerationwebui' }),
+        apiPost<Array<{ data?: { name?: string } }>>('/presets/all', {
+          category: 'textgenerationwebui',
+        }),
       ]);
       const names = new Set<string>();
       for (const p of [...genPresets, ...tgPresets]) {
@@ -50,8 +52,12 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
     queryKey: ['/api/v1/presets/all', 'generation+textgenerationwebui', 'defaults'],
     queryFn: async () => {
       const [genPresets, tgPresets] = await Promise.all([
-        apiPost<Array<{ data?: { name?: string }; isDefault?: boolean }>>('/presets/all', { category: 'generation' }),
-        apiPost<Array<{ data?: { name?: string }; isDefault?: boolean }>>('/presets/all', { category: 'textgenerationwebui' }),
+        apiPost<Array<{ data?: { name?: string }; isDefault?: boolean }>>('/presets/all', {
+          category: 'generation',
+        }),
+        apiPost<Array<{ data?: { name?: string }; isDefault?: boolean }>>('/presets/all', {
+          category: 'textgenerationwebui',
+        }),
       ]);
       const defaults = new Set<string>();
       for (const p of [...genPresets, ...tgPresets]) {
@@ -162,7 +168,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     onClick={handleSavePreset}
                     disabled={!saveName.trim() || presetStatus === 'saving'}
                     className={cn(
-                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors',
+                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors',
                       'disabled:cursor-not-allowed disabled:opacity-40',
                     )}
                     title="Confirm save"
@@ -177,7 +183,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     onClick={handleClonePreset}
                     disabled={presetStatus === 'saving' || presetStatus === 'loading'}
                     className={cn(
-                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors',
+                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors',
                       'disabled:cursor-not-allowed disabled:opacity-40',
                     )}
                     title="Clone current preset"
@@ -194,7 +200,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                       }}
                       disabled={presetStatus === 'saving' || presetStatus === 'loading'}
                       className={cn(
-                        'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors',
+                        'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors',
                         'disabled:cursor-not-allowed disabled:opacity-40',
                       )}
                       title="Overwrite preset"
@@ -206,7 +212,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <button
                     type="button"
                     onClick={() => store.resetDefaults()}
-                    className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors"
+                    className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
                     title="Reset to defaults"
                     aria-label="Reset to defaults"
                   >
@@ -216,7 +222,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     <button
                       type="button"
                       onClick={onToggle}
-                      className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-sm p-1 transition-colors"
+                      className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
                       title="Hide generation options"
                       aria-label="Hide generation options"
                     >
@@ -232,7 +238,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               role="status"
               aria-live="polite"
               className={cn(
-                'mb-1.5 rounded-sm px-2 py-0.5 text-[10px] leading-tight',
+                'mb-1.5 rounded-md px-2 py-0.5 text-[10px] leading-tight',
                 presetStatus === 'ok' && 'bg-ember/10 text-ember',
                 presetStatus === 'err' && 'bg-destructive/10 text-destructive',
                 (presetStatus === 'saving' || presetStatus === 'loading') && 'text-foreground/50',
@@ -429,7 +435,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                         type="button"
                         onClick={() => update('mirostat_mode', m)}
                         className={cn(
-                          'flex-1 rounded-sm border py-0.5 font-mono text-[10px] transition-all',
+                          'flex-1 rounded-md border py-0.5 font-mono text-[10px] transition-all',
                           store.mirostat_mode === m
                             ? 'bg-ember/15 text-ember border-ember/25'
                             : 'border-border text-foreground/40 hover:text-foreground/60',
@@ -536,7 +542,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 }
                 placeholder="comma separated"
                 className={cn(
-                  'border-border bg-background/60 h-6 w-full rounded-sm border px-2',
+                  'border-border bg-background/60 h-6 w-full rounded-md border px-2',
                   'text-foreground/80 placeholder:text-foreground/25 text-[11px] outline-none',
                   'focus:border-ember/50',
                 )}
@@ -550,9 +556,9 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 value={store.seed}
                 onChange={(e) => update('seed', parseInt(e.target.value, 10) || -1)}
                 className={cn(
-                  'border-border bg-background/60 h-6 w-full rounded-sm border px-2',
+                  'border-border bg-background/60 h-6 w-full rounded-md border px-2',
                   'text-foreground/80 text-[11px] outline-none',
-                  'focus:border-ember/50',
+                  'focus:border-ember/50 focus:ring-ember/20',
                   '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
                 )}
                 aria-label="Seed value"

@@ -33,7 +33,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     >
       <div
         className={cn(
-          'modal-content relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-sm',
+          'modal-content relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-md',
           'border-border bg-card text-card-foreground border',
           'shadow-[0_24px_70px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
           'before:via-ember before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:to-transparent',

@@ -242,7 +242,7 @@ export function WorldInfoPanel() {
               className="h-8 pl-8 font-mono text-[12px] tracking-tight"
             />
           </div>
-          <div className="border-border bg-background/40 flex h-8 items-center gap-1.5 rounded-sm border px-2.5">
+          <div className="border-border bg-background/40 flex h-8 items-center gap-1.5 rounded-md border px-2.5">
             <span className="mono-tag text-muted-foreground/55">tablets</span>
             <span className="mono-tag text-ember tabular-nums">
               {String(filtered?.length ?? 0).padStart(2, '0')}
@@ -262,7 +262,7 @@ export function WorldInfoPanel() {
             key={entry.uid}
             className={cn(
               surfaceCard,
-              'group relative overflow-hidden rounded-sm py-0 transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
+              'group relative overflow-hidden rounded-md py-0 transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
               entry.disable ? 'opacity-55' : '',
             )}
           >
@@ -274,10 +274,10 @@ export function WorldInfoPanel() {
                 </span>
                 <span className="mono-tag text-ember/70 truncate">{entry.key || '{no_key}'}</span>
                 {!entry.disable && (
-                  <span className="mono-tag bg-ember/15 text-ember rounded-sm px-1 py-px">ON</span>
+                  <span className="mono-tag bg-ember/15 text-ember rounded-md px-1 py-px">ON</span>
                 )}
                 {entry.disable && (
-                  <span className="mono-tag bg-muted/50 text-muted-foreground/55 rounded-sm px-1 py-px">
+                  <span className="mono-tag bg-muted/50 text-muted-foreground/55 rounded-md px-1 py-px">
                     OFF
                   </span>
                 )}
@@ -332,9 +332,9 @@ export function WorldInfoPanel() {
       </div>
 
       {filtered?.length === 0 && (
-        <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-sm px-6 py-12')}>
+        <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-md px-6 py-12')}>
           <CardContent className="flex flex-col items-center justify-center text-center">
-            <div className="border-border bg-muted/40 mb-3 flex h-12 w-12 items-center justify-center rounded-sm border">
+            <div className="border-border bg-muted/40 mb-3 flex h-12 w-12 items-center justify-center rounded-md border">
               <span className="display-host text-ember text-xl">∅</span>
             </div>
             <h3 className="display-host mb-1 text-lg">Archive empty</h3>
@@ -505,7 +505,7 @@ function ToggleRow({
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="border-border bg-background/40 hover:bg-accent/30 flex w-full items-center justify-between rounded-sm border px-3 py-2 text-left transition-colors"
+      className="border-border bg-background/40 hover:bg-accent/30 flex w-full items-center justify-between rounded-md border px-3 py-2 text-left transition-colors"
     >
       <div className="flex flex-col">
         <span className="text-[13px] font-medium">{label}</span>
@@ -542,7 +542,7 @@ function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px]',
+        'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px]',
         accent
           ? 'border-ember/40 bg-ember/10 text-ember'
           : 'border-border bg-muted/40 text-foreground/70',

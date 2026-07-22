@@ -124,7 +124,7 @@ export function ExtensionsPanel() {
         </div>
       </header>
 
-      <div className="border-border bg-background/40 flex h-8 items-center gap-1.5 self-start rounded-sm border px-2.5">
+      <div className="border-border bg-background/40 flex h-8 items-center gap-1.5 self-start rounded-md border px-2.5">
         <span className="mono-tag text-muted-foreground/55">modules</span>
         <span className="mono-tag text-ember tabular-nums">
           {String(extensions?.length ?? 0).padStart(2, '0')}
@@ -137,7 +137,7 @@ export function ExtensionsPanel() {
             key={ext.name}
             className={cn(
               surfaceCard,
-              'group relative overflow-hidden rounded-sm py-0 transition-all',
+              'group relative overflow-hidden rounded-md py-0 transition-all',
               'hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
               ext.enabled ? '' : 'opacity-55',
             )}
@@ -205,9 +205,9 @@ export function ExtensionsPanel() {
       </div>
 
       {extensions?.length === 0 && (
-        <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-sm px-6 py-12')}>
+        <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-md px-6 py-12')}>
           <CardContent className="flex flex-col items-center justify-center text-center">
-            <div className="border-border bg-muted/40 mb-3 flex h-12 w-12 items-center justify-center rounded-sm border">
+            <div className="border-border bg-muted/40 mb-3 flex h-12 w-12 items-center justify-center rounded-md border">
               <Package className="text-ember/60 h-5 w-5" />
             </div>
             <h3 className="display-host mb-1 text-lg">No modules</h3>

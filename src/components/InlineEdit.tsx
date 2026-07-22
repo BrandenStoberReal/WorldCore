@@ -161,7 +161,7 @@ export function InlineEdit({
       type="button"
       onClick={() => setEditing(true)}
       className={cn(
-        'group/inline group/edit relative flex w-full items-center gap-1 rounded-sm px-1.5 py-0.5 text-left transition-colors',
+        'group/inline group/edit relative flex w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-left transition-colors',
         'hover:bg-accent/20',
         className,
       )}

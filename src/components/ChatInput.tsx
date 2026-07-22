@@ -46,7 +46,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
         <div
           className={cn(
             surfaceCard,
-            'focus-within:border-ember/60 relative rounded-sm transition-colors',
+            'focus-within:border-ember/60 relative rounded-md transition-colors',
           )}
         >
           <div
@@ -84,7 +84,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
               variant="outline"
               size="sm"
               onClick={onStop}
-              className="hover:border-destructive/60 hover:text-destructive h-7 gap-1.5"
+              className="hover:border-destructive/60 hover:text-destructive h-7 gap-1.5 transition-transform hover:scale-105"
               title="Stop generation"
             >
               <Square className="h-3 w-3 fill-current" />
@@ -95,7 +95,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
               size="sm"
               onClick={handleSubmit}
               disabled={!value.trim() || disabled}
-              className="h-7 gap-1.5"
+              className="h-7 gap-1.5 transition-transform hover:scale-105"
               title="Send message"
             >
               <Send className="h-3 w-3" />

@@ -187,7 +187,7 @@ export function OpenRouterForm({ config, onConfigChange, className }: OpenRouter
           </Button>
         </div>
         {showKeyManager && (
-          <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-sm border p-2">
+          <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-md border p-2">
             <Input
               type="password"
               value={managedKey}
@@ -247,7 +247,7 @@ export function OpenRouterForm({ config, onConfigChange, className }: OpenRouter
             <label
               key={p}
               className={cn(
-                'flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-[13px] transition-colors select-none',
+                'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-[13px] transition-colors select-none',
                 providers.includes(p)
                   ? 'bg-accent/60 text-accent-foreground'
                   : 'hover:bg-accent/30 text-foreground/70',
@@ -303,7 +303,7 @@ export function OpenRouterForm({ config, onConfigChange, className }: OpenRouter
             <label
               key={q.value}
               className={cn(
-                'flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-[13px] transition-colors select-none',
+                'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-[13px] transition-colors select-none',
                 quantizations.includes(q.value)
                   ? 'bg-accent/60 text-accent-foreground'
                   : 'hover:bg-accent/30 text-foreground/70',

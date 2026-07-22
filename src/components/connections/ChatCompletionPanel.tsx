@@ -356,11 +356,7 @@ export function ChatCompletionPanel({
           disabled={connecting}
           className={cn('relative h-9 pr-5 pl-4', !connected && 'ember-pulse')}
         >
-          {connecting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Plug className="h-4 w-4" />
-          )}
+          {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plug className="h-4 w-4" />}
           <span className="text-[13px] font-semibold tracking-tight">
             {connecting ? 'Connecting...' : 'Connect'}
           </span>

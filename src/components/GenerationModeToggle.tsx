@@ -17,7 +17,7 @@ export function GenerationModeToggle() {
 
   return (
     <div
-      className="border-border bg-background/50 flex rounded-sm border p-0.5"
+      className="border-border bg-background/50 flex rounded-md border p-0.5"
       role="radiogroup"
       aria-label="Generation mode"
     >
@@ -31,7 +31,7 @@ export function GenerationModeToggle() {
             aria-checked={isActive}
             onClick={() => setMode(value)}
             className={cn(
-              'flex min-w-0 flex-1 items-center justify-center gap-1 rounded-[3px] px-1.5 py-1',
+              'flex min-w-0 flex-1 items-center justify-center gap-1 rounded-sm px-1.5 py-1',
               'text-[10px] font-medium transition-all duration-200',
               isActive
                 ? 'bg-ember/15 text-ember border-ember/25 border shadow-sm'

@@ -92,7 +92,7 @@ export function ChatsPanel() {
             </div>
 
             <div className="mono-tag text-muted-foreground/35 mt-6 flex items-center justify-center gap-2">
-              <kbd className="border-border rounded-sm border px-1.5 py-0.5">ESC</kbd>
+              <kbd className="border-border rounded-md border px-1.5 py-0.5">ESC</kbd>
               <span>to dismiss chat</span>
             </div>
           </div>

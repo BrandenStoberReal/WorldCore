@@ -128,7 +128,7 @@ export function SettingsPanel() {
       </header>
 
       {/* ── Character files reconciliation card ── */}
-      <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-sm')}>
+      <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-md')}>
         <CardHeader className="px-4 pt-4 pb-3">
           <div className="flex items-center justify-between">
             <div>
@@ -168,7 +168,7 @@ export function SettingsPanel() {
 
           {/* Error state */}
           {scanQuery.error && (
-            <div className="border-destructive/40 bg-destructive/5 rounded-sm border p-3">
+            <div className="border-destructive/40 bg-destructive/5 rounded-md border p-3">
               <span className="mono-tag text-destructive">error</span>
               <p className="text-muted-foreground mt-1 text-[12px]">{scanQuery.error.message}</p>
             </div>
@@ -176,7 +176,7 @@ export function SettingsPanel() {
 
           {/* Delete error */}
           {deleteMutation.error && (
-            <div className="border-destructive/40 bg-destructive/5 rounded-sm border p-3">
+            <div className="border-destructive/40 bg-destructive/5 rounded-md border p-3">
               <span className="mono-tag text-destructive">delete failed</span>
               <p className="text-muted-foreground mt-1 text-[12px]">
                 {deleteMutation.error.message}
@@ -186,7 +186,7 @@ export function SettingsPanel() {
 
           {/* Success result */}
           {deleteResult && (
-            <div className="border-ember/30 bg-ember/5 rounded-sm border p-3">
+            <div className="border-ember/30 bg-ember/5 rounded-md border p-3">
               <span className="mono-tag text-ember">done</span>
               <p className="text-muted-foreground mt-1 text-[12px]">
                 Deleted {deleteResult.deleted} file(s)
@@ -200,7 +200,7 @@ export function SettingsPanel() {
           {/* Scanned data: empty state */}
           {!scanQuery.isFetching && scanQuery.isSuccess && orphans.length === 0 && (
             <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
-              <div className="border-border bg-accent/40 mb-2 flex h-8 w-8 items-center justify-center rounded-sm border">
+              <div className="border-border bg-accent/40 mb-2 flex h-8 w-8 items-center justify-center rounded-md border">
                 <span className="display-host text-ember text-base">∅</span>
               </div>
               <p className="mono-tag text-foreground/60 mb-0.5">no orphans found</p>
@@ -219,7 +219,7 @@ export function SettingsPanel() {
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleAll}
-                  className={cn('border-border accent-ember h-3.5 w-3.5 rounded-sm')}
+                  className={cn('border-border accent-ember h-3.5 w-3.5 rounded-md')}
                 />
                 <span className="mono-tag text-muted-foreground/55">
                   {allSelected ? 'deselect all' : 'select all'}
@@ -232,13 +232,13 @@ export function SettingsPanel() {
               {orphans.map((orphan) => (
                 <label
                   key={orphan.absolutePath}
-                  className="hover:bg-accent/20 flex cursor-pointer items-center gap-2.5 rounded-sm px-1 py-1.5 transition-colors"
+                  className="hover:bg-accent/20 flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1.5 transition-colors"
                 >
                   <input
                     type="checkbox"
                     checked={selected.has(orphan.absolutePath)}
                     onChange={() => toggleSelect(orphan.absolutePath)}
-                    className={cn('border-border accent-ember h-3.5 w-3.5 rounded-sm')}
+                    className={cn('border-border accent-ember h-3.5 w-3.5 rounded-md')}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">

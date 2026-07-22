@@ -203,7 +203,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
                 onClick={handleCreate}
                 title="New character"
                 aria-label="New character"
-                className="text-foreground/40 hover:text-ember hover:bg-accent/30 rounded-sm p-0.5 transition-colors"
+                className="text-foreground/40 hover:text-ember hover:bg-accent/30 rounded-md p-0.5 transition-colors"
               >
                 <Plus className="h-3 w-3" strokeWidth={2.25} />
               </button>
@@ -213,7 +213,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
                 disabled={importMutation.isPending}
                 title="Import character PNG"
                 aria-label="Import character PNG"
-                className="text-foreground/40 hover:text-ember hover:bg-accent/30 rounded-sm p-0.5 transition-colors disabled:pointer-events-none disabled:opacity-50"
+                className="text-foreground/40 hover:text-ember hover:bg-accent/30 rounded-md p-0.5 transition-colors disabled:pointer-events-none disabled:opacity-50"
               >
                 {importMutation.isPending ? (
                   <Loader2 className="h-3 w-3 animate-spin" strokeWidth={2.25} />
@@ -233,7 +233,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Search characters"
               className={cn(
-                'border-border bg-background/60 h-6 w-full rounded-sm border pr-2 pl-[22px]',
+                'border-border bg-background/60 h-6 w-full rounded-md border pr-2 pl-[22px]',
                 'text-foreground/80 placeholder:text-foreground/25 text-[11px] outline-none',
                 'focus:border-ember/50',
               )}
@@ -250,7 +250,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
             </div>
           ) : sorted && sorted.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-              <div className="border-border bg-accent/40 mb-2 flex h-8 w-8 items-center justify-center rounded-sm border">
+              <div className="border-border bg-accent/40 mb-2 flex h-8 w-8 items-center justify-center rounded-md border">
                 <span className="display-host text-ember text-base">∅</span>
               </div>
               <p className="mono-tag text-foreground/60 mb-0.5">
@@ -269,7 +269,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
                     <button
                       onClick={() => handleSelect(char.id)}
                       className={cn(
-                        'group relative flex w-full items-center gap-2 rounded-sm px-2 py-1 text-left transition-all duration-150',
+                        'group relative flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-all duration-150 hover:scale-[1.01]',
                         active ? 'bg-accent/40 ember-pulse' : 'hover:bg-accent/30',
                       )}
                     >
@@ -328,7 +328,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
                           }}
                           title="Delete character"
                           aria-label={`Delete ${char.name}`}
-                          className="text-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-sm p-0.5 transition-colors"
+                          className="text-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-md p-0.5 transition-colors"
                         >
                           <Trash2 className="h-2.5 w-2.5" />
                         </span>
@@ -374,7 +374,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
           onClick={handleBack}
           title="Back to list"
           aria-label="Back to character list"
-          className="text-foreground/40 hover:text-foreground hover:bg-accent/30 rounded-sm p-0.5 transition-colors"
+          className="text-foreground/40 hover:text-foreground hover:bg-accent/30 rounded-md p-0.5 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
         </button>
@@ -500,16 +500,16 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
           {/* Stats row */}
           <div className="flex flex-wrap gap-1.5">
             {infoCharacter.creator && (
-              <span className="mono-tag bg-muted/30 text-foreground/45 border-border/30 rounded-sm border px-1.5 py-0.5 text-[10px]">
+              <span className="mono-tag bg-muted/30 text-foreground/45 border-border/30 rounded-md border px-1.5 py-0.5 text-[10px]">
                 {infoCharacter.creator}
               </span>
             )}
             {infoCharacter.character_version && (
-              <span className="mono-tag bg-muted/30 text-foreground/45 border-border/30 rounded-sm border px-1.5 py-0.5 text-[10px]">
+              <span className="mono-tag bg-muted/30 text-foreground/45 border-border/30 rounded-md border px-1.5 py-0.5 text-[10px]">
                 v{infoCharacter.character_version}
               </span>
             )}
-            <span className="mono-tag bg-muted/30 text-foreground/45 border-border/30 rounded-sm border px-1.5 py-0.5 text-[10px]">
+            <span className="mono-tag bg-muted/30 text-foreground/45 border-border/30 rounded-md border px-1.5 py-0.5 text-[10px]">
               {infoCharacter.tags.length} tags
             </span>
           </div>

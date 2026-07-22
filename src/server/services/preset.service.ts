@@ -9,7 +9,14 @@ import type { Preset, PresetCategory } from '@/shared/types/preset';
 
 const SEED_DATA_DIR = path.join(import.meta.dir, 'preset', 'seed-data');
 
-const SEED_CATEGORIES: PresetCategory[] = ['instruct', 'context', 'sysprompt', 'reasoning', 'textgenerationwebui', 'generation'];
+const SEED_CATEGORIES: PresetCategory[] = [
+  'instruct',
+  'context',
+  'sysprompt',
+  'reasoning',
+  'textgenerationwebui',
+  'generation',
+];
 
 const CATEGORY_DIR_MAP: Record<PresetCategory, string> = {
   openai: paths.openAISettings,

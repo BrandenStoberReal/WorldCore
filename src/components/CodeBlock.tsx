@@ -29,7 +29,7 @@ export function CodeBlock({ code, language }: CodeBlockProps): ReactNode {
   }, []);
 
   return (
-    <pre className="group border-border bg-muted/30 relative overflow-x-auto rounded-sm border">
+    <pre className="group border-border bg-muted/30 relative overflow-x-auto rounded-md border">
       {language && (
         <span className="mono-tag text-muted-foreground/45 absolute top-1.5 left-1.5 z-10">
           {language}

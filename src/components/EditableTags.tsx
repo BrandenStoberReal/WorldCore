@@ -99,7 +99,7 @@ export function EditableTags({ characterId, tags, invalidateKeys = [] }: Editabl
       {tags.map((tag) => (
         <span
           key={tag}
-          className="group/tag mono-tag bg-muted/50 border-border/60 text-foreground/65 relative inline-flex items-center gap-0.5 rounded-sm border px-1.5 py-0.5"
+          className="group/tag mono-tag bg-muted/50 border-border/60 text-foreground/65 relative inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5"
         >
           <span>{tag}</span>
           <button
@@ -109,7 +109,7 @@ export function EditableTags({ characterId, tags, invalidateKeys = [] }: Editabl
             title={`Remove tag: ${tag}`}
             aria-label={`Remove tag ${tag}`}
             className={cn(
-              'text-foreground/30 hover:text-destructive rounded-sm transition-colors',
+              'text-foreground/30 hover:text-destructive rounded-md transition-colors',
               'opacity-0 group-hover/tag:opacity-100',
               'disabled:pointer-events-none disabled:opacity-50',
             )}
@@ -124,7 +124,7 @@ export function EditableTags({ characterId, tags, invalidateKeys = [] }: Editabl
       ))}
 
       {adding ? (
-        <span className="mono-tag bg-muted/50 border-border/60 inline-flex items-center rounded-sm border px-1.5 py-0.5">
+        <span className="mono-tag bg-muted/50 border-border/60 inline-flex items-center rounded-md border px-1.5 py-0.5">
           <input
             ref={inputRef}
             type="text"
@@ -145,7 +145,7 @@ export function EditableTags({ characterId, tags, invalidateKeys = [] }: Editabl
           disabled={isSaving}
           className={cn(
             'mono-tag bg-muted/30 border-border/30 text-foreground/30 hover:text-ember hover:border-ember/30',
-            'inline-flex items-center gap-0.5 rounded-sm border px-1.5 py-0.5 transition-colors',
+            'inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 transition-colors',
             'disabled:pointer-events-none disabled:opacity-50',
           )}
         >
