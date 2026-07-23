@@ -3,9 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Loader2, Search, FileX } from 'lucide-react';
+import { Search, FileX } from 'lucide-react';
 import { cn, surfaceCard } from '@/lib/utils';
 import { apiPost } from '@/lib/api';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Alert } from '@/components/ui/alert';
 
 /* ── Types (local — mirrors backend contract) ── */
 
@@ -148,7 +150,7 @@ export function SettingsPanel() {
               className="h-8 shrink-0"
             >
               {scanQuery.isFetching ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <LoadingSpinner size="sm" />
               ) : (
                 <Search className="h-3.5 w-3.5" />
               )}
@@ -159,42 +161,30 @@ export function SettingsPanel() {
 
         <CardContent className="px-4 pb-4">
           {/* Scanning spinner */}
-          {scanQuery.isFetching && (
-            <div className="flex flex-col items-center justify-center gap-2 py-10">
-              <Loader2 className="text-ember h-5 w-5 animate-spin" />
-              <span className="mono-tag text-muted-foreground/55">scanning…</span>
-            </div>
-          )}
+          {scanQuery.isFetching && <LoadingSpinner size="md" label="scanning…" className="py-10" />}
 
           {/* Error state */}
           {scanQuery.error && (
-            <div className="border-destructive/40 bg-destructive/5 rounded-md border p-3">
-              <span className="mono-tag text-destructive">error</span>
-              <p className="text-muted-foreground mt-1 text-[12px]">{scanQuery.error.message}</p>
-            </div>
+            <Alert variant="error" title="error">
+              {scanQuery.error.message}
+            </Alert>
           )}
 
           {/* Delete error */}
           {deleteMutation.error && (
-            <div className="border-destructive/40 bg-destructive/5 rounded-md border p-3">
-              <span className="mono-tag text-destructive">delete failed</span>
-              <p className="text-muted-foreground mt-1 text-[12px]">
-                {deleteMutation.error.message}
-              </p>
-            </div>
+            <Alert variant="error" title="delete failed">
+              {deleteMutation.error.message}
+            </Alert>
           )}
 
           {/* Success result */}
           {deleteResult && (
-            <div className="border-ember/30 bg-ember/5 rounded-md border p-3">
-              <span className="mono-tag text-ember">done</span>
-              <p className="text-muted-foreground mt-1 text-[12px]">
-                Deleted {deleteResult.deleted} file(s)
-                {deleteResult.skipped > 0
-                  ? `, skipped ${deleteResult.skipped} (in use or protected)`
-                  : ''}
-              </p>
-            </div>
+            <Alert variant="success" title="done">
+              Deleted {deleteResult.deleted} file(s)
+              {deleteResult.skipped > 0
+                ? `, skipped ${deleteResult.skipped} (in use or protected)`
+                : ''}
+            </Alert>
           )}
 
           {/* Scanned data: empty state */}

@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/Modal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Loader2, Plus, Trash2, Search, Pencil, Layers, Hash, Flame } from 'lucide-react';
+import { Plus, Trash2, Search, Pencil, Layers, Hash, Flame } from 'lucide-react';
 import { cn, surfaceCard } from '@/lib/utils';
 import { apiGet, apiPost } from '@/lib/api';
 import { InlineSection } from '@/components/drawers/InlineSection';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { PageHeader } from '@/components/ui/page-header';
 import type { WorldInfo, WorldInfoEntry } from '@/shared/types/worldinfo';
 
 interface FormState {
@@ -185,12 +187,7 @@ export function WorldInfoPanel() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-3">
-        <Loader2 className="text-ember h-7 w-7 animate-spin" />
-        <span className="mono-tag text-muted-foreground/55">scanning tablets</span>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="scanning tablets" className="h-64" />;
   }
 
   if (error) {
@@ -203,32 +200,24 @@ export function WorldInfoPanel() {
 
   return (
     <div data-panel="worldinfo" className="section-rhythm relative isolate">
-      {/* Section header */}
-      <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <div className="mb-1.5 flex items-center gap-2.5">
-            <span className="mono-tag text-ember">{`[03] — ARCHIVE`}</span>
-            <span className="bg-ember/40 h-px w-8" />
-          </div>
-          <h2 className="display-host text-[30px] leading-none tracking-tight">Lore Tablets</h2>
-          <p className="text-muted-foreground mt-1.5 max-w-md text-[13px] leading-snug">
-            Triggered knowledge fragments: keys, secondary keywords, depth, and probability gating
-            the lore the model can summon mid-conversation.
-          </p>
-        </div>
-
-        <Button
-          onClick={() => {
-            setEditUid(null);
-            setForm(emptyForm());
-            setModalOpen(true);
-          }}
-          className="ember-pulse h-8"
-        >
-          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-          <span className="text-[12px] font-semibold tracking-tight">New Tablet</span>
-        </Button>
-      </header>
+      <PageHeader
+        tag="[03] — ARCHIVE"
+        title="Lore Tablets"
+        description="Triggered knowledge fragments: keys, secondary keywords, depth, and probability gating the lore the model can summon mid-conversation."
+        action={
+          <Button
+            onClick={() => {
+              setEditUid(null);
+              setForm(emptyForm());
+              setModalOpen(true);
+            }}
+            className="ember-pulse h-8"
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+            <span className="text-[12px] font-semibold tracking-tight">New Tablet</span>
+          </Button>
+        }
+      />
 
       {/* Search rail */}
       <InlineSection panelId="worldinfo" sectionId="search" title="Search & Filter">

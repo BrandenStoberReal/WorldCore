@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { PanelHeader } from '@/components/ui/panel-header';
+import { IconButton } from '@/components/ui/icon-button';
 import { apiPost } from '@/lib/api';
 
 interface GenerationSidebarProps {

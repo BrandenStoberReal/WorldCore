@@ -20,8 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Camera, X, Loader2, Plus, GripVertical, Upload, RefreshCw } from 'lucide-react';
+import { Camera, X, Plus, GripVertical, Upload, RefreshCw } from 'lucide-react';
 import { cn, estimateTokens } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { Character, CharacterCreateInput } from '@/shared/types/character';
 
 type CharacterWithId = Character & { id: number };
@@ -1250,7 +1251,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
               <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <LoadingSpinner size="sm" />
                     Saving...
                   </>
                 ) : (
@@ -1262,7 +1263,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
             <Button type="button" onClick={handleSubmit} disabled={!canSubmit}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <LoadingSpinner size="sm" />
                   {isEdit ? 'Saving...' : 'Creating...'}
                 </>
               ) : (

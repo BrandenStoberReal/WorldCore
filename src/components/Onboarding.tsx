@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn, surfaceCard } from '@/lib/utils';
 import { apiPost } from '@/lib/api';
-import { Database, Server, FileJson, Loader2 } from 'lucide-react';
+import { Database, Server, FileJson } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 type BackendChoice = 'sqlite' | 'mongodb' | 'jsonfiles';
 
@@ -158,7 +159,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
           >
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <LoadingSpinner size="sm" />
                 <span>Starting...</span>
               </>
             ) : (

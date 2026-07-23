@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronRight, ArrowLeft } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { useChatStore } from '@/lib/stores';
+import { useNavStore } from '@/lib/navStore';
 import { useDebouncedAutoSave } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -10,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { CharacterBook, CharacterBookEntry, Character } from '@/shared/types/character';
 
 // ── Types ────────────────────────────────────────────────
@@ -66,9 +68,11 @@ function bookEquals(a: CharacterBook | undefined, b: CharacterBook | undefined):
 function PanelHeader({
   characterName,
   statusBadge,
+  onBack,
 }: {
   characterName?: string;
   statusBadge?: React.ReactNode;
+  onBack?: () => void;
 }) {
   return (
     <header
@@ -78,6 +82,17 @@ function PanelHeader({
       )}
     >
       <div className="flex items-center gap-2">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-foreground/40 hover:text-foreground hover:bg-accent/30 rounded-md p-0.5 transition-colors"
+            title="Back to chats"
+            aria-label="Back to chats"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </button>
+        )}
         <span className="mono-tag text-ember">[LOREBOOK] · FORGE</span>
         <span className="bg-border/50 h-px w-6" />
         <h2 className="display-host text-[14px] leading-none tracking-tight">
@@ -377,6 +392,13 @@ function EntryRow({
 
 function LorebookEditor({ characterId }: { characterId: number }) {
   const queryClient = useQueryClient();
+  const setActiveCharacter = useChatStore((s) => s.setActiveCharacter);
+  const openSection = useNavStore((s) => s.openSection);
+
+  const handleBack = () => {
+    setActiveCharacter(null);
+    openSection('chats');
+  };
 
   const { data: editCharacter, isLoading: charLoading } = useQuery<CharacterWithId>({
     queryKey: ['/api/v1/characters/get', characterId],
@@ -460,12 +482,7 @@ function LorebookEditor({ characterId }: { characterId: number }) {
 
   // ── Loading ──────────────────────────────────────────
   if (charLoading || !editCharacter) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-3">
-        <Loader2 className="text-ember h-6 w-6 animate-spin" />
-        <span className="mono-tag text-muted-foreground/55">loading character</span>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="loading character" className="h-full" />;
   }
 
   const statusBadge =
@@ -482,7 +499,11 @@ function LorebookEditor({ characterId }: { characterId: number }) {
 
   return (
     <div className="flex h-full flex-col">
-      <PanelHeader characterName={editCharacter.name} statusBadge={statusBadge} />
+      <PanelHeader
+        characterName={editCharacter.name}
+        statusBadge={statusBadge}
+        onBack={handleBack}
+      />
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="mx-auto max-w-3xl">
           {book == null ? (

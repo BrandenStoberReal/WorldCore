@@ -1,16 +1,7 @@
 import { useState } from 'react';
-import {
-  Info,
-  Plus,
-  Save,
-  Pencil,
-  RefreshCw,
-  Trash2,
-  Loader2,
-  HelpCircle,
-  Copy,
-} from 'lucide-react';
+import { Info, Plus, Save, Pencil, RefreshCw, Trash2, HelpCircle, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface ConnectionProfile {
   id: string;
@@ -78,7 +69,7 @@ export function ConnectionProfileSelector({
         >
           <HelpCircle className="h-4 w-4" />
         </a>
-        {loading && <Loader2 className="text-ember/70 h-4 w-4 animate-spin" />}
+        {loading && <LoadingSpinner size="sm" />}
       </div>
 
       {/* Selector row */}

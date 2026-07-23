@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Pencil, Check, Loader2 } from 'lucide-react';
+import { Pencil, Check } from 'lucide-react';
 import { apiPost } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface InlineEditProps {
   characterId: number;
@@ -150,7 +151,7 @@ export function InlineEdit({
           />
         )}
         {saving && (
-          <Loader2 className="text-ember absolute top-1/2 right-0 h-3 w-3 -translate-y-1/2 animate-spin" />
+          <LoadingSpinner size="sm" className="absolute top-1/2 right-0 -translate-y-1/2" />
         )}
       </div>
     );

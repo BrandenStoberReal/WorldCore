@@ -4,18 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/Modal';
-import {
-  Loader2,
-  Download,
-  RefreshCw,
-  Plus,
-  Package,
-  User,
-  Calendar,
-  GitBranch,
-} from 'lucide-react';
+import { Download, RefreshCw, Plus, Package, User, Calendar, GitBranch } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
 import { cn, surfaceCard } from '@/lib/utils';
 import { apiGet, apiPost } from '@/lib/api';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { ExtensionInfo } from '@/shared/types/extensions';
 
 export function ExtensionsPanel() {
@@ -74,12 +67,7 @@ export function ExtensionsPanel() {
   });
 
   if (isLoading) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-3">
-        <Loader2 className="text-ember h-7 w-7 animate-spin" />
-        <span className="mono-tag text-muted-foreground/55">indexing modules</span>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="indexing modules" className="h-64" />;
   }
 
   if (error) {
@@ -93,36 +81,30 @@ export function ExtensionsPanel() {
   return (
     <div className="section-rhythm relative isolate" data-panel="extensions">
       {/* Section header */}
-      <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <div className="mb-1.5 flex items-center gap-2.5">
-            <span className="mono-tag text-ember">{`[05] — MODULES`}</span>
-            <span className="bg-ember/40 h-px w-8" />
+      <PageHeader
+        tag="[05] — MODULES"
+        title="Extensions"
+        description="Extend WorldCore with additional functionality. Install, update, and toggle extensions."
+        action={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => updateAllMutation.mutate()}
+              disabled={updateAllMutation.isPending || !extensions?.length}
+              className="h-8"
+            >
+              <RefreshCw
+                className={cn('h-3.5 w-3.5', updateAllMutation.isPending && 'animate-spin')}
+              />
+              <span className="mono-tag">UPDATE ALL</span>
+            </Button>
+            <Button onClick={() => setInstallOpen(true)} className="ember-pulse h-8">
+              <Download className="h-3.5 w-3.5" />
+              <span className="mono-tag font-bold">INSTALL</span>
+            </Button>
           </div>
-          <h2 className="display-host text-[30px] leading-none tracking-tight">Extensions</h2>
-          <p className="text-muted-foreground mt-1.5 max-w-md text-[13px] leading-snug">
-            Extend WorldCore with additional functionality. Install, update, and toggle extensions.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => updateAllMutation.mutate()}
-            disabled={updateAllMutation.isPending || !extensions?.length}
-            className="h-8"
-          >
-            <RefreshCw
-              className={cn('h-3.5 w-3.5', updateAllMutation.isPending && 'animate-spin')}
-            />
-            <span className="mono-tag">UPDATE ALL</span>
-          </Button>
-          <Button onClick={() => setInstallOpen(true)} className="ember-pulse h-8">
-            <Download className="h-3.5 w-3.5" />
-            <span className="mono-tag font-bold">INSTALL</span>
-          </Button>
-        </div>
-      </header>
+        }
+      />
 
       <div className="border-border bg-background/40 flex h-8 items-center gap-1.5 self-start rounded-md border px-2.5">
         <span className="mono-tag text-muted-foreground/55">modules</span>
@@ -253,7 +235,7 @@ export function ExtensionsPanel() {
               className="ember-pulse"
             >
               {installMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <LoadingSpinner size="sm" />
               ) : (
                 <Download className="h-3.5 w-3.5" />
               )}

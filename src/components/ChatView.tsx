@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, MessageSquarePlus } from 'lucide-react';
+import { MessageSquarePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
 import { useChatStore, useGenerationStore } from '@/lib/stores';
 import { apiGet, apiPost, streamChat } from '@/lib/api';
 import { cn, frostedGlass } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import type { Character } from '@/shared/types/character';
@@ -308,13 +309,144 @@ export function ChatView({ characterId }: ChatViewProps) {
     }, 100);
   }, [character, clearChat, createChatMutation]);
 
+  const handleCopyMessage = useCallback((text: string) => {
+    navigator.clipboard.writeText(text).catch(() => {
+      console.error('Failed to copy message');
+    });
+  }, []);
+
+  const handleEditMessage = useCallback(
+    async (index: number, newText: string) => {
+      if (!activeChatId || index >= messages.length) return;
+      const msg = messages[index];
+      if (!msg) return;
+
+      const updatedMsg = { ...msg, mes: newText };
+      const newMessages = [...messages];
+      newMessages[index] = updatedMsg;
+      setMessages(newMessages);
+
+      try {
+        await apiPost('/chats/message', {
+          fileId: activeChatId,
+          action: 'edit',
+          index,
+          updates: updatedMsg,
+        });
+      } catch (err) {
+        console.error('Failed to edit message:', err);
+      }
+    },
+    [activeChatId, messages, setMessages],
+  );
+
+  const handleRegenerate = useCallback(
+    async (index: number) => {
+      if (!character || !activeChatId || isGenerating) return;
+      if (index < 0 || index >= messages.length) return;
+
+      const userName = (settings?.chat_name_your_name as string) || 'User';
+      const truncatedMessages = messages.slice(0, index);
+
+      setIsGenerating(true);
+      setStreamingContent('');
+      abortRef.current = new AbortController();
+
+      const genParams: Record<string, unknown> = {
+        temperature: genStore.temperature,
+        top_p: genStore.top_p,
+        top_k: genStore.top_k,
+        max_tokens: genStore.max_tokens,
+        seed: genStore.seed,
+        streaming: genStore.streaming,
+        stop: genStore.stop.length > 0 ? genStore.stop : undefined,
+      };
+
+      if (genStore.mode === 'chat') {
+        genParams.frequency_penalty = genStore.frequency_penalty;
+        genParams.presence_penalty = genStore.presence_penalty;
+      } else {
+        genParams.min_p = genStore.min_p;
+        genParams.typical_p = genStore.typical_p;
+        genParams.top_a = genStore.top_a;
+        genParams.tfs = genStore.tfs;
+        genParams.rep_pen = genStore.rep_pen;
+        genParams.rep_pen_range = genStore.rep_pen_range;
+        genParams.rep_pen_slope = genStore.rep_pen_slope;
+        genParams.dry_multiplier = genStore.dry_multiplier;
+        genParams.dry_base = genStore.dry_base;
+        genParams.dry_allowed_length = genStore.dry_allowed_length;
+        genParams.mirostat_mode = genStore.mirostat_mode;
+        genParams.mirostat_tau = genStore.mirostat_tau;
+        genParams.mirostat_eta = genStore.mirostat_eta;
+        genParams.smoothing_factor = genStore.smoothing_factor;
+        genParams.epsilon_cutoff = genStore.epsilon_cutoff;
+        genParams.eta_cutoff = genStore.eta_cutoff;
+        genParams.min_tokens = genStore.min_tokens;
+      }
+
+      let fullContent = '';
+      try {
+        const generator = streamChat({
+          chat_completion_source: (settings?.chat_completion_source as string) || 'openai',
+          model: genStore.model || (settings?.chat_completion_model as string) || 'gpt-3.5-turbo',
+          messages: truncatedMessages.map((m) => ({
+            role: m.is_user ? 'user' : 'assistant',
+            content: m.mes,
+            name: m.name,
+          })),
+          ...genParams,
+        });
+
+        for await (const chunk of generator) {
+          if (abortRef.current?.signal.aborted) break;
+          fullContent += chunk;
+          appendStreamingContent(chunk);
+        }
+
+        if (fullContent) {
+          const assistantMsg: ChatMessageType = {
+            name: character.name,
+            is_user: false,
+            mes: fullContent,
+            send_date: new Date().toISOString(),
+            extra: {},
+          };
+          const newMessages = [...truncatedMessages, assistantMsg];
+          setMessages(newMessages);
+          setStreamingContent('');
+          await apiPost('/chats/message', {
+            fileId: activeChatId,
+            action: 'append',
+            message: assistantMsg,
+          });
+        }
+      } catch (err) {
+        const error = err as Error;
+        if (error.name !== 'AbortError') {
+          console.error('Regeneration error:', error);
+        }
+      } finally {
+        setIsGenerating(false);
+        abortRef.current = null;
+      }
+    },
+    [
+      character,
+      activeChatId,
+      isGenerating,
+      settings,
+      messages,
+      genStore,
+      setIsGenerating,
+      setStreamingContent,
+      appendStreamingContent,
+      setMessages,
+    ],
+  );
+
   if (charLoading) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-3">
-        <Loader2 className="text-ember h-7 w-7 animate-spin" />
-        <span className="mono-tag text-muted-foreground/55">retrieving persona</span>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="retrieving persona" className="h-full" />;
   }
 
   if (!character) {
@@ -375,6 +507,9 @@ export function ChatView({ characterId }: ChatViewProps) {
               creator_notes={character.creator_notes}
               system_prompt={character.system_prompt}
               post_history_instructions={character.post_history_instructions}
+              onCopy={handleCopyMessage}
+              onEdit={handleEditMessage}
+              onRegenerate={handleRegenerate}
             />
           ))}
           {isGenerating && !streamingContent && (
@@ -387,7 +522,7 @@ export function ChatView({ characterId }: ChatViewProps) {
                 </span>
               </div>
               <div className="bg-card border-border flex items-center gap-2 rounded-md border px-2.5 py-1.5 shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)]">
-                <Loader2 className="text-ember h-3 w-3 animate-spin" />
+                <LoadingSpinner size="sm" />
                 <span className="mono-tag text-muted-foreground/65">stoking the engine</span>
               </div>
             </div>

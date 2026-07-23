@@ -1,12 +1,27 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Users, Loader2, Plus, Trash2, Upload, ArrowLeft, PencilLine } from 'lucide-react';
+import {
+  Search,
+  Users,
+  Plus,
+  Trash2,
+  Upload,
+  ArrowLeft,
+  PencilLine,
+  CheckSquare,
+  Square,
+  Tag,
+} from 'lucide-react';
 import { apiFetch, apiPost } from '@/lib/api';
 import { cn, estimateTokens } from '@/lib/utils';
 import { InlineEdit } from '@/components/InlineEdit';
 import { EditableTags } from '@/components/EditableTags';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { PanelHeader } from '@/components/ui/panel-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { IconButton } from '@/components/ui/icon-button';
 import { useChatStore } from '@/lib/stores';
 import { useNavStore } from '@/lib/navStore';
 import type { Character, ShallowCharacter } from '@/shared/types/character';
@@ -23,6 +38,10 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
   const [sidebarMode, setSidebarMode] = useState<'list' | 'info'>('list');
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkTagOpen, setBulkTagOpen] = useState(false);
+  const [bulkTagValue, setBulkTagValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openSection = useNavStore((s) => s.openSection);
@@ -111,6 +130,87 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
     openSection('characters');
   }
 
+  /* ── bulk operations ── */
+  function handleToggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function handleSelectAll() {
+    if (!sorted) return;
+    if (selectedIds.size === sorted.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sorted.map((c) => c.id)));
+    }
+  }
+
+  function handleBulkDelete() {
+    setBulkDeleteOpen(true);
+  }
+
+  function confirmBulkDelete() {
+    const ids = Array.from(selectedIds);
+    Promise.all(
+      ids.map((id) =>
+        apiFetch('/characters/delete', { method: 'POST', body: JSON.stringify({ id }) }),
+      ),
+    )
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
+        if (ids.includes(activeCharacterId ?? -1)) {
+          setActiveCharacter(null);
+          openSection('chats');
+        }
+        setSelectedIds(new Set());
+        setBulkDeleteOpen(false);
+      })
+      .catch((err) => {
+        console.error('Bulk delete failed:', err);
+      });
+  }
+
+  function handleBulkTag() {
+    setBulkTagOpen(true);
+  }
+
+  function confirmBulkTag() {
+    const ids = Array.from(selectedIds);
+    const tags = bulkTagValue
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (tags.length === 0) return;
+
+    Promise.all(
+      ids.map((id) =>
+        apiFetch('/characters/edit', {
+          method: 'POST',
+          body: JSON.stringify({
+            id,
+            data: { tags },
+          }),
+        }),
+      ),
+    )
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
+        setSelectedIds(new Set());
+        setBulkTagOpen(false);
+        setBulkTagValue('');
+      })
+      .catch((err) => {
+        console.error('Bulk tag failed:', err);
+      });
+  }
+
   // Reset to list view when the selected character is cleared (e.g. EditMode's
   // Cancel calls setActiveCharacter(null)). Without this, the sidebar stays in
   // 'info' mode with selectedId=null and renders the loading branch forever
@@ -187,83 +287,100 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
   if (sidebarMode === 'list') {
     return (
       <div className="flex h-full flex-col">
-        {/* Header band */}
-        <div className="border-border/40 border-b px-2.5 pt-2.5 pb-2">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Users className="text-ember h-3 w-3" strokeWidth={2} />
-              <span className="display-host text-[13px] leading-none">Characters</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="mono-tag text-foreground/40 tabular-nums">
-                {String(filtered?.length ?? 0).padStart(2, '0')}
-              </span>
-              <button
-                type="button"
+        <PanelHeader
+          icon={<Users className="text-ember h-3 w-3" strokeWidth={2} />}
+          title="Characters"
+          count={filtered?.length}
+          actions={
+            <>
+              {selectedIds.size > 0 && (
+                <>
+                  <span className="mono-tag text-ember text-[10px]">
+                    {selectedIds.size} selected
+                  </span>
+                  <IconButton
+                    icon={<Tag className="h-3 w-3" strokeWidth={2.25} />}
+                    onClick={handleBulkTag}
+                    title="Tag selected characters"
+                    aria-label="Tag selected characters"
+                  />
+                  <IconButton
+                    icon={<Trash2 className="h-3 w-3" strokeWidth={2.25} />}
+                    onClick={handleBulkDelete}
+                    title="Delete selected characters"
+                    aria-label="Delete selected characters"
+                    variant="destructive"
+                  />
+                </>
+              )}
+              <IconButton
+                icon={
+                  selectedIds.size === sorted?.length && sorted.length > 0 ? (
+                    <CheckSquare className="h-3 w-3" strokeWidth={2.25} />
+                  ) : (
+                    <Square className="h-3 w-3" strokeWidth={2.25} />
+                  )
+                }
+                onClick={handleSelectAll}
+                title={selectedIds.size === sorted?.length ? 'Deselect all' : 'Select all'}
+                aria-label={selectedIds.size === sorted?.length ? 'Deselect all' : 'Select all'}
+              />
+              <IconButton
+                icon={<Plus className="h-3 w-3" strokeWidth={2.25} />}
                 onClick={handleCreate}
                 title="New character"
                 aria-label="New character"
-                className="text-foreground/40 hover:text-ember hover:bg-accent/30 rounded-md p-0.5 transition-colors"
-              >
-                <Plus className="h-3 w-3" strokeWidth={2.25} />
-              </button>
-              <button
-                type="button"
+              />
+              <IconButton
+                icon={
+                  importMutation.isPending ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    <Upload className="h-3 w-3" strokeWidth={2.25} />
+                  )
+                }
                 onClick={() => fileInputRef.current?.click()}
                 disabled={importMutation.isPending}
                 title="Import character PNG"
                 aria-label="Import character PNG"
-                className="text-foreground/40 hover:text-ember hover:bg-accent/30 rounded-md p-0.5 transition-colors disabled:pointer-events-none disabled:opacity-50"
-              >
-                {importMutation.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" strokeWidth={2.25} />
-                ) : (
-                  <Upload className="h-3 w-3" strokeWidth={2.25} />
-                )}
-              </button>
-            </div>
-          </div>
+              />
+            </>
+          }
+        />
 
-          <div className="relative">
-            <Search className="text-foreground/45 absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="query · name fragment"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Search characters"
-              className={cn(
-                'border-border bg-background/60 h-6 w-full rounded-md border pr-2 pl-[22px]',
-                'text-foreground/80 placeholder:text-foreground/25 text-[11px] outline-none',
-                'focus:border-ember/50',
-              )}
-            />
-          </div>
+        <div className="relative px-2.5 pb-2">
+          <Search className="text-foreground/45 absolute top-1/2 left-5 h-3 w-3 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="query · name fragment"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search characters"
+            className={cn(
+              'border-border bg-background/60 h-6 w-full rounded-md border pr-2 pl-[22px]',
+              'text-foreground/80 placeholder:text-foreground/25 text-[11px] outline-none',
+              'focus:border-ember/50',
+            )}
+          />
         </div>
 
         {/* List rail */}
         <div className="flex-1 overflow-y-auto py-1">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center gap-1.5 py-8">
-              <Loader2 className="text-ember h-4 w-4 animate-spin" />
-              <span className="mono-tag text-foreground/50">loading characters</span>
-            </div>
+            <LoadingSpinner size="sm" label="loading characters" className="py-8" />
           ) : sorted && sorted.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-              <div className="border-border bg-accent/40 mb-2 flex h-8 w-8 items-center justify-center rounded-md border">
-                <span className="display-host text-ember text-base">∅</span>
-              </div>
-              <p className="mono-tag text-foreground/60 mb-0.5">
-                {characters?.length === 0 ? 'no entries' : 'no matches'}
-              </p>
-              <p className="text-foreground/40 text-[10px]">
-                {characters?.length === 0 ? 'create a character first' : 'no characters match'}
-              </p>
-            </div>
+            <EmptyState
+              icon={<span className="display-host text-ember text-base">∅</span>}
+              title={characters?.length === 0 ? 'no entries' : 'no matches'}
+              description={
+                characters?.length === 0 ? 'create a character first' : 'no characters match'
+              }
+            />
           ) : (
             <ul className="space-y-px">
               {sorted?.map((char, idx) => {
                 const active = selectedId === char.id;
+                const isSelected = selectedIds.has(char.id);
                 return (
                   <li key={char.id}>
                     <button
@@ -279,6 +396,34 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
                           active ? 'bg-ember opacity-100' : 'opacity-0',
                         )}
                       />
+                      <span
+                        role="checkbox"
+                        tabIndex={0}
+                        aria-checked={isSelected}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleSelect(char.id);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleToggleSelect(char.id);
+                          }
+                        }}
+                        className={cn(
+                          'flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors',
+                          isSelected
+                            ? 'border-ember bg-ember/20 text-ember'
+                            : 'border-border/60 hover:border-ember/40 text-transparent',
+                        )}
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="h-3 w-3" />
+                        ) : (
+                          <Square className="h-3 w-3" />
+                        )}
+                      </span>
                       <span className="mono-tag text-foreground/45 w-4 shrink-0 tabular-nums">
                         {String(idx + 1).padStart(2, '0')}
                       </span>
@@ -310,7 +455,6 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
                           {char.tags[0] ?? 'untagged'}
                         </p>
                       </div>
-                      {/* Row actions — appear on hover */}
                       <span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                         <span
                           role="button"
@@ -353,6 +497,55 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
           message="Cast this persona into the slag heap? This action is irreversible — the character card will be lost forever."
           confirmLabel="Condemn"
         />
+
+        {/* Bulk Delete Confirm */}
+        <ConfirmDialog
+          open={bulkDeleteOpen}
+          onClose={() => setBulkDeleteOpen(false)}
+          onConfirm={confirmBulkDelete}
+          title="Condemn to Slag"
+          message={`Cast ${selectedIds.size} personas into the slag heap? This action is irreversible — the character cards will be lost forever.`}
+          confirmLabel="Condemn All"
+        />
+
+        {/* Bulk Tag Dialog */}
+        {bulkTagOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div
+              className="bg-background/80 fixed inset-0 backdrop-blur-sm"
+              onClick={() => setBulkTagOpen(false)}
+            />
+            <div className="bg-background border-border relative z-10 w-full max-w-sm rounded-lg border p-4 shadow-lg">
+              <h3 className="display-host text-[14px] leading-none tracking-tight">
+                Tag Selected Characters
+              </h3>
+              <p className="text-muted-foreground mt-2 text-[12px]">
+                Add tags to {selectedIds.size} selected characters. Separate multiple tags with
+                commas.
+              </p>
+              <input
+                type="text"
+                value={bulkTagValue}
+                onChange={(e) => setBulkTagValue(e.target.value)}
+                placeholder="tag1, tag2, tag3"
+                className="border-border bg-background focus:border-ember/50 mt-3 w-full rounded-md border px-3 py-2 text-[13px] outline-none"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') confirmBulkTag();
+                  if (e.key === 'Escape') setBulkTagOpen(false);
+                }}
+              />
+              <div className="mt-4 flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setBulkTagOpen(false)}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={confirmBulkTag} disabled={!bulkTagValue.trim()}>
+                  Apply Tags
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -383,10 +576,7 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
 
       {/* Card body */}
       {infoLoading || !infoCharacter ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2">
-          <Loader2 className="text-ember h-4 w-4 animate-spin" />
-          <span className="mono-tag text-foreground/50">loading character</span>
-        </div>
+        <LoadingSpinner size="sm" label="loading character" className="flex-1" />
       ) : (
         <div className="flex flex-1 flex-col overflow-y-auto px-3 py-3">
           {/* Avatar + Name */}

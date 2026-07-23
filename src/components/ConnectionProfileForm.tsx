@@ -14,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
 import { SHARED_CONST } from '@/shared/constants';
 
@@ -538,7 +539,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
         <Button type="button" onClick={handleSubmit} disabled={!canSubmit}>
           {isSubmitting ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <LoadingSpinner size="sm" />
               {isEdit ? 'Saving...' : 'Creating...'}
             </>
           ) : (

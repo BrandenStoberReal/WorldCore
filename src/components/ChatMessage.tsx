@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import { cn } from '@/lib/utils';
 import { substituteMacros, type MacroContext } from '@/lib/macros';
 import { renderMarkdown } from '@/lib/markdown';
+import { Copy, Pencil, RotateCcw, Check } from 'lucide-react';
 
 interface ChatMessageProps {
   msg: ChatMessageType;
@@ -17,6 +19,9 @@ interface ChatMessageProps {
   creator_notes?: string;
   system_prompt?: string;
   post_history_instructions?: string;
+  onCopy?: (text: string) => void;
+  onEdit?: (index: number, newText: string) => void;
+  onRegenerate?: (index: number) => void;
 }
 
 export function ChatMessage({
@@ -33,8 +38,14 @@ export function ChatMessage({
   creator_notes,
   system_prompt,
   post_history_instructions,
+  onCopy,
+  onEdit,
+  onRegenerate,
 }: ChatMessageProps) {
   const isUser = msg.is_user;
+  const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(msg.mes);
 
   let ts: string;
   try {
@@ -64,38 +75,33 @@ export function ChatMessage({
 
   return (
     <div className="group relative flex flex-col">
-      {/* Header bar — full width */}
-      <div
-        className={cn(
-          'flex items-center gap-2 border-b px-3 py-1.5',
-          isUser ? 'border-ember/20 bg-ember/5' : 'border-border bg-muted/20',
-        )}
-      >
-        {/* Avatar */}
-        <div
-          className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border',
-            isUser ? 'border-ember/40 bg-ember/10' : 'border-border bg-muted/40',
-          )}
-        >
-          {isUser ? (
-            <span className="display-host text-ember text-[13px] font-semibold">{initial}</span>
-          ) : characterAvatar ? (
-            <img
-              src={characterAvatar}
-              alt={msg.name}
-              className="h-8 w-8 rounded-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          ) : (
-            <span className="display-host text-foreground/70 text-[13px] italic">{initial}</span>
-          )}
-        </div>
+      {/* Compact header — avatar + name on first line, metadata on second */}
+      <div className="flex flex-col gap-0.5 px-3 pt-2 pb-1">
+        {/* Name row */}
+        <div className="flex items-center gap-1.5">
+          {/* Avatar — compact 6×6 */}
+          <div
+            className={cn(
+              'flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full border',
+              isUser ? 'border-ember/40 bg-ember/10' : 'border-border bg-muted/40',
+            )}
+          >
+            {isUser ? (
+              <span className="display-host text-ember text-[11px] font-semibold">{initial}</span>
+            ) : characterAvatar ? (
+              <img
+                src={characterAvatar}
+                alt={msg.name}
+                className="h-6 w-6 rounded-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <span className="display-host text-foreground/70 text-[11px] italic">{initial}</span>
+            )}
+          </div>
 
-        {/* Name + timestamp + role tag */}
-        <div className="flex min-w-0 flex-1 items-center gap-2">
           <span
             className={cn(
               'display-host truncate text-[13px] font-medium',
@@ -104,29 +110,97 @@ export function ChatMessage({
           >
             {msg.name}
           </span>
-          <span className="mono-tag text-muted-foreground/40 tabular-nums">{ts}</span>
+        </div>
+
+        {/* Metadata row — timestamp, index, role */}
+        <div className="flex items-center gap-2 pl-[30px]">
+          <span className="mono-tag text-muted-foreground/50 tabular-nums">{ts}</span>
           <span
             className={cn(
-              'mono-tag tabular-nums',
-              isUser ? 'text-ember/50' : 'text-muted-foreground/45',
+              'mono-tag text-muted-foreground/50 tabular-nums',
+              isUser && 'text-ember/50',
             )}
           >
             {String(index + 1).padStart(3, '0')}
           </span>
-          <span className={cn('mono-tag', isUser ? 'text-ember/40' : 'text-muted-foreground/35')}>
+          <span className={cn('mono-tag text-muted-foreground/50', isUser && 'text-ember/40')}>
             {isUser ? 'YOU' : 'AI'}
           </span>
         </div>
       </div>
 
       {/* Message body — mes_text class for ST styling */}
-      <div
-        className={cn(
-          'mes_text relative rounded-md px-4 py-3 text-[13.5px] leading-relaxed break-words',
-          isUser ? 'bg-ember/5 shadow-sm' : 'bg-card/40 text-foreground/90 shadow-xs',
-        )}
-      >
-        {renderedContent}
+      <div className="group/message relative">
+        <div
+          className={cn(
+            'mes_text relative rounded-md px-4 py-3 text-[13.5px] leading-relaxed break-words',
+            isUser ? 'bg-ember/5 shadow-sm' : 'bg-card/40 text-foreground/90 shadow-xs',
+          )}
+        >
+          {isEditing ? (
+            <textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="w-full resize-none bg-transparent outline-none"
+              rows={Math.min(editText.split('\n').length, 10)}
+              autoFocus
+            />
+          ) : (
+            renderedContent
+          )}
+        </div>
+
+        {/* Action buttons — appear on hover */}
+        <div className="absolute -top-2 right-2 flex items-center gap-1 opacity-0 transition-opacity group-hover/message:opacity-100">
+          <button
+            type="button"
+            onClick={() => {
+              onCopy?.(msg.mes);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 items-center gap-1 rounded-md border px-1.5 text-[10px] backdrop-blur-sm transition-colors"
+            title="Copy message"
+          >
+            {copied ? (
+              <Check className="h-2.5 w-2.5 text-emerald-500" />
+            ) : (
+              <Copy className="h-2.5 w-2.5" />
+            )}
+            <span className="mono-tag">{copied ? 'Copied' : 'Copy'}</span>
+          </button>
+
+          {isUser && onEdit && (
+            <button
+              type="button"
+              onClick={() => {
+                if (isEditing) {
+                  onEdit(index, editText);
+                  setIsEditing(false);
+                } else {
+                  setIsEditing(true);
+                }
+              }}
+              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 items-center gap-1 rounded-md border px-1.5 text-[10px] backdrop-blur-sm transition-colors"
+              title={isEditing ? 'Save edit' : 'Edit message'}
+            >
+              <Pencil className="h-2.5 w-2.5" />
+              <span className="mono-tag">{isEditing ? 'Save' : 'Edit'}</span>
+            </button>
+          )}
+
+          {!isUser && onRegenerate && (
+            <button
+              type="button"
+              onClick={() => onRegenerate(index)}
+              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 items-center gap-1 rounded-md border px-1.5 text-[10px] backdrop-blur-sm transition-colors"
+              title="Regenerate response"
+            >
+              <RotateCcw className="h-2.5 w-2.5" />
+              <span className="mono-tag">Regen</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

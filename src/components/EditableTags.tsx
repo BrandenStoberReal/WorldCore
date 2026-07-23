@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Plus, Loader2 } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { apiPost } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface EditableTagsProps {
   /** Character ID for the API call */
@@ -114,11 +115,7 @@ export function EditableTags({ characterId, tags, invalidateKeys = [] }: Editabl
               'disabled:pointer-events-none disabled:opacity-50',
             )}
           >
-            {isSaving ? (
-              <Loader2 className="h-2 w-2 animate-spin" />
-            ) : (
-              <X className="h-2 w-2" strokeWidth={2.5} />
-            )}
+            {isSaving ? <LoadingSpinner size="sm" /> : <X className="h-2 w-2" strokeWidth={2.5} />}
           </button>
         </span>
       ))}

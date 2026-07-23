@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, RotateCcw, Check, Plug } from 'lucide-react';
+import { RotateCcw, Check, Plug } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConnectionProfileSelector } from '@/components/connections/ConnectionProfileSelector';
 import { TextGenPanel } from '@/components/connections/TextGenPanel';
@@ -18,6 +18,8 @@ import { KoboldHordeForm } from '@/components/connections/KoboldHordeForm';
 import { NovelAIForm } from '@/components/connections/NovelAIForm';
 import { Modal } from '@/components/Modal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ConnectionProfileForm } from '@/components/ConnectionProfileForm';
 import { apiFetch, saveSettings } from '@/lib/api';
 import { useNavStore } from '@/lib/navStore';
@@ -234,8 +236,7 @@ export function ConnectionsPanel() {
         data-panel="connections"
         className="flex h-64 flex-col items-center justify-center gap-3"
       >
-        <Loader2 className="text-ember h-7 w-7 animate-spin" />
-        <span className="mono-tag text-muted-foreground/55">retrieving connection profiles</span>
+        <LoadingSpinner size="lg" label="retrieving connection profiles" />
       </div>
     );
   }
@@ -256,39 +257,34 @@ export function ConnectionsPanel() {
   return (
     <div data-panel="connections" className="flex h-full flex-col gap-3">
       {/* Header */}
-      <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <div className="mb-1.5 flex items-center gap-2.5">
-            <span className="mono-tag text-ember">{`[06] — LINKS`}</span>
-            <span className="bg-ember/40 h-px w-8" />
+      <PageHeader
+        tag="[06] — LINKS"
+        title="Connections"
+        description="API connections for backends, models, and generation."
+        action={
+          <div className="flex items-center gap-2">
+            {saved && (
+              <span className="text-ember inline-flex items-center gap-1.5">
+                <Check className="h-3.5 w-3.5" />
+                <span className="mono-tag">SAVED</span>
+              </span>
+            )}
+            {error && (
+              <span className="text-destructive inline-flex items-center gap-2">
+                <span className="mono-tag">ERROR</span>
+              </span>
+            )}
+            <Button variant="outline" onClick={handleReset} className="h-8">
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span className="mono-tag">RESET</span>
+            </Button>
+            <Button onClick={() => handleConnect({})} className="ember-pulse h-8">
+              <Plug className="h-3.5 w-3.5" />
+              <span className="mono-tag font-bold">CONNECT</span>
+            </Button>
           </div>
-          <h2 className="display-host text-[30px] leading-none tracking-tight">Connections</h2>
-          <p className="text-muted-foreground mt-1.5 max-w-md text-[13px] leading-snug">
-            API connections for backends, models, and generation.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {saved && (
-            <span className="text-ember inline-flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5" />
-              <span className="mono-tag">SAVED</span>
-            </span>
-          )}
-          {error && (
-            <span className="text-destructive inline-flex items-center gap-2">
-              <span className="mono-tag">ERROR</span>
-            </span>
-          )}
-          <Button variant="outline" onClick={handleReset} className="h-8">
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span className="mono-tag">RESET</span>
-          </Button>
-          <Button onClick={() => handleConnect({})} className="ember-pulse h-8">
-            <Plug className="h-3.5 w-3.5" />
-            <span className="mono-tag font-bold">CONNECT</span>
-          </Button>
-        </div>
-      </header>
+        }
+      />
 
       {/* Profile Selector */}
       <ConnectionProfileSelector

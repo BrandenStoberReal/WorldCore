@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Upload, Loader2, Check, X, AlertCircle } from 'lucide-react';
+import { Upload, Check, X, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 type FileStatus = 'pending' | 'uploading' | 'success' | 'error';
 
@@ -203,7 +204,7 @@ export function DragDropOverlay() {
         ) : isProcessing ? (
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <Loader2 className="text-ember h-5 w-5 animate-spin" />
+              <LoadingSpinner size="md" />
               <h2 className="display-host text-[20px] leading-none tracking-tight">
                 Importing character cards
               </h2>
@@ -219,9 +220,7 @@ export function DragDropOverlay() {
                     {f.status === 'pending' && (
                       <span className="mono-tag text-muted-foreground/60">pending</span>
                     )}
-                    {f.status === 'uploading' && (
-                      <Loader2 className="text-ember h-3.5 w-3.5 animate-spin" />
-                    )}
+                    {f.status === 'uploading' && <LoadingSpinner size="sm" />}
                     {f.status === 'success' && <Check className="text-ember h-3.5 w-3.5" />}
                     {f.status === 'error' && <X className="text-ember h-3.5 w-3.5" />}
                   </span>

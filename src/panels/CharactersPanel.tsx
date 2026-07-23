@@ -1,12 +1,13 @@
 import { useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api';
 import { useChatStore } from '@/lib/stores';
 import { useNavStore } from '@/lib/navStore';
 import { CharacterForm, type CharacterFormHandle } from '@/components/CharacterForm';
 import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { Character, CharacterCreateInput } from '@/shared/types/character';
 
 type CharacterWithId = Character & { id: number };
@@ -127,12 +128,7 @@ function EditMode({ characterId }: { characterId: number }) {
   };
 
   if (charLoading || !editCharacter) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-3">
-        <Loader2 className="text-ember h-6 w-6 animate-spin" />
-        <span className="mono-tag text-muted-foreground/55">loading character</span>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="loading character" className="h-full" />;
   }
 
   const formRef = useRef<CharacterFormHandle>(null);

@@ -12,6 +12,7 @@ interface ChatInputProps {
 
 export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputProps) {
   const [value, setValue] = useState('');
+  const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -63,6 +64,8 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
               value={value}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={handleKeyDown}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
               placeholder={isGenerating ? 'generating...' : 'type a message...'}
               rows={1}
               className="placeholder:text-muted-foreground/50 flex max-h-40 min-h-9 flex-1 resize-none bg-transparent font-mono text-[13.5px] leading-relaxed outline-none disabled:opacity-50"
@@ -72,7 +75,12 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
         </div>
 
         {/* Action rail */}
-        <div className="mt-2 flex items-center justify-between">
+        <div
+          className={cn(
+            'mt-2 flex items-center justify-between transition-opacity duration-200',
+            focused || isGenerating ? 'opacity-100' : 'opacity-0',
+          )}
+        >
           <div className="mono-tag text-muted-foreground/40 flex items-center gap-3">
             <span>{`{ esc }`} dismiss</span>
             <span>{`{ ⇧ + ⏎ }`} newline</span>

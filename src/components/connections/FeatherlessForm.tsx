@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, EyeOff, Grid3X3, KeyRound, LayoutList, Loader2, Search } from 'lucide-react';
+import { Eye, EyeOff, Grid3X3, KeyRound, LayoutList, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { apiFetch } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useManageApiKey } from '@/lib/useManageApiKey';
@@ -364,7 +365,7 @@ export function FeatherlessForm({ config, onConfigChange, className }: Featherle
       {/* Loading / Error states */}
       {loading && (
         <div className="text-muted-foreground/60 flex items-center justify-center gap-2 py-8 text-sm">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <LoadingSpinner size="md" />
           Loading models...
         </div>
       )}

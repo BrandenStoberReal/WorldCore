@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from 'react';
-import { Eye, EyeOff, Loader2, MessageSquare, Plug, Send } from 'lucide-react';
+import { Eye, EyeOff, MessageSquare, Plug, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { OnlineStatus } from '@/components/connections/OnlineStatus';
 import { ReverseProxySection } from '@/components/connections/ReverseProxySection';
 import { AzureOpenAIForm } from '@/components/connections/AzureOpenAIForm';
@@ -356,7 +357,7 @@ export function ChatCompletionPanel({
           disabled={connecting}
           className={cn('relative h-9 pr-5 pl-4', !connected && 'ember-pulse')}
         >
-          {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plug className="h-4 w-4" />}
+          {connecting ? <LoadingSpinner size="sm" /> : <Plug className="h-4 w-4" />}
           <span className="text-[13px] font-semibold tracking-tight">
             {connecting ? 'Connecting...' : 'Connect'}
           </span>

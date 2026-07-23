@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { apiFetch } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -83,7 +84,7 @@ export function ModelSelector({
         <SelectContent>
           {loading && (
             <div className="text-muted-foreground flex items-center gap-2 px-2 py-1.5 text-sm">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <LoadingSpinner size="sm" />
               <span>Loading models...</span>
             </div>
           )}

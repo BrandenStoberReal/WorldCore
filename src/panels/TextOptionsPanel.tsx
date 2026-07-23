@@ -11,11 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, RotateCcw, Check } from 'lucide-react';
+import { RotateCcw, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
 import { InlineSection } from '@/components/drawers/InlineSection';
 import { apiFetch, apiGet, apiPost } from '@/lib/api';
 import { useDebouncedAutoSave } from '@/hooks';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface PresetResponse {
   category: string;
@@ -417,54 +419,44 @@ export function TextOptionsPanel() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-3">
-        <Loader2 className="text-ember h-7 w-7 animate-spin" />
-        <span className="mono-tag text-muted-foreground/55">loading text options</span>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="loading text options" className="h-64" />;
   }
 
   return (
     <div data-panel="textoptions" className="flex h-full flex-col gap-2.5">
-      <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <div className="mb-1.5 flex items-center gap-2.5">
-            <span className="mono-tag text-ember">{`[05] — TEXT`}</span>
-            <span className="bg-ember/40 h-px w-8" />
-          </div>
-          <h2 className="display-host text-[30px] leading-none tracking-tight">Text Options</h2>
-          <p className="text-muted-foreground mt-1.5 max-w-md text-[13px] leading-snug">
-            System prompts, instruct templates, context formatting, and generation controls.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {autoSave.status !== 'idle' && (
-            <span
-              className={cn(
-                'inline-flex items-center gap-1.5',
-                autoSave.status === 'unsaved'
-                  ? 'text-red-500'
-                  : autoSave.status === 'saved'
-                    ? 'text-green-500'
-                    : autoSave.status === 'error'
-                      ? 'text-destructive'
-                      : 'text-muted-foreground/40',
-              )}
-            >
-              {autoSave.status === 'saving' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              {autoSave.status === 'saved' && <Check className="h-3.5 w-3.5" />}
-              <span className="mono-tag">
-                {autoSave.status === 'saving' ? 'SAVING...' : autoSave.status.toUpperCase()}
+      <PageHeader
+        tag="[05] — TEXT"
+        title="Text Options"
+        description="System prompts, instruct templates, context formatting, and generation controls."
+        action={
+          <div className="flex items-center gap-2">
+            {autoSave.status !== 'idle' && (
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1.5',
+                  autoSave.status === 'unsaved'
+                    ? 'text-red-500'
+                    : autoSave.status === 'saved'
+                      ? 'text-green-500'
+                      : autoSave.status === 'error'
+                        ? 'text-destructive'
+                        : 'text-muted-foreground/40',
+                )}
+              >
+                {autoSave.status === 'saving' && <LoadingSpinner size="sm" />}
+                {autoSave.status === 'saved' && <Check className="h-3.5 w-3.5" />}
+                <span className="mono-tag">
+                  {autoSave.status === 'saving' ? 'SAVING...' : autoSave.status.toUpperCase()}
+                </span>
               </span>
-            </span>
-          )}
-          <Button variant="outline" onClick={handleReset} className="h-8">
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span className="mono-tag">RESET</span>
-          </Button>
-        </div>
-      </header>
+            )}
+            <Button variant="outline" onClick={handleReset} className="h-8">
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span className="mono-tag">RESET</span>
+            </Button>
+          </div>
+        }
+      />
 
       {/* 3-column responsive grid */}
       <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-3">
