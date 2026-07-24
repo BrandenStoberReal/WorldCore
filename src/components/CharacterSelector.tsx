@@ -11,6 +11,7 @@ import {
   CheckSquare,
   Square,
   Tag,
+  PanelLeftClose,
 } from 'lucide-react';
 import { apiFetch, apiPost } from '@/lib/api';
 import { cn, estimateTokens } from '@/lib/utils';
@@ -31,9 +32,10 @@ type CharacterWithId = Character & { id: number };
 interface CharacterSelectorProps {
   selectedId: number | null;
   onSelect: (id: number) => void;
+  onToggle?: () => void;
 }
 
-export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorProps) {
+export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterSelectorProps) {
   const queryClient = useQueryClient();
   const [sidebarMode, setSidebarMode] = useState<'list' | 'info'>('list');
   const [search, setSearch] = useState('');
@@ -344,6 +346,14 @@ export function CharacterSelector({ selectedId, onSelect }: CharacterSelectorPro
                 title="Import character PNG"
                 aria-label="Import character PNG"
               />
+              {onToggle && (
+                <IconButton
+                  icon={<PanelLeftClose className="h-3 w-3" strokeWidth={2.25} />}
+                  onClick={onToggle}
+                  title="Hide characters"
+                  aria-label="Hide characters"
+                />
+              )}
             </>
           }
         />

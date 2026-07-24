@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Camera, X, Plus, GripVertical, Upload, RefreshCw } from 'lucide-react';
+import { Camera, X, Plus, GripVertical, Upload, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn, estimateTokens } from '@/lib/utils';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { Character, CharacterCreateInput } from '@/shared/types/character';
@@ -83,6 +83,84 @@ function FieldLabel({
         {required && <span className="text-destructive ml-1">*</span>}
       </Label>
       {count !== undefined && <CharCounter count={count} max={max} />}
+    </div>
+  );
+}
+
+function CollapsibleCard({
+  title,
+  defaultExpanded = true,
+  children,
+}: {
+  title: string;
+  defaultExpanded?: boolean;
+  children: React.ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  return (
+    <Card className="gap-4 py-4">
+      <CardHeader className="px-4">
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="flex w-full items-center justify-between text-left transition-colors hover:opacity-80"
+        >
+          <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
+            {title}
+          </CardTitle>
+          <ChevronDown
+            className={cn(
+              'text-muted-foreground/40 h-4 w-4 shrink-0 transition-transform duration-200',
+              expanded && 'rotate-180',
+            )}
+          />
+        </button>
+      </CardHeader>
+      {expanded && <CardContent className="space-y-3 px-4">{children}</CardContent>}
+    </Card>
+  );
+}
+
+function CollapsibleField({
+  label,
+  required,
+  count,
+  max,
+  defaultExpanded = true,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  count?: number;
+  max?: number;
+  defaultExpanded?: boolean;
+  children: React.ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  return (
+    <div className="space-y-1.5">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center justify-between text-left transition-colors hover:opacity-80"
+      >
+        <Label className="text-sm font-medium">
+          {label}
+          {required && <span className="text-destructive ml-1">*</span>}
+        </Label>
+        <div className="flex items-center gap-2">
+          {count !== undefined && <CharCounter count={count} max={max} />}
+          <ChevronDown
+            className={cn(
+              'text-muted-foreground/40 h-3 w-3 shrink-0 transition-transform duration-200',
+              expanded && 'rotate-180',
+            )}
+          />
+        </div>
+      </button>
+      {expanded && children}
     </div>
   );
 }
@@ -556,115 +634,96 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
           ═══════════════════════════════════════════════════════ */}
         {activeTab === 'overview' && (
           <div className="space-y-5">
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Basic Info
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4">
-                <div className="space-y-1.5">
-                  <FieldLabel label="Name" required count={name.length} />
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onBlur={() => markTouched('name')}
-                    placeholder="Character name"
-                    className={cn(nameError && 'border-destructive focus-visible:ring-destructive')}
-                  />
-                  {nameError && <p className="text-destructive text-xs">Name is required</p>}
-                </div>
+            <CollapsibleCard title="Basic Info">
+              <CollapsibleField label="Name" required count={name.length}>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onBlur={() => markTouched('name')}
+                  placeholder="Character name"
+                  className={cn(nameError && 'border-destructive focus-visible:ring-destructive')}
+                />
+                {nameError && <p className="text-destructive text-xs">Name is required</p>}
+              </CollapsibleField>
 
-                <div className="space-y-1.5">
-                  <FieldLabel label="Description" count={description.length} />
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Character description"
-                    rows={3}
-                  />
-                </div>
+              <CollapsibleField label="Description" count={description.length}>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Character description"
+                  rows={3}
+                />
+              </CollapsibleField>
 
-                <div className="space-y-1.5">
-                  <FieldLabel label="Personality" count={personality.length} />
-                  <Textarea
-                    value={personality}
-                    onChange={(e) => setPersonality(e.target.value)}
-                    placeholder="Character personality traits"
-                    rows={2}
-                  />
-                </div>
+              <CollapsibleField label="Personality" count={personality.length}>
+                <Textarea
+                  value={personality}
+                  onChange={(e) => setPersonality(e.target.value)}
+                  placeholder="Character personality traits"
+                  rows={2}
+                />
+              </CollapsibleField>
 
-                <div className="space-y-1.5">
-                  <FieldLabel label="Scenario" count={scenario.length} />
-                  <Textarea
-                    value={scenario}
-                    onChange={(e) => setScenario(e.target.value)}
-                    placeholder="Scenario context"
-                    rows={2}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+              <CollapsibleField label="Scenario" count={scenario.length}>
+                <Textarea
+                  value={scenario}
+                  onChange={(e) => setScenario(e.target.value)}
+                  placeholder="Scenario context"
+                  rows={2}
+                />
+              </CollapsibleField>
+            </CollapsibleCard>
 
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Metadata
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4">
-                <div className="space-y-1.5">
-                  <FieldLabel label="Creator Notes" count={creatorNotes.length} />
-                  <Textarea
-                    value={creatorNotes}
-                    onChange={(e) => setCreatorNotes(e.target.value)}
-                    placeholder="Notes about this character"
-                    rows={2}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <FieldLabel label="Creator" count={creator.length} />
-                  <Input
-                    value={creator}
-                    onChange={(e) => setCreator(e.target.value)}
-                    placeholder="Creator name"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <FieldLabel label="Version" count={characterVersion.length} />
-                  <Input
-                    value={characterVersion}
-                    onChange={(e) => setCharacterVersion(e.target.value)}
-                    placeholder="e.g. 1.0"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium">Tags</Label>
-                  <Input
-                    value={tagsInput}
-                    onChange={(e) => setTagsInput(e.target.value)}
-                    placeholder="comma, separated, tags"
-                  />
-                  {tagsInput.trim().length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {tagsInput
-                        .split(',')
-                        .map((t) => t.trim())
-                        .filter(Boolean)
-                        .map((tag, i) => (
-                          <span
-                            key={`${tag}-${i}`}
-                            className="mono-tag bg-muted/50 border-border/60 text-foreground/65 rounded-md border px-1.5 py-0.5"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <CollapsibleCard title="Metadata">
+              <CollapsibleField label="Creator Notes" count={creatorNotes.length}>
+                <Textarea
+                  value={creatorNotes}
+                  onChange={(e) => setCreatorNotes(e.target.value)}
+                  placeholder="Notes about this character"
+                  rows={2}
+                />
+              </CollapsibleField>
+
+              <CollapsibleField label="Creator" count={creator.length}>
+                <Input
+                  value={creator}
+                  onChange={(e) => setCreator(e.target.value)}
+                  placeholder="Creator name"
+                />
+              </CollapsibleField>
+
+              <CollapsibleField label="Version" count={characterVersion.length}>
+                <Input
+                  value={characterVersion}
+                  onChange={(e) => setCharacterVersion(e.target.value)}
+                  placeholder="e.g. 1.0"
+                />
+              </CollapsibleField>
+
+              <CollapsibleField label="Tags">
+                <Input
+                  value={tagsInput}
+                  onChange={(e) => setTagsInput(e.target.value)}
+                  placeholder="comma, separated, tags"
+                />
+                {tagsInput.trim().length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {tagsInput
+                      .split(',')
+                      .map((t) => t.trim())
+                      .filter(Boolean)
+                      .map((tag, i) => (
+                        <span
+                          key={`${tag}-${i}`}
+                          className="mono-tag bg-muted/50 border-border/60 text-foreground/65 rounded-md border px-1.5 py-0.5"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                  </div>
+                )}
+              </CollapsibleField>
+            </CollapsibleCard>
           </div>
         )}
 
@@ -673,143 +732,114 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
           ═══════════════════════════════════════════════════════ */}
         {activeTab === 'greetings' && (
           <div className="space-y-5">
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Greetings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4">
-                <div className="space-y-1.5">
-                  <FieldLabel label="First Message" required count={firstMes.length} />
-                  <Textarea
-                    value={firstMes}
-                    onChange={(e) => setFirstMes(e.target.value)}
-                    onBlur={() => markTouched('firstMes')}
-                    placeholder="Opening greeting"
-                    rows={4}
-                    className={cn(
-                      firstMesError && 'border-destructive focus-visible:ring-destructive',
-                    )}
-                  />
-                  {firstMesError && (
-                    <p className="text-destructive text-xs">First message is required</p>
+            <CollapsibleCard title="Greetings">
+              <CollapsibleField label="First Message" required count={firstMes.length}>
+                <Textarea
+                  value={firstMes}
+                  onChange={(e) => setFirstMes(e.target.value)}
+                  onBlur={() => markTouched('firstMes')}
+                  placeholder="Opening greeting"
+                  rows={4}
+                  className={cn(
+                    firstMesError && 'border-destructive focus-visible:ring-destructive',
                   )}
+                />
+                {firstMesError && (
+                  <p className="text-destructive text-xs">First message is required</p>
+                )}
+              </CollapsibleField>
+
+              {/* Alternate Greetings */}
+              <CollapsibleField label="Alternate Greetings" count={alternateGreetings.length}>
+                <div className="space-y-2">
+                  {alternateGreetings.map((greeting, i) => (
+                    <div
+                      key={i}
+                      className="group/greeting animate-in fade-in slide-in-from-top-1 flex gap-2 duration-200"
+                    >
+                      <div className="text-muted-foreground/20 shrink-0 pt-2.5">
+                        <GripVertical className="h-4 w-4" />
+                      </div>
+                      <Textarea
+                        value={greeting}
+                        onChange={(e) => updateGreeting(i, e.target.value)}
+                        placeholder={`Greeting #${i + 2}`}
+                        rows={2}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground/40 hover:text-destructive mt-1 h-auto shrink-0 self-start opacity-0 transition-opacity group-hover/greeting:opacity-100"
+                        onClick={() => removeGreeting(i)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Alternate Greetings */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Alternate Greetings</Label>
-                    <span className="mono-tag text-muted-foreground/40 text-[10px] tabular-nums">
-                      {alternateGreetings.length}
-                    </span>
-                  </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-dashed"
+                  onClick={addGreeting}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Greeting
+                </Button>
+              </CollapsibleField>
+            </CollapsibleCard>
 
-                  <div className="space-y-2">
-                    {alternateGreetings.map((greeting, i) => (
-                      <div
-                        key={i}
-                        className="group/greeting animate-in fade-in slide-in-from-top-1 flex gap-2 duration-200"
-                      >
-                        <div className="text-muted-foreground/20 shrink-0 pt-2.5">
-                          <GripVertical className="h-4 w-4" />
-                        </div>
-                        <Textarea
-                          value={greeting}
-                          onChange={(e) => updateGreeting(i, e.target.value)}
-                          placeholder={`Greeting #${i + 2}`}
-                          rows={2}
-                          className="flex-1"
-                        />
+            {/* Group-Only Greetings */}
+            <CollapsibleCard title="Group-Only Greetings">
+              <CollapsibleField label="Group-Only Greetings" count={groupOnlyGreetings.length}>
+                <div className="space-y-2">
+                  {groupOnlyGreetings.map((greeting, i) => (
+                    <div
+                      key={i}
+                      className="group/greeting animate-in fade-in slide-in-from-top-1 flex gap-2 duration-200"
+                    >
+                      <div className="text-muted-foreground/20 shrink-0 pt-2.5">
+                        <GripVertical className="h-4 w-4" />
+                      </div>
+                      <Textarea
+                        value={greeting}
+                        onChange={(e) => updateGroupGreeting(i, e.target.value)}
+                        placeholder={`Group Greeting #${i + 1}`}
+                        rows={2}
+                        className="flex-1"
+                      />
+                      <div className="flex shrink-0 flex-col items-center gap-1 pt-1">
+                        <CharCounter count={greeting.length} />
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           className="text-muted-foreground/40 hover:text-destructive mt-1 h-auto shrink-0 self-start opacity-0 transition-opacity group-hover/greeting:opacity-100"
-                          onClick={() => removeGreeting(i)}
+                          onClick={() => removeGroupGreeting(i)}
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-dashed"
-                    onClick={addGreeting}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Greeting
-                  </Button>
+                    </div>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Group-Only Greetings */}
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Group-Only Greetings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Group-Only Greetings</Label>
-                    <span className="mono-tag text-muted-foreground/40 text-[10px] tabular-nums">
-                      {groupOnlyGreetings.length}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {groupOnlyGreetings.map((greeting, i) => (
-                      <div
-                        key={i}
-                        className="group/greeting animate-in fade-in slide-in-from-top-1 flex gap-2 duration-200"
-                      >
-                        <div className="text-muted-foreground/20 shrink-0 pt-2.5">
-                          <GripVertical className="h-4 w-4" />
-                        </div>
-                        <Textarea
-                          value={greeting}
-                          onChange={(e) => updateGroupGreeting(i, e.target.value)}
-                          placeholder={`Group Greeting #${i + 1}`}
-                          rows={2}
-                          className="flex-1"
-                        />
-                        <div className="flex shrink-0 flex-col items-center gap-1 pt-1">
-                          <CharCounter count={greeting.length} />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground/40 hover:text-destructive mt-1 h-auto shrink-0 self-start opacity-0 transition-opacity group-hover/greeting:opacity-100"
-                            onClick={() => removeGroupGreeting(i)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-dashed"
-                    onClick={addGroupGreeting}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Group Greeting
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-dashed"
+                  onClick={addGroupGreeting}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Group Greeting
+                </Button>
+              </CollapsibleField>
+            </CollapsibleCard>
           </div>
         )}
 
@@ -818,45 +848,31 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
           ═══════════════════════════════════════════════════════ */}
         {activeTab === 'prompts' && (
           <div className="space-y-5">
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  System Prompt
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4">
-                <div className="space-y-1.5">
-                  <FieldLabel label="System Prompt" count={systemPrompt.length} />
-                  <Textarea
-                    value={systemPrompt}
-                    onChange={(e) => setSystemPrompt(e.target.value)}
-                    placeholder="Override system prompt for this character"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <FieldLabel
-                    label="Post-History Instructions"
-                    count={postHistoryInstructions.length}
-                  />
-                  <Textarea
-                    value={postHistoryInstructions}
-                    onChange={(e) => setPostHistoryInstructions(e.target.value)}
-                    placeholder="Instructions appended after chat history"
-                    rows={3}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <CollapsibleCard title="System Prompt">
+              <CollapsibleField label="System Prompt" count={systemPrompt.length}>
+                <Textarea
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  placeholder="Override system prompt for this character"
+                  rows={3}
+                />
+              </CollapsibleField>
 
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Example Messages
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1.5 px-4">
-                <FieldLabel label="Message Examples" count={mesExample.length} />
+              <CollapsibleField
+                label="Post-History Instructions"
+                count={postHistoryInstructions.length}
+              >
+                <Textarea
+                  value={postHistoryInstructions}
+                  onChange={(e) => setPostHistoryInstructions(e.target.value)}
+                  placeholder="Instructions appended after chat history"
+                  rows={3}
+                />
+              </CollapsibleField>
+            </CollapsibleCard>
+
+            <CollapsibleCard title="Example Messages">
+              <CollapsibleField label="Message Examples" count={mesExample.length}>
                 <Textarea
                   value={mesExample}
                   onChange={(e) => setMesExample(e.target.value)}
@@ -864,92 +880,77 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
                   rows={6}
                   className="font-mono text-xs"
                 />
-              </CardContent>
-            </Card>
+              </CollapsibleField>
+            </CollapsibleCard>
 
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Depth Prompt
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Depth Prompt</Label>
-                  <div className="grid grid-cols-[5rem_1fr_8rem] items-end gap-2">
-                    <div className="space-y-1.5">
-                      <Label className="text-muted-foreground/50 text-[11px]">Depth</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={10}
-                        value={depthPromptDepth}
-                        onChange={(e) => setDepthPromptDepth(Number(e.target.value))}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-muted-foreground/50 text-[11px]">Prompt</Label>
-                      <Input
-                        value={depthPromptPrompt}
-                        onChange={(e) => setDepthPromptPrompt(e.target.value)}
-                        placeholder="Depth-based prompt injection"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-muted-foreground/50 text-[11px]">Role</Label>
-                      <Select
-                        value={depthPromptRole}
-                        onValueChange={(v) => {
-                          if (v === 'system' || v === 'user' || v === 'assistant') {
-                            setDepthPromptRole(v);
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="system">system</SelectItem>
-                          <SelectItem value="user">user</SelectItem>
-                          <SelectItem value="assistant">assistant</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+            <CollapsibleCard title="Depth Prompt">
+              <CollapsibleField label="Depth Prompt">
+                <div className="grid grid-cols-[5rem_1fr_8rem] items-end gap-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-muted-foreground/50 text-[11px]">Depth</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={10}
+                      value={depthPromptDepth}
+                      onChange={(e) => setDepthPromptDepth(Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-muted-foreground/50 text-[11px]">Prompt</Label>
+                    <Input
+                      value={depthPromptPrompt}
+                      onChange={(e) => setDepthPromptPrompt(e.target.value)}
+                      placeholder="Depth-based prompt injection"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-muted-foreground/50 text-[11px]">Role</Label>
+                    <Select
+                      value={depthPromptRole}
+                      onValueChange={(v) => {
+                        if (v === 'system' || v === 'user' || v === 'assistant') {
+                          setDepthPromptRole(v);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="system">system</SelectItem>
+                        <SelectItem value="user">user</SelectItem>
+                        <SelectItem value="assistant">assistant</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </CollapsibleField>
+            </CollapsibleCard>
 
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Talkativeness
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Talkativeness</Label>
-                    <span className="mono-tag text-muted-foreground/50 text-[11px] tabular-nums">
-                      {talkativeness.toFixed(2)}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={talkativeness}
-                    onChange={(e) => setTalkativeness(Number(e.target.value))}
-                    className="bg-muted [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-background h-1.5 w-full cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-125"
-                  />
-                  <div className="text-muted-foreground/35 mono-tag flex justify-between text-[10px]">
-                    <span>Quiet</span>
-                    <span>Verbose</span>
-                  </div>
+            <CollapsibleCard title="Talkativeness">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Talkativeness</Label>
+                  <span className="mono-tag text-muted-foreground/50 text-[11px] tabular-nums">
+                    {talkativeness.toFixed(2)}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={talkativeness}
+                  onChange={(e) => setTalkativeness(Number(e.target.value))}
+                  className="bg-muted [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-background h-1.5 w-full cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-125"
+                />
+                <div className="text-muted-foreground/35 mono-tag flex justify-between text-[10px]">
+                  <span>Quiet</span>
+                  <span>Verbose</span>
+                </div>
+              </div>
+            </CollapsibleCard>
           </div>
         )}
 
@@ -959,285 +960,243 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
         {activeTab === 'advanced' && (
           <div className="space-y-5">
             {/* Nickname */}
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Identity
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4">
-                <div className="space-y-1.5">
-                  <FieldLabel label="Nickname" count={nickname.length} />
-                  <Input
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    placeholder="Short alias for this character"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <CollapsibleCard title="Identity">
+              <div className="space-y-1.5">
+                <FieldLabel label="Nickname" count={nickname.length} />
+                <Input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="Short alias for this character"
+                />
+              </div>
+            </CollapsibleCard>
 
             {/* Replace Name with {{char}} */}
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Macro Tools
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-4">
-                <p className="text-muted-foreground mb-3 text-[13px] leading-snug">
-                  Find every occurrence of this character&apos;s name in all fields and replace it
-                  with{' '}
-                  <code className="bg-muted/50 rounded px-1 py-0.5 font-mono text-[12px]">{`{{char}}`}</code>
-                  .
-                </p>
+            <CollapsibleCard title="Macro Tools">
+              <p className="text-muted-foreground mb-3 text-[13px] leading-snug">
+                Find every occurrence of this character&apos;s name in all fields and replace it
+                with{' '}
+                <code className="bg-muted/50 rounded px-1 py-0.5 font-mono text-[12px]">{`{{char}}`}</code>
+                .
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={replaceNameWithMacro}
+                disabled={!name.trim()}
+                className="gap-1.5"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span className="mono-tag">REPLACE NAME WITH {`{{char}}`}</span>
+              </Button>
+            </CollapsibleCard>
+
+            {/* Source */}
+            <CollapsibleCard title="Source">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Source URLs</Label>
+                  <span className="mono-tag text-muted-foreground/40 text-[10px] tabular-nums">
+                    {source.length}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {source.map((src, i) => (
+                    <div
+                      key={i}
+                      className="group/src animate-in fade-in slide-in-from-top-1 flex gap-2 duration-200"
+                    >
+                      <div className="text-muted-foreground/20 shrink-0 pt-2.5">
+                        <GripVertical className="h-4 w-4" />
+                      </div>
+                      <Textarea
+                        value={src}
+                        onChange={(e) => updateSource(i, e.target.value)}
+                        placeholder={`Source URL #${i + 1}`}
+                        rows={1}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground/40 hover:text-destructive mt-1 h-auto shrink-0 self-start opacity-0 transition-opacity group-hover/src:opacity-100"
+                        onClick={() => removeSource(i)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={replaceNameWithMacro}
-                  disabled={!name.trim()}
-                  className="gap-1.5"
+                  className="w-full border-dashed"
+                  onClick={addSource}
                 >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  <span className="mono-tag">REPLACE NAME WITH {`{{char}}`}</span>
+                  <Plus className="h-4 w-4" />
+                  Add Source
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </CollapsibleCard>
 
-            {/* Source */}
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Source
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4">
+            {/* Creator Notes Multilingual */}
+            <CollapsibleCard title="Multilingual Notes">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Creator Notes (Multilingual)</Label>
+                  <span className="mono-tag text-muted-foreground/40 text-[10px] tabular-nums">
+                    {multiLangNotes.length}
+                  </span>
+                </div>
+
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Source URLs</Label>
-                    <span className="mono-tag text-muted-foreground/40 text-[10px] tabular-nums">
-                      {source.length}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {source.map((src, i) => (
-                      <div
-                        key={i}
-                        className="group/src animate-in fade-in slide-in-from-top-1 flex gap-2 duration-200"
+                  {multiLangNotes.map((note, i) => (
+                    <div
+                      key={i}
+                      className="group/note animate-in fade-in slide-in-from-top-1 flex gap-2 duration-200"
+                    >
+                      <Input
+                        value={note.lang}
+                        onChange={(e) => updateLangNote(i, 'lang', e.target.value)}
+                        placeholder="en"
+                        className="w-16 shrink-0"
+                      />
+                      <Textarea
+                        value={note.value}
+                        onChange={(e) => updateLangNote(i, 'value', e.target.value)}
+                        placeholder="Translated creator notes..."
+                        rows={2}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground/40 hover:text-destructive mt-1 h-auto shrink-0 self-start opacity-0 transition-opacity group-hover/note:opacity-100"
+                        onClick={() => removeLangNote(i)}
                       >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-dashed"
+                  onClick={addLangNote}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Language
+                </Button>
+              </div>
+            </CollapsibleCard>
+
+            {/* Assets */}
+            <CollapsibleCard title="Assets">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Character Assets</Label>
+                  <span className="mono-tag text-muted-foreground/40 text-[10px] tabular-nums">
+                    {assets.length}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {assets.map((asset, i) => (
+                    <div
+                      key={i}
+                      className="group/asset animate-in fade-in slide-in-from-top-1 duration-200"
+                    >
+                      <div className="flex items-start gap-2">
                         <div className="text-muted-foreground/20 shrink-0 pt-2.5">
                           <GripVertical className="h-4 w-4" />
                         </div>
-                        <Textarea
-                          value={src}
-                          onChange={(e) => updateSource(i, e.target.value)}
-                          placeholder={`Source URL #${i + 1}`}
-                          rows={1}
-                          className="flex-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground/40 hover:text-destructive mt-1 h-auto shrink-0 self-start opacity-0 transition-opacity group-hover/src:opacity-100"
-                          onClick={() => removeSource(i)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-dashed"
-                    onClick={addSource}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Source
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Creator Notes Multilingual */}
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Multilingual Notes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Creator Notes (Multilingual)</Label>
-                    <span className="mono-tag text-muted-foreground/40 text-[10px] tabular-nums">
-                      {multiLangNotes.length}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {multiLangNotes.map((note, i) => (
-                      <div
-                        key={i}
-                        className="group/note animate-in fade-in slide-in-from-top-1 flex gap-2 duration-200"
-                      >
-                        <Input
-                          value={note.lang}
-                          onChange={(e) => updateLangNote(i, 'lang', e.target.value)}
-                          placeholder="en"
-                          className="w-16 shrink-0"
-                        />
-                        <Textarea
-                          value={note.value}
-                          onChange={(e) => updateLangNote(i, 'value', e.target.value)}
-                          placeholder="Translated creator notes..."
-                          rows={2}
-                          className="flex-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground/40 hover:text-destructive mt-1 h-auto shrink-0 self-start opacity-0 transition-opacity group-hover/note:opacity-100"
-                          onClick={() => removeLangNote(i)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-dashed"
-                    onClick={addLangNote}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Language
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Assets */}
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Assets
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Character Assets</Label>
-                    <span className="mono-tag text-muted-foreground/40 text-[10px] tabular-nums">
-                      {assets.length}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {assets.map((asset, i) => (
-                      <div
-                        key={i}
-                        className="group/asset animate-in fade-in slide-in-from-top-1 duration-200"
-                      >
-                        <div className="flex items-start gap-2">
-                          <div className="text-muted-foreground/20 shrink-0 pt-2.5">
-                            <GripVertical className="h-4 w-4" />
-                          </div>
-                          <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
-                            <Input
-                              value={asset.type}
-                              onChange={(e) => updateAsset(i, 'type', e.target.value)}
-                              placeholder="Type"
-                            />
-                            <Input
-                              value={asset.uri}
-                              onChange={(e) => updateAsset(i, 'uri', e.target.value)}
-                              placeholder="URI"
-                            />
-                            <Input
-                              value={asset.name}
-                              onChange={(e) => updateAsset(i, 'name', e.target.value)}
-                              placeholder="Name"
-                            />
-                            <Input
-                              value={asset.ext}
-                              onChange={(e) => updateAsset(i, 'ext', e.target.value)}
-                              placeholder="Ext"
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground/40 hover:text-destructive mt-1 h-auto shrink-0 self-start opacity-0 transition-opacity group-hover/asset:opacity-100"
-                            onClick={() => removeAsset(i)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                        <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
+                          <Input
+                            value={asset.type}
+                            onChange={(e) => updateAsset(i, 'type', e.target.value)}
+                            placeholder="Type"
+                          />
+                          <Input
+                            value={asset.uri}
+                            onChange={(e) => updateAsset(i, 'uri', e.target.value)}
+                            placeholder="URI"
+                          />
+                          <Input
+                            value={asset.name}
+                            onChange={(e) => updateAsset(i, 'name', e.target.value)}
+                            placeholder="Name"
+                          />
+                          <Input
+                            value={asset.ext}
+                            onChange={(e) => updateAsset(i, 'ext', e.target.value)}
+                            placeholder="Ext"
+                          />
                         </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground/40 hover:text-destructive mt-1 h-auto shrink-0 self-start opacity-0 transition-opacity group-hover/asset:opacity-100"
+                          onClick={() => removeAsset(i)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-dashed"
-                    onClick={addAsset}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Asset
-                  </Button>
+                    </div>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-dashed"
+                  onClick={addAsset}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Asset
+                </Button>
+              </div>
+            </CollapsibleCard>
 
             {/* Dates (read-only) */}
-            <Card className="gap-4 py-4">
-              <CardHeader className="px-4">
-                <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-                  Dates
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium">Creation Date</Label>
-                  <Input
-                    disabled
-                    readOnly
-                    value={
-                      character?.creation_date
-                        ? new Date(character.creation_date).toISOString()
-                        : 'N/A'
-                    }
-                    className="mono-tag"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium">Last Modified</Label>
-                  <Input
-                    disabled
-                    readOnly
-                    value={
-                      character?.modification_date
-                        ? new Date(character.modification_date).toISOString()
-                        : 'N/A'
-                    }
-                    className="mono-tag"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <CollapsibleCard title="Dates" defaultExpanded={false}>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Creation Date</Label>
+                <Input
+                  disabled
+                  readOnly
+                  value={
+                    character?.creation_date
+                      ? new Date(character.creation_date).toISOString()
+                      : 'N/A'
+                  }
+                  className="mono-tag"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Last Modified</Label>
+                <Input
+                  disabled
+                  readOnly
+                  value={
+                    character?.modification_date
+                      ? new Date(character.modification_date).toISOString()
+                      : 'N/A'
+                  }
+                  className="mono-tag"
+                />
+              </div>
+            </CollapsibleCard>
           </div>
         )}
 
