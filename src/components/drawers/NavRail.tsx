@@ -64,7 +64,7 @@ export function NavRail() {
     <header
       data-topbar
       className={cn(
-        'border-border bg-background z-30 flex flex-shrink-0 flex-col border-b',
+        'border-border bg-background z-10 flex flex-shrink-0 flex-col border-b',
         !alwaysShowViewportNavbar && 'group/nav',
       )}
     >
