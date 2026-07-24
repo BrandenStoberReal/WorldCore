@@ -141,38 +141,43 @@ export class PromptBuilder {
     // 6.5 Persona description block (between scenario and character system_prompt)
     if (params.persona) {
       const persona = params.persona;
-      if (persona.name) {
+      const personaName = persona.name?.trim() ?? '';
+      if (personaName) {
         // Override macroCtx.userName so {{user}} / {{personaName}} resolve to persona name
-        macroCtx.userName = persona.name;
+        macroCtx.userName = personaName;
       }
-      if (persona.description) {
+      if (persona.description?.trim()) {
         messagesArray.push({
           role: 'system',
           content: substituteMacros(
-            `[User Persona] ${persona.name}: ${persona.description}`,
+            personaName
+              ? `[User Persona] ${personaName}: ${persona.description.trim()}`
+              : `[User Persona]: ${persona.description.trim()}`,
             macroCtx,
           ),
         });
       }
-      if (persona.personality) {
+      if (persona.personality?.trim()) {
         messagesArray.push({
           role: 'system',
           content: substituteMacros(
-            `${persona.name}'s personality: ${persona.personality}`,
+            personaName
+              ? `${personaName}'s personality: ${persona.personality.trim()}`
+              : `User persona personality: ${persona.personality.trim()}`,
             macroCtx,
           ),
         });
       }
-      if (persona.scenario) {
+      if (persona.scenario?.trim()) {
         messagesArray.push({
           role: 'system',
-          content: substituteMacros(`Persona scenario: ${persona.scenario}`, macroCtx),
+          content: substituteMacros(`Persona scenario: ${persona.scenario.trim()}`, macroCtx),
         });
       }
-      if (persona.systemPrompt) {
+      if (persona.systemPrompt?.trim()) {
         messagesArray.push({
           role: 'system',
-          content: substituteMacros(persona.systemPrompt, macroCtx),
+          content: substituteMacros(persona.systemPrompt.trim(), macroCtx),
         });
       }
     }
