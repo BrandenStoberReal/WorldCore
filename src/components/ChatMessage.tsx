@@ -9,6 +9,7 @@ interface ChatMessageProps {
   msg: ChatMessageType;
   index?: number;
   characterAvatar?: string;
+  userAvatar?: string;
   userName?: string;
   characterName?: string;
   description?: string;
@@ -28,6 +29,7 @@ export function ChatMessage({
   msg,
   index = 0,
   characterAvatar,
+  userAvatar,
   userName = 'User',
   characterName = 'Character',
   description,
@@ -87,7 +89,18 @@ export function ChatMessage({
             )}
           >
             {isUser ? (
-              <span className="display-host text-ember text-[11px] font-semibold">{initial}</span>
+              userAvatar ? (
+                <img
+                  src={userAvatar}
+                  alt={msg.name}
+                  className="h-6 w-6 rounded-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <span className="display-host text-ember text-[11px] font-semibold">{initial}</span>
+              )
             ) : characterAvatar ? (
               <img
                 src={characterAvatar}

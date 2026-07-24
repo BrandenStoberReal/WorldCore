@@ -97,6 +97,7 @@ function buildCharacter(
   createDate: string,
   dateAdded: number,
   dataSize: number,
+  boundPersonaId: number | null = null,
 ): CharacterWithId {
   return {
     id,
@@ -109,6 +110,7 @@ function buildCharacter(
     chat_size: 0,
     data_size: dataSize,
     json_data: { spec, spec_version: specVersion },
+    boundPersonaId,
   };
 }
 
@@ -302,6 +304,22 @@ export class CharacterService {
     await writeCharacterThumbnail(filePath, userId, charRow.avatar).catch(() => {});
   }
 
+  async bindPersona(id: number, userId: string, personaId: number | null): Promise<void> {
+    const row = await db
+      .select()
+      .from(characters)
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)))
+      .limit(1);
+    if (row.length === 0) {
+      throw new NotFoundError(`Character with id ${id}`);
+    }
+
+    await db
+      .update(characters)
+      .set({ boundPersonaId: personaId })
+      .where(and(eq(characters.id, id), eq(characters.userId, userId)));
+  }
+
   async editAttribute(
     id: number,
     userId: string,
@@ -485,6 +503,7 @@ export class CharacterService {
       row.createDate,
       row.dateAdded,
       row.dataSize,
+      row.boundPersonaId,
     );
   }
 
@@ -507,6 +526,7 @@ export class CharacterService {
       row.createDate,
       row.dateAdded,
       row.dataSize,
+      row.boundPersonaId,
     );
   }
 

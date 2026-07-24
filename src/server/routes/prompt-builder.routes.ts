@@ -2,6 +2,7 @@ import { errorGuard } from '@/server/middleware/errorGuard';
 import { withUserId } from '@/server/middleware/withUserId';
 import { promptBuilder } from '@/server/services/prompt-builder';
 import { characterService } from '@/server/services/character.service';
+import { personaService } from '@/server/services/persona.service';
 import type { ChatMessage } from '@/shared/types/chat';
 import { z } from 'zod';
 
@@ -21,6 +22,7 @@ const PromptBuildRequestSchema = z.object({
   jailbreakPromptOverride: z.string().optional(),
   includeExamples: z.boolean().default(true),
   maxTokens: z.number().optional(),
+  personaId: z.number().nullable().optional(),
 });
 
 export const promptBuilderRoutes = {
@@ -41,6 +43,21 @@ export const promptBuilderRoutes = {
         ? Object.values(character.character_book.entries)
         : [];
 
+      // Resolve persona: chat's personaId → fallback to default → null
+      let persona: {
+        name: string;
+        description?: string;
+        personality?: string;
+        scenario?: string;
+        systemPrompt?: string;
+      } | null = null;
+      if (parsed.personaId) {
+        persona = await personaService.get(parsed.personaId, userId);
+      }
+      if (!persona) {
+        persona = await personaService.getDefault(userId);
+      }
+
       const result = await promptBuilder.buildPrompt({
         character,
         messages: parsed.messages as ChatMessage[],
@@ -50,6 +67,7 @@ export const promptBuilderRoutes = {
         jailbreakPromptOverride: parsed.jailbreakPromptOverride,
         includeExamples: parsed.includeExamples,
         maxTokens: parsed.maxTokens,
+        persona,
       });
 
       return new Response(JSON.stringify(result), {

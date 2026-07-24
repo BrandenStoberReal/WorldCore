@@ -23,6 +23,8 @@ import {
 import { Camera, X, Plus, GripVertical, Upload, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn, estimateTokens } from '@/lib/utils';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { PersonaSelector } from '@/components/PersonaSelector';
+import { bindCharacterPersona } from '@/lib/api';
 import type { Character, CharacterCreateInput } from '@/shared/types/character';
 
 type CharacterWithId = Character & { id: number };
@@ -30,7 +32,9 @@ type FormTab = 'overview' | 'greetings' | 'prompts' | 'advanced';
 
 interface CharacterFormProps {
   character?: CharacterWithId | null;
-  onSubmit: (data: CharacterCreateInput & { avatar?: string }) => void;
+  onSubmit: (
+    data: CharacterCreateInput & { avatar?: string; boundPersonaId?: number | null },
+  ) => void;
   onCancel: () => void;
   isSubmitting: boolean;
 }
@@ -192,6 +196,9 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
     const [creator, setCreator] = useState(character?.creator ?? '');
     const [characterVersion, setCharacterVersion] = useState(character?.character_version ?? '');
     const [nickname, setNickname] = useState(character?.nickname ?? '');
+    const [boundPersonaId, setBoundPersonaId] = useState<number | null>(
+      character?.boundPersonaId ?? null,
+    );
 
     // ── Alternate greetings ──────────────────────────────────
     const [alternateGreetings, setAlternateGreetings] = useState<string[]>(
@@ -473,8 +480,9 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
           if (name.trim().length === 0 || firstMes.trim().length === 0) return;
         }
 
-        const data: CharacterCreateInput & { avatar?: string } = {
+        const data: CharacterCreateInput & { avatar?: string; boundPersonaId?: number | null } = {
           ...buildDraft(),
+          boundPersonaId,
         };
 
         if (avatarDataUrl) {
@@ -483,7 +491,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
 
         onSubmit(data);
       },
-      [isEdit, name, firstMes, buildDraft, avatarDataUrl, onSubmit],
+      [isEdit, name, firstMes, buildDraft, avatarDataUrl, onSubmit, boundPersonaId],
     );
 
     useImperativeHandle(
@@ -1165,6 +1173,18 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
                   <Plus className="h-4 w-4" />
                   Add Asset
                 </Button>
+              </div>
+            </CollapsibleCard>
+
+            {/* Persona Binding */}
+            <CollapsibleCard title="Persona Binding">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Bound Persona</Label>
+                <PersonaSelector value={boundPersonaId} onChange={setBoundPersonaId} />
+                <p className="text-muted-foreground text-xs">
+                  Bind a persona to this character. When used in chats, the bound persona supersedes
+                  the default persona.
+                </p>
               </div>
             </CollapsibleCard>
 

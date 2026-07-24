@@ -16,25 +16,29 @@ const htmlContent = await distHtml.text();
 
 const apiRoutes = buildApiRoutes();
 
+const { runMigrations } = await import('./db/migrate');
+const { ensureUserDirs } = await import('./storage/paths');
+const { setStartFn } = await import('./routes/onboarding.routes');
+
+runMigrations();
+ensureUserDirs();
+
 let stopWatcher: (() => Promise<void>) | null = null;
 
-if (!needsOnboarding) {
-  const { runMigrations } = await import('./db/migrate');
-  const { ensureUserDirs } = await import('./storage/paths');
+export async function start(): Promise<void> {
   const { startCharacterWatcher, stopCharacterWatcher } =
     await import('./services/character-watcher');
+  const { presetService } = await import('./services/preset.service');
 
-  runMigrations();
-  ensureUserDirs();
   startCharacterWatcher();
   stopWatcher = stopCharacterWatcher;
+  await presetService.seedDefaults();
 }
 
-{
-  const { ensureUserDirs } = await import('./storage/paths');
-  ensureUserDirs();
-  const { presetService } = await import('./services/preset.service');
-  await presetService.seedDefaults();
+setStartFn(start);
+
+if (!needsOnboarding) {
+  await start();
 }
 
 const server = serve({

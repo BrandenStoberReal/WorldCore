@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, bindCharacterPersona } from '@/lib/api';
 import { useChatStore } from '@/lib/stores';
 import { useNavStore } from '@/lib/navStore';
 import { CharacterForm, type CharacterFormHandle } from '@/components/CharacterForm';
@@ -53,11 +53,17 @@ function CreateMode() {
   const openSection = useNavStore((s) => s.openSection);
 
   const createMutation = useMutation({
-    mutationFn: async (data: CharacterCreateInput & { avatar?: string }) => {
-      return apiFetch('/characters/create', {
+    mutationFn: async (
+      data: CharacterCreateInput & { avatar?: string; boundPersonaId?: number | null },
+    ) => {
+      const result = (await apiFetch('/characters/create', {
         method: 'POST',
         body: JSON.stringify(data),
-      });
+      })) as { id: number };
+      if (data.boundPersonaId != null) {
+        await bindCharacterPersona(result.id, data.boundPersonaId);
+      }
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
@@ -102,11 +108,13 @@ function EditMode({ characterId }: { characterId: number }) {
       data,
     }: {
       id: number;
-      data: CharacterCreateInput & { avatar?: string };
+      data: CharacterCreateInput & { avatar?: string; boundPersonaId?: number | null };
     }) => {
       const editData = { ...data };
       const avatar = editData.avatar;
+      const boundPersonaId = editData.boundPersonaId;
       delete (editData as Record<string, unknown>).avatar;
+      delete (editData as Record<string, unknown>).boundPersonaId;
       await apiFetch('/characters/edit', {
         method: 'POST',
         body: JSON.stringify({ id, data: editData }),
@@ -117,6 +125,7 @@ function EditMode({ characterId }: { characterId: number }) {
           body: JSON.stringify({ id, avatar }),
         });
       }
+      await bindCharacterPersona(id, boundPersonaId ?? null);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });

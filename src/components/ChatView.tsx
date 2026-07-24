@@ -8,6 +8,9 @@ import { useChatStore, useGenerationStore } from '@/lib/stores';
 import { apiGet, apiPost, streamChat } from '@/lib/api';
 import { cn, frostedGlass } from '@/lib/utils';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useResolvedPersona } from '@/hooks/useResolvedPersona';
+import { setChatPersona } from '@/lib/api';
+import { PersonaSelector } from '@/components/PersonaSelector';
 
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import type { Character } from '@/shared/types/character';
@@ -74,6 +77,10 @@ export function ChatView({ characterId }: ChatViewProps) {
     enabled: !!activeChatId,
   });
 
+  const chatPersonaId =
+    ((chatData?.metadata as Record<string, unknown>)?.personaId as number | null) ?? null;
+  const resolvedPersona = useResolvedPersona(chatPersonaId, character?.boundPersonaId);
+
   useEffect(() => {
     if (chatData?.messages) {
       setMessages(chatData.messages);
@@ -86,7 +93,7 @@ export function ChatView({ characterId }: ChatViewProps) {
 
   const createChatMutation = useMutation({
     mutationFn: async (charName: string) => {
-      const userName = (settings?.chat_name_your_name as string) || 'User';
+      const userName = resolvedPersona.name;
       const result = await apiPost<{ ok: boolean; fileId: string }>('/chats/save', {
         characterName: charName,
         userName,
@@ -167,7 +174,7 @@ export function ChatView({ characterId }: ChatViewProps) {
     async (text: string) => {
       if (!character || !activeChatId || isGenerating) return;
 
-      const userName = (settings?.chat_name_your_name as string) || 'User';
+      const userName = resolvedPersona.name;
       const userMsg: ChatMessageType = {
         name: userName,
         is_user: true,
@@ -293,6 +300,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       settings,
       messages,
       genStore,
+      resolvedPersona,
       addMessage,
       appendMessageMutation,
       setIsGenerating,
@@ -345,7 +353,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       if (!character || !activeChatId || isGenerating) return;
       if (index < 0 || index >= messages.length) return;
 
-      const userName = (settings?.chat_name_your_name as string) || 'User';
+      const userName = resolvedPersona.name;
       const truncatedMessages = messages.slice(0, index);
 
       setIsGenerating(true);
@@ -438,6 +446,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       settings,
       messages,
       genStore,
+      resolvedPersona,
       setIsGenerating,
       setStreamingContent,
       appendStreamingContent,
@@ -475,29 +484,74 @@ export function ChatView({ characterId }: ChatViewProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Forge session header */}
-      <header className={cn(frostedGlass, 'z-10 flex h-14 shrink-0 items-center justify-end px-4')}>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleNewChat}
-          title="Start a new conversation"
-          className="h-7 transition-transform hover:scale-105"
-        >
-          <MessageSquarePlus className="h-3 w-3" />
-          <span className="mono-tag hidden sm:inline">New Session</span>
-        </Button>
+      <header
+        className={cn(
+          frostedGlass,
+          'z-10 flex h-14 shrink-0 items-center justify-between gap-2 px-6 sm:px-10',
+        )}
+      >
+        {/* Left: persona + character identity */}
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="border-ember/40 bg-ember/10 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border">
+            {resolvedPersona.avatar ? (
+              <img
+                src={resolvedPersona.avatar}
+                alt={resolvedPersona.name}
+                className="h-8 w-8 rounded-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <span className="display-host text-ember text-[13px] font-semibold">
+                {resolvedPersona.name[0]?.toUpperCase() ?? 'U'}
+              </span>
+            )}
+          </div>
+          <div className="flex min-w-0 flex-col leading-tight">
+            <span className="display-host text-ember/90 truncate text-[13px] font-medium">
+              {resolvedPersona.name}
+            </span>
+            <span className="text-muted-foreground/60 truncate text-[11px]">
+              {character?.name ?? '—'}
+            </span>
+          </div>
+        </div>
+
+        {/* Right: controls */}
+        <div className="flex shrink-0 items-center gap-2">
+          <PersonaSelector
+            value={chatPersonaId}
+            onChange={(personaId) => {
+              if (activeChatId) {
+                setChatPersona(activeChatId, personaId);
+              }
+            }}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNewChat}
+            title="Start a new conversation"
+            className="h-7 transition-transform hover:scale-105"
+          >
+            <MessageSquarePlus className="h-3 w-3" />
+            <span className="mono-tag hidden sm:inline">New Session</span>
+          </Button>
+        </div>
       </header>
 
       {/* Messages stream */}
       <div className="relative flex-1 overflow-y-auto">
-        <div className="relative mx-auto max-w-4xl space-y-4 px-4 py-4 sm:px-6">
+        <div className="relative mx-auto max-w-6xl space-y-4 px-6 py-4 sm:px-10">
           {displayMessages.map((msg, i) => (
             <ChatMessage
               key={`${i}-${msg.send_date ?? i}`}
               msg={msg}
               index={i}
               characterAvatar={`/api/v1/characters/thumbnail?id=${characterId}`}
-              userName={(settings?.chat_name_your_name as string) || 'User'}
+              userAvatar={resolvedPersona.avatar ?? undefined}
+              userName={resolvedPersona.name}
               characterName={character.name}
               description={character.description}
               personality={character.personality}

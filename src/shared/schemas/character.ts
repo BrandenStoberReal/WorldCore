@@ -97,6 +97,7 @@ export const CharacterSchema = z.object({
   chat_size: z.number().default(0),
   data_size: z.number().default(0),
   json_data: z.unknown().optional(),
+  boundPersonaId: z.number().nullable().optional(),
   ...CharacterDataSchema.shape,
 });
 

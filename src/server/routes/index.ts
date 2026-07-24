@@ -6,6 +6,7 @@ import { usersAdminRoutes } from './users.admin.routes';
 import { secretsRoutes } from './secrets.routes';
 import { settingsRoutes } from './settings.routes';
 import { characterRoutes } from './characters.routes';
+import { personaRoutes } from './personas.routes';
 import { chatsRoutes } from './chats.routes';
 import { groupsRoutes } from './groups.routes';
 import { worldinfoRoutes } from './worldinfo.routes';
@@ -100,6 +101,7 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/characters/rename`] = characterRoutes.rename;
   routes[`${PREFIX}/characters/edit`] = characterRoutes.edit;
   routes[`${PREFIX}/characters/edit-avatar`] = characterRoutes.editAvatar;
+  routes[`${PREFIX}/characters/bind-persona`] = characterRoutes.bindPersona;
   routes[`${PREFIX}/characters/edit-attribute`] = characterRoutes.editAttribute;
   routes[`${PREFIX}/characters/merge-attributes`] = characterRoutes.mergeAttributes;
   routes[`${PREFIX}/characters/delete`] = characterRoutes.delete;
@@ -114,6 +116,17 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/characters/reconcile-list`] = characterRoutes.reconcileList;
   routes[`${PREFIX}/characters/reconcile-delete`] = characterRoutes.reconcileDelete;
 
+  // === Personas ===
+  routes[`${PREFIX}/personas/create`] = personaRoutes.create;
+  routes[`${PREFIX}/personas/edit`] = personaRoutes.edit;
+  routes[`${PREFIX}/personas/rename`] = personaRoutes.rename;
+  routes[`${PREFIX}/personas/set-default`] = personaRoutes.setDefault;
+  routes[`${PREFIX}/personas/set-avatar`] = personaRoutes.setAvatar;
+  routes[`${PREFIX}/personas/delete`] = personaRoutes.delete;
+  routes[`${PREFIX}/personas/get`] = personaRoutes.get;
+  routes[`${PREFIX}/personas/get-default`] = personaRoutes.getDefault;
+  routes[`${PREFIX}/personas/all`] = personaRoutes.all;
+
   // === Prompt Builder ===
   routes[`${PREFIX}/prompt-builder/build`] = promptBuilderRoutes.build;
 
@@ -121,6 +134,7 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/chats/save`] = chatsRoutes.save;
   routes[`${PREFIX}/chats/get`] = chatsRoutes.get;
   routes[`${PREFIX}/chats/rename`] = chatsRoutes.rename;
+  routes[`${PREFIX}/chats/set-persona`] = chatsRoutes.setPersona;
   routes[`${PREFIX}/chats/delete`] = chatsRoutes.delete;
   routes[`${PREFIX}/chats/export`] = chatsRoutes.export;
   routes[`${PREFIX}/chats/search`] = chatsRoutes.search;

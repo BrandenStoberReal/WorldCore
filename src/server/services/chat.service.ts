@@ -131,6 +131,20 @@ export class ChatService {
     ]);
   }
 
+  async setPersona(userId: string, fileId: string, personaId: number | null): Promise<void> {
+    assertValidFileId(fileId);
+    const chatDir = getUserChatPath(userId);
+    const filePath = path.join(chatDir, `${fileId}.jsonl`);
+    const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
+    if (allLines.length === 0) return;
+    const metadata = allLines[0] as ChatMetadata & { personaId?: number | null };
+    metadata.personaId = personaId;
+    await writeJsonl<ChatMetadata | ChatMessage>(filePath, [
+      metadata,
+      ...(allLines.slice(1) as ChatMessage[]),
+    ]);
+  }
+
   async delete(userId: string, fileId: string): Promise<void> {
     assertValidFileId(fileId);
     const chatDir = getUserChatPath(userId);

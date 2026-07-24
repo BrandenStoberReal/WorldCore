@@ -42,7 +42,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
 
   return (
     <div className="border-border/60 bg-background/60 supports-[backdrop-filter]:bg-background/40 safe-area-bottom shrink-0 border-t p-3 backdrop-blur-sm sm:p-4">
-      <div className="relative mx-auto max-w-3xl">
+      <div className="relative mx-auto max-w-6xl">
         {/* Stoker frame — outer ring with ember hairline */}
         <div
           className={cn(

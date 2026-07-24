@@ -17,12 +17,15 @@ export interface MacroContext {
   system_prompt?: string;
   /** Character post_history_instructions field */
   post_history_instructions?: string;
+  /** Active user persona description (from the personas system) */
+  persona?: string;
 }
 
 /** Maps macro token names to MacroContext field names (lowercase keys). */
 const MACRO_MAP: Record<string, keyof MacroContext> = {
   user: 'userName',
   personaname: 'userName',
+  persona: 'persona',
   char: 'characterName',
   charactername: 'characterName',
   description: 'description',
@@ -51,6 +54,7 @@ const MACRO_MAP: Record<string, keyof MacroContext> = {
  * Supported tokens (case-insensitive, multi-space tolerant):
  *   {{user}}            → ctx.userName
  *   {{personaName}}     → ctx.userName
+ *   {{persona}}         → ctx.persona
  *   {{char}}            → ctx.characterName
  *   {{characterName}}   → ctx.characterName
  *   {{description}}     → ctx.description
@@ -68,7 +72,7 @@ const MACRO_MAP: Record<string, keyof MacroContext> = {
 export function substituteMacros(text: string, ctx: MacroContext): string {
   // Single pass: replacement strings are emitted as-is and never re-scanned, avoiding infinite loops.
   return text.replace(
-    /\{\{\s*(user|personaName|char|characterName|description|personality|scenario|first_mes|firstMes|mes_example|mesExample|creator_notes|creatorNotes|system_prompt|systemPrompt|post_history_instructions|postHistoryInstructions)\s*\}\}/gi,
+    /\{\{\s*(user|personaName|persona|char|characterName|description|personality|scenario|first_mes|firstMes|mes_example|mesExample|creator_notes|creatorNotes|system_prompt|systemPrompt|post_history_instructions|postHistoryInstructions)\s*\}\}/gi,
     (match, token: string) => {
       const key = token.toLowerCase();
       const field = MACRO_MAP[key];

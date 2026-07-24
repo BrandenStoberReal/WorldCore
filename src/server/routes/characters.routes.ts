@@ -49,6 +49,14 @@ export const characterRoutes = {
     }),
   ),
 
+  bindPersona: errorGuard(
+    withUserId(async (req: Request, userId: string): Promise<Response> => {
+      const body = (await req.json()) as { id: number; personaId: number | null };
+      await characterService.bindPersona(body.id, userId, body.personaId);
+      return Response.json({ ok: true });
+    }),
+  ),
+
   getAvatar: errorGuard(
     withUserId(async (req: Request, userId: string): Promise<Response> => {
       const url = new URL(req.url);

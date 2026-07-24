@@ -15,6 +15,7 @@ import { ConnectionsPanel } from '@/panels/ConnectionsPanel';
 import { TextOptionsPanel } from '@/panels/TextOptionsPanel';
 import { SettingsPanel } from '@/panels/SettingsPanel';
 import { UISettingsPanel } from '@/panels/UISettingsPanel';
+import { PersonaPanel } from '@/panels/persona/PersonaPanel';
 import { GenerationPanel } from '@/panels/GenerationPanel';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,7 @@ const TOP_DRAWER_PANELS: Record<string, React.ComponentType> = {
   textoptions: TextOptionsPanel,
   'ui-settings': UISettingsPanel,
   settings: SettingsPanel,
+  personas: PersonaPanel,
 };
 
 function CharactersSidebar() {

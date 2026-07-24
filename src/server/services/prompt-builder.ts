@@ -31,6 +31,13 @@ export interface PromptBuilderParams {
   jailbreakPromptOverride?: string;
   includeExamples?: boolean;
   maxTokens?: number;
+  persona?: {
+    name: string;
+    description?: string;
+    personality?: string;
+    scenario?: string;
+    systemPrompt?: string;
+  } | null;
 }
 
 export interface PromptBuilderResult {
@@ -129,6 +136,45 @@ export class PromptBuilder {
         role: 'system',
         content: substituteMacros(`Scenario: ${character.scenario}`, macroCtx),
       });
+    }
+
+    // 6.5 Persona description block (between scenario and character system_prompt)
+    if (params.persona) {
+      const persona = params.persona;
+      if (persona.name) {
+        // Override macroCtx.userName so {{user}} / {{personaName}} resolve to persona name
+        macroCtx.userName = persona.name;
+      }
+      if (persona.description) {
+        messagesArray.push({
+          role: 'system',
+          content: substituteMacros(
+            `[User Persona] ${persona.name}: ${persona.description}`,
+            macroCtx,
+          ),
+        });
+      }
+      if (persona.personality) {
+        messagesArray.push({
+          role: 'system',
+          content: substituteMacros(
+            `${persona.name}'s personality: ${persona.personality}`,
+            macroCtx,
+          ),
+        });
+      }
+      if (persona.scenario) {
+        messagesArray.push({
+          role: 'system',
+          content: substituteMacros(`Persona scenario: ${persona.scenario}`, macroCtx),
+        });
+      }
+      if (persona.systemPrompt) {
+        messagesArray.push({
+          role: 'system',
+          content: substituteMacros(persona.systemPrompt, macroCtx),
+        });
+      }
     }
 
     // 7. Add system prompt (character's system_prompt field)

@@ -180,3 +180,58 @@ export async function* streamChat(request: StreamChatRequest): AsyncGenerator<st
     reader.releaseLock();
   }
 }
+
+// === Persona API ===
+import type { Persona, PersonaCreateInput, PersonaEditInput } from '@/shared/types/persona';
+
+export async function listPersonas(): Promise<Persona[]> {
+  return await apiPost<Persona[]>('/personas/all', {});
+}
+
+export async function getDefaultPersona(): Promise<Persona | null> {
+  return await apiPost<Persona | null>('/personas/get-default', {});
+}
+
+export async function getPersona(id: number): Promise<Persona | null> {
+  return await apiPost<Persona | null>('/personas/get', { id });
+}
+
+export async function createPersona(
+  input: PersonaCreateInput,
+): Promise<{ ok: boolean; id: number }> {
+  return await apiPost<{ ok: boolean; id: number }>('/personas/create', input);
+}
+
+export async function editPersona(id: number, patch: PersonaEditInput): Promise<{ ok: boolean }> {
+  return await apiPost<{ ok: boolean }>('/personas/edit', { id, ...patch });
+}
+
+export async function renamePersona(id: number, name: string): Promise<{ ok: boolean }> {
+  return await apiPost<{ ok: boolean }>('/personas/rename', { id, name });
+}
+
+export async function setDefaultPersona(id: number): Promise<{ ok: boolean }> {
+  return await apiPost<{ ok: boolean }>('/personas/set-default', { id });
+}
+
+export async function setPersonaAvatar(id: number, avatar: string): Promise<{ ok: boolean }> {
+  return await apiPost<{ ok: boolean }>('/personas/set-avatar', { id, avatar });
+}
+
+export async function deletePersona(id: number): Promise<{ ok: boolean }> {
+  return await apiPost<{ ok: boolean }>('/personas/delete', { id });
+}
+
+export async function bindCharacterPersona(
+  characterId: number,
+  personaId: number | null,
+): Promise<{ ok: boolean }> {
+  return await apiPost<{ ok: boolean }>('/characters/bind-persona', { id: characterId, personaId });
+}
+
+export async function setChatPersona(
+  fileId: string,
+  personaId: number | null,
+): Promise<{ ok: boolean }> {
+  return await apiPost<{ ok: boolean }>('/chats/set-persona', { fileId, personaId });
+}

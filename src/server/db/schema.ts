@@ -18,6 +18,23 @@ export const characters = sqliteTable('characters', {
   dataSize: integer('data_size').notNull().default(0),
   fav: integer('fav', { mode: 'boolean' }).notNull().default(false),
   userId: text('user_id').notNull().default('default-user'),
+  boundPersonaId: integer('bound_persona_id').references(() => personas.id, {
+    onDelete: 'set null',
+  }),
+});
+
+export const personas = sqliteTable('personas', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  description: text('description').notNull().default(''),
+  personality: text('personality').notNull().default(''),
+  scenario: text('scenario').notNull().default(''),
+  systemPrompt: text('system_prompt').notNull().default(''),
+  avatar: text('avatar').notNull().default(''),
+  isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
+  userId: text('user_id').notNull().default('default-user'),
+  dateAdded: integer('date_added').notNull(),
+  dateModified: integer('date_modified').notNull(),
 });
 
 export const chats = sqliteTable('chats', {

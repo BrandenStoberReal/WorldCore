@@ -47,6 +47,14 @@ export const chatsRoutes = {
     }),
   ),
 
+  setPersona: errorGuard(
+    withUserId(async (req: Request, userId: string): Promise<Response> => {
+      const body = (await req.json()) as { fileId: string; personaId: number | null };
+      await chatService.setPersona(userId, body.fileId, body.personaId);
+      return Response.json({ ok: true });
+    }),
+  ),
+
   delete: errorGuard(
     withUserId(async (req: Request, userId: string): Promise<Response> => {
       const body = (await req.json()) as { fileId: string };

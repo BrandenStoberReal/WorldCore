@@ -10,11 +10,18 @@ export type SectionId =
   | 'textoptions'
   | 'lorebook'
   | 'settings'
-  | 'ui-settings';
+  | 'ui-settings'
+  | 'personas';
 
 /** Top drawers fold down from the top bar */
 export type TopDrawerId =
-  'worldinfo' | 'extensions' | 'connections' | 'textoptions' | 'settings' | 'ui-settings';
+  | 'worldinfo'
+  | 'extensions'
+  | 'connections'
+  | 'textoptions'
+  | 'settings'
+  | 'ui-settings'
+  | 'personas';
 
 const STORAGE_KEY = 'worldcore/nav';
 

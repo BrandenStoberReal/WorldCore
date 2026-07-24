@@ -8,6 +8,7 @@ import {
   Settings,
   Pencil,
   Palette,
+  UserCircle,
 } from 'lucide-react';
 import { DrawerIcon } from './DrawerIcon';
 import { useNavStore, type SectionId, type TopDrawerId } from '@/lib/navStore';
@@ -56,11 +57,14 @@ const DRAWER_ITEMS: NavItem[] = [
   },
   { id: 'ui-settings', icon: <Palette size={16} />, label: 'UI Settings', behavior: 'top-drawer' },
   { id: 'settings', icon: <Settings size={16} />, label: 'Settings', behavior: 'top-drawer' },
+  { id: 'personas', icon: <UserCircle size={16} />, label: 'Personas', behavior: 'top-drawer' },
 ];
 
 export function NavRail() {
   const alwaysShowViewportNavbar = useNavStore((s) => s.alwaysShowViewportNavbar);
+  const topDrawer = useNavStore((s) => s.topDrawer);
   const { isMobile } = useBreakpoint();
+  const drawerOpen = topDrawer !== null;
 
   if (isMobile) {
     return null;
@@ -101,9 +105,11 @@ export function NavRail() {
       <nav
         className={cn(
           'bg-muted/30 z-10 flex items-center justify-center gap-1 border-t-2 px-2.5 transition-all duration-200',
-          alwaysShowViewportNavbar
-            ? 'border-border/60 h-9 py-1 opacity-100'
-            : 'group-hover/nav:border-border/60 h-0 overflow-hidden border-transparent opacity-0 group-hover/nav:h-9 group-hover/nav:py-1 group-hover/nav:opacity-100',
+          drawerOpen
+            ? 'h-0 overflow-hidden border-transparent opacity-0'
+            : alwaysShowViewportNavbar
+              ? 'border-border/60 h-9 py-1 opacity-100'
+              : 'group-hover/nav:border-border/60 h-0 overflow-hidden border-transparent opacity-0 group-hover/nav:h-9 group-hover/nav:py-1 group-hover/nav:opacity-100',
         )}
       >
         {SECTION_ITEMS.map((item) => (
