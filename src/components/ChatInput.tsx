@@ -41,7 +41,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
   };
 
   return (
-    <div className="border-border/60 bg-background/60 supports-[backdrop-filter]:bg-background/40 shrink-0 border-t p-3 backdrop-blur-sm md:p-4">
+    <div className="border-border/60 bg-background/60 supports-[backdrop-filter]:bg-background/40 safe-area-bottom shrink-0 border-t p-3 backdrop-blur-sm sm:p-4">
       <div className="relative mx-auto max-w-3xl">
         {/* Stoker frame — outer ring with ember hairline */}
         <div
@@ -57,7 +57,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
           <div className="flex items-end gap-2 px-3 pt-3 pb-3">
             <div className="flex shrink-0 flex-col justify-between gap-1">
               <span className="mono-tag text-ember/70">{`>`}</span>
-              <span className="mono-tag text-muted-foreground/40">STOKE</span>
+              <span className="mono-tag text-muted-foreground/40 hidden sm:block">STOKE</span>
             </div>
             <textarea
               ref={textareaRef}
@@ -81,7 +81,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
             focused || isGenerating ? 'opacity-100' : 'opacity-0',
           )}
         >
-          <div className="mono-tag text-muted-foreground/40 flex items-center gap-3">
+          <div className="mono-tag text-muted-foreground/40 hidden items-center gap-3 sm:flex">
             <span>{`{ esc }`} dismiss</span>
             <span>{`{ ⇧ + ⏎ }`} newline</span>
             <span>{`{ ⏎ }`} transmit</span>
@@ -92,10 +92,10 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
               variant="outline"
               size="sm"
               onClick={onStop}
-              className="hover:border-destructive/60 hover:text-destructive h-7 gap-1.5 transition-transform hover:scale-105"
+              className="hover:border-destructive/60 hover:text-destructive touch-target h-8 gap-1.5 transition-transform hover:scale-105 sm:h-7"
               title="Stop generation"
             >
-              <Square className="h-3 w-3 fill-current" />
+              <Square className="h-4 w-4 fill-current sm:h-3 sm:w-3" />
               <span className="mono-tag">ABORT</span>
             </Button>
           ) : (
@@ -103,10 +103,10 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
               size="sm"
               onClick={handleSubmit}
               disabled={!value.trim() || disabled}
-              className="h-7 gap-1.5 transition-transform hover:scale-105"
+              className="touch-target h-8 gap-1.5 transition-transform hover:scale-105 sm:h-7"
               title="Send message"
             >
-              <Send className="h-3 w-3" />
+              <Send className="h-4 w-4 sm:h-3 sm:w-3" />
               <span className="mono-tag font-bold">TRANSMIT</span>
             </Button>
           )}

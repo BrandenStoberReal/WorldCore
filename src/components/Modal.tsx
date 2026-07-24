@@ -35,15 +35,17 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
         className={cn(
           'modal-content relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-md',
           'border-border bg-card text-card-foreground border',
-          'shadow-[0_24px_70px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
+          'shadow-[0_24px_70px_-12px_color-mix(in oklch,var(--ember)_45%,transparent)]',
           'before:via-ember before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:to-transparent',
+          'mx-4 sm:mx-auto',
           className,
         )}
       >
-        {/* Header */}
-        <div className="border-border bg-card relative sticky top-0 z-10 flex items-center justify-between border-b px-5 py-4">
+        <div className="border-border bg-card relative sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3 sm:px-5 sm:py-4">
           {title ? (
-            <h2 className="display-host text-[20px] leading-none tracking-tight">{title}</h2>
+            <h2 className="display-host text-[18px] leading-none tracking-tight sm:text-[20px]">
+              {title}
+            </h2>
           ) : (
             <span className="mono-tag text-ember">{`> sheet`}</span>
           )}
@@ -51,17 +53,15 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
             variant="ghost"
             size="icon-sm"
             onClick={onClose}
-            className="text-muted-foreground hover:text-ember"
+            className="text-muted-foreground hover:text-ember touch-target"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </Button>
         </div>
 
-        {/* Body */}
-        <div className="px-5 py-5 md:px-6">{children}</div>
+        <div className="px-4 py-4 sm:px-5 sm:py-5 md:px-6">{children}</div>
 
-        {/* Bottom rivet rail */}
-        <div className="border-border/60 bg-background/40 flex items-center justify-between border-t px-5 py-2.5">
+        <div className="border-border/60 bg-background/40 flex items-center justify-between border-t px-4 py-2.5 sm:px-5">
           <span className="mono-tag text-muted-foreground/40">{`{ sheet }`}</span>
           <span className="mono-tag text-ember/40">⌑</span>
         </div>

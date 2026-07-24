@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { DrawerIcon } from './DrawerIcon';
 import { useNavStore, type SectionId, type TopDrawerId } from '@/lib/navStore';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -59,6 +60,11 @@ const DRAWER_ITEMS: NavItem[] = [
 
 export function NavRail() {
   const alwaysShowViewportNavbar = useNavStore((s) => s.alwaysShowViewportNavbar);
+  const { isMobile } = useBreakpoint();
+
+  if (isMobile) {
+    return null;
+  }
 
   return (
     <header

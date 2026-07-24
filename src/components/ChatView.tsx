@@ -484,13 +484,13 @@ export function ChatView({ characterId }: ChatViewProps) {
           className="h-7 transition-transform hover:scale-105"
         >
           <MessageSquarePlus className="h-3 w-3" />
-          <span className="mono-tag">New Session</span>
+          <span className="mono-tag hidden sm:inline">New Session</span>
         </Button>
       </header>
 
       {/* Messages stream */}
       <div className="relative flex-1 overflow-y-auto">
-        <div className="relative mx-auto max-w-4xl space-y-4 px-4 py-4 md:px-6">
+        <div className="relative mx-auto max-w-4xl space-y-4 px-4 py-4 sm:px-6">
           {displayMessages.map((msg, i) => (
             <ChatMessage
               key={`${i}-${msg.send_date ?? i}`}
