@@ -69,6 +69,23 @@ function CharCounter({ count, max }: { count: number; max?: number }) {
   );
 }
 
+function StaleBadge({ onAdopt }: { onAdopt: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onAdopt();
+      }}
+      title="Updated elsewhere — click to adopt"
+      className="mono-tag bg-ember/10 text-ember hover:bg-ember/20 border-ember/30 inline-flex items-center gap-0.5 rounded-md border px-1 py-0.5 text-[10px] transition-colors"
+    >
+      <RefreshCw className="h-2.5 w-2.5" />
+      <span>sync</span>
+    </button>
+  );
+}
+
 function FieldLabel({
   label,
   required,
@@ -133,6 +150,7 @@ function CollapsibleField({
   max,
   defaultExpanded = true,
   children,
+  labelSuffix,
 }: {
   label: string;
   required?: boolean;
@@ -140,6 +158,7 @@ function CollapsibleField({
   max?: number;
   defaultExpanded?: boolean;
   children: React.ReactNode;
+  labelSuffix?: React.ReactNode;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -155,6 +174,7 @@ function CollapsibleField({
           {required && <span className="text-destructive ml-1">*</span>}
         </Label>
         <div className="flex items-center gap-2">
+          {labelSuffix}
           {count !== undefined && <CharCounter count={count} max={max} />}
           <ChevronDown
             className={cn(
@@ -385,10 +405,167 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
 
     const markTouched = useCallback((field: string) => {
       setTouched((prev) => ({ ...prev, [field]: true }));
+      setDirtyFields((prev) => {
+        const next = new Set(prev);
+        next.add(field as ReseedField);
+        return next;
+      });
     }, []);
 
     const nameError = touched.name && name.trim().length === 0;
     const firstMesError = touched.firstMes && firstMes.trim().length === 0;
+
+    // The info panel's InlineEdit components POST to /characters/edit-attribute
+    // and invalidate the ['characters/get', id] query this form reads from.
+    // Because useState initializers only run on mount, a server refetch
+    // never re-syncs the form's fields — a full-form save would then
+    // submit stale values that the service-layer merge writes back to the
+    // DB/PNG, silently clobbering the quick edit. The reseed below keeps
+    // untouched fields in sync with the server while preserving the user's
+    // in-progress drafts (and surfacing diverged, untouched-but-edited-
+    // elsewhere fields as a clickable "stale" badge).
+    type ReseedField =
+      'name' | 'description' | 'personality' | 'scenario' | 'first_mes' | 'creator_notes' | 'tags';
+
+    const [dirtyFields, setDirtyFields] = useState<Set<ReseedField>>(new Set());
+    const [staleFields, setStaleFields] = useState<Set<ReseedField>>(new Set());
+
+    const baselineRef = useRef<{
+      name: string;
+      description: string;
+      personality: string;
+      scenario: string;
+      first_mes: string;
+      creator_notes: string;
+      tags: string[];
+    } | null>(null);
+
+    const readServerValues = useCallback((): {
+      name: string;
+      description: string;
+      personality: string;
+      scenario: string;
+      first_mes: string;
+      creator_notes: string;
+      tags: string[];
+    } | null => {
+      if (!character) return null;
+      return {
+        name: character.name ?? '',
+        description: character.description ?? '',
+        personality: character.personality ?? '',
+        scenario: character.scenario ?? '',
+        first_mes: character.first_mes ?? '',
+        creator_notes: character.creator_notes ?? '',
+        tags: Array.isArray(character.tags) ? character.tags : [],
+      };
+    }, [character]);
+
+    useEffect(() => {
+      const incoming = readServerValues();
+      if (!incoming) return;
+
+      const baseline = baselineRef.current;
+      baselineRef.current = incoming;
+
+      const cleanUpdates: Partial<Record<ReseedField, string | string[]>> = {};
+      const newStale = new Set<ReseedField>();
+
+      const cmp: Array<{
+        f: ReseedField;
+        incoming: string | string[];
+        draft: string | string[];
+      }> = [
+        { f: 'name', incoming: incoming.name, draft: name },
+        { f: 'description', incoming: incoming.description, draft: description },
+        { f: 'personality', incoming: incoming.personality, draft: personality },
+        { f: 'scenario', incoming: incoming.scenario, draft: scenario },
+        { f: 'first_mes', incoming: incoming.first_mes, draft: firstMes },
+        { f: 'creator_notes', incoming: incoming.creator_notes, draft: creatorNotes },
+        { f: 'tags', incoming: incoming.tags, draft: tagsInput },
+      ];
+
+      const baselineCast = baseline as Record<ReseedField, string | string[]> | null;
+
+      for (const { f, incoming: inc, draft: d } of cmp) {
+        const serverChanged = !baselineCast || String(inc) !== String(baselineCast[f]);
+        if (!serverChanged) continue;
+
+        if (dirtyFields.has(f)) {
+          if (String(inc) !== String(d)) newStale.add(f);
+        } else {
+          cleanUpdates[f] = inc;
+        }
+      }
+
+      if (cleanUpdates.name !== undefined) setName(cleanUpdates.name as string);
+      if (cleanUpdates.description !== undefined)
+        setDescription(cleanUpdates.description as string);
+      if (cleanUpdates.personality !== undefined)
+        setPersonality(cleanUpdates.personality as string);
+      if (cleanUpdates.scenario !== undefined) setScenario(cleanUpdates.scenario as string);
+      if (cleanUpdates.first_mes !== undefined) setFirstMes(cleanUpdates.first_mes as string);
+      if (cleanUpdates.creator_notes !== undefined)
+        setCreatorNotes(cleanUpdates.creator_notes as string);
+      if (cleanUpdates.tags !== undefined) setTagsInput((cleanUpdates.tags as string[]).join(', '));
+
+      setStaleFields((prev) => {
+        const next = new Set<ReseedField>();
+        for (const f of newStale) next.add(f);
+        return next;
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+      readServerValues,
+      character?.name,
+      character?.description,
+      character?.personality,
+      character?.scenario,
+      character?.first_mes,
+      character?.creator_notes,
+      character?.tags,
+    ]);
+
+    const adoptServerValue = useCallback(
+      (field: ReseedField) => {
+        const incoming = readServerValues();
+        if (!incoming) return;
+        switch (field) {
+          case 'name':
+            setName(incoming.name);
+            break;
+          case 'description':
+            setDescription(incoming.description);
+            break;
+          case 'personality':
+            setPersonality(incoming.personality);
+            break;
+          case 'scenario':
+            setScenario(incoming.scenario);
+            break;
+          case 'first_mes':
+            setFirstMes(incoming.first_mes);
+            break;
+          case 'creator_notes':
+            setCreatorNotes(incoming.creator_notes);
+            break;
+          case 'tags':
+            setTagsInput(incoming.tags.join(', '));
+            break;
+        }
+        setDirtyFields((prev) => {
+          const next = new Set(prev);
+          next.delete(field);
+          return next;
+        });
+        setStaleFields((prev) => {
+          const next = new Set(prev);
+          next.delete(field);
+          return next;
+        });
+      },
+      [readServerValues],
+    );
 
     const buildDraft = useCallback((): CharacterCreateInput => {
       const tags = tagsInput
@@ -643,10 +820,22 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
         {activeTab === 'overview' && (
           <div className="space-y-5">
             <CollapsibleCard title="Basic Info">
-              <CollapsibleField label="Name" required count={name.length}>
+              <CollapsibleField
+                label="Name"
+                required
+                count={name.length}
+                labelSuffix={
+                  staleFields.has('name') ? (
+                    <StaleBadge onAdopt={() => adoptServerValue('name')} />
+                  ) : null
+                }
+              >
                 <Input
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    markTouched('name');
+                  }}
                   onBlur={() => markTouched('name')}
                   placeholder="Character name"
                   className={cn(nameError && 'border-destructive focus-visible:ring-destructive')}
@@ -654,28 +843,61 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
                 {nameError && <p className="text-destructive text-xs">Name is required</p>}
               </CollapsibleField>
 
-              <CollapsibleField label="Description" count={description.length}>
+              <CollapsibleField
+                label="Description"
+                count={description.length}
+                labelSuffix={
+                  staleFields.has('description') ? (
+                    <StaleBadge onAdopt={() => adoptServerValue('description')} />
+                  ) : null
+                }
+              >
                 <Textarea
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    markTouched('description');
+                  }}
                   placeholder="Character description"
                   rows={3}
                 />
               </CollapsibleField>
 
-              <CollapsibleField label="Personality" count={personality.length}>
+              <CollapsibleField
+                label="Personality"
+                count={personality.length}
+                labelSuffix={
+                  staleFields.has('personality') ? (
+                    <StaleBadge onAdopt={() => adoptServerValue('personality')} />
+                  ) : null
+                }
+              >
                 <Textarea
                   value={personality}
-                  onChange={(e) => setPersonality(e.target.value)}
+                  onChange={(e) => {
+                    setPersonality(e.target.value);
+                    markTouched('personality');
+                  }}
                   placeholder="Character personality traits"
                   rows={2}
                 />
               </CollapsibleField>
 
-              <CollapsibleField label="Scenario" count={scenario.length}>
+              <CollapsibleField
+                label="Scenario"
+                count={scenario.length}
+                labelSuffix={
+                  staleFields.has('scenario') ? (
+                    <StaleBadge onAdopt={() => adoptServerValue('scenario')} />
+                  ) : null
+                }
+              >
                 <Textarea
                   value={scenario}
-                  onChange={(e) => setScenario(e.target.value)}
+                  onChange={(e) => {
+                    setScenario(e.target.value);
+                    markTouched('scenario');
+                  }}
                   placeholder="Scenario context"
                   rows={2}
                 />
@@ -683,10 +905,21 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
             </CollapsibleCard>
 
             <CollapsibleCard title="Metadata">
-              <CollapsibleField label="Creator Notes" count={creatorNotes.length}>
+              <CollapsibleField
+                label="Creator Notes"
+                count={creatorNotes.length}
+                labelSuffix={
+                  staleFields.has('creator_notes') ? (
+                    <StaleBadge onAdopt={() => adoptServerValue('creator_notes')} />
+                  ) : null
+                }
+              >
                 <Textarea
                   value={creatorNotes}
-                  onChange={(e) => setCreatorNotes(e.target.value)}
+                  onChange={(e) => {
+                    setCreatorNotes(e.target.value);
+                    markTouched('creator_notes');
+                  }}
                   placeholder="Notes about this character"
                   rows={2}
                 />
@@ -708,10 +941,20 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
                 />
               </CollapsibleField>
 
-              <CollapsibleField label="Tags">
+              <CollapsibleField
+                label="Tags"
+                labelSuffix={
+                  staleFields.has('tags') ? (
+                    <StaleBadge onAdopt={() => adoptServerValue('tags')} />
+                  ) : null
+                }
+              >
                 <Input
                   value={tagsInput}
-                  onChange={(e) => setTagsInput(e.target.value)}
+                  onChange={(e) => {
+                    setTagsInput(e.target.value);
+                    markTouched('tags');
+                  }}
                   placeholder="comma, separated, tags"
                 />
                 {tagsInput.trim().length > 0 && (
@@ -741,10 +984,22 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
         {activeTab === 'greetings' && (
           <div className="space-y-5">
             <CollapsibleCard title="Greetings">
-              <CollapsibleField label="First Message" required count={firstMes.length}>
+              <CollapsibleField
+                label="First Message"
+                required
+                count={firstMes.length}
+                labelSuffix={
+                  staleFields.has('first_mes') ? (
+                    <StaleBadge onAdopt={() => adoptServerValue('first_mes')} />
+                  ) : null
+                }
+              >
                 <Textarea
                   value={firstMes}
-                  onChange={(e) => setFirstMes(e.target.value)}
+                  onChange={(e) => {
+                    setFirstMes(e.target.value);
+                    markTouched('firstMes');
+                  }}
                   onBlur={() => markTouched('firstMes')}
                   placeholder="Opening greeting"
                   rows={4}
