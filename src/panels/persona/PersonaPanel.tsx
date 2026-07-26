@@ -40,7 +40,7 @@ export function PersonaPanel() {
 
   return (
     <div data-panel="personas" className="section-rhythm relative isolate">
-      <div className="mx-auto max-w-6xl">
+      <div className="max-w-6xl">
         <PageHeader
           tag="PERSONAS"
           title="Personas"
