@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { User } from '@/shared/types/user';
 import type { SessionPayload } from '@/server/auth/session';
+import { ForbiddenError } from '@/server/errors';
 import { db } from '@/server/db/client';
 import { users } from '@/server/db/schema';
 
@@ -46,7 +47,7 @@ export function requireLogin(): User {
 export function requireAdmin(): User {
   const user = getCurrentUser();
   if (user.role !== 'admin') {
-    throw new Error('FORBIDDEN');
+    throw new ForbiddenError();
   }
   return user;
 }

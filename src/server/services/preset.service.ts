@@ -77,7 +77,9 @@ export class PresetService {
         const name = file.replace(/\.json$/, '');
         const isDefault = defaultFlags.get(name) ?? false;
         result.push({ category, data, isDefault } as Preset);
-      } catch {}
+      } catch {
+        // [reason: corrupt/unparseable preset file — best-effort list scan, skip silently]
+      }
     }
 
     return result;
@@ -96,7 +98,8 @@ export class PresetService {
         .limit(1);
       const isDefault = dbRow[0]?.isDefault ?? false;
       return { category, data, isDefault } as Preset;
-    } catch {
+    } catch (err) {
+      console.warn('[preset] load failed', { category, name, err });
       return null;
     }
   }
@@ -165,7 +168,7 @@ export class PresetService {
       const seedDir = path.join(SEED_DATA_DIR, category);
       if (!existsSync(seedDir)) continue;
 
-      const files = await listFiles(seedDir, '.json').catch(() => [] as string[]);
+      const files = await listFiles(seedDir, '.json').catch(() => [] as string[]); // [reason: belt-and-suspenders behind existsSync guard — seed dir may vanish between check and read]
 
       for (const file of files) {
         const targetPath = path.join(targetDir, file);
@@ -176,7 +179,9 @@ export class PresetService {
           try {
             const content = await Bun.file(seedPath).text();
             await writeFileAtomic(targetPath, content);
-          } catch {}
+          } catch (err) {
+            console.warn('[preset] seed copy failed', { file, err });
+          }
         }
 
         try {
@@ -186,7 +191,9 @@ export class PresetService {
             data.name = name;
             await writeFileAtomic(targetPath, JSON.stringify(data, null, 2));
           }
-        } catch {}
+        } catch (err) {
+          console.warn('[preset] seed patch failed', { file, err });
+        }
 
         const existing = await db
           .select({ isDefault: presets.isDefault })

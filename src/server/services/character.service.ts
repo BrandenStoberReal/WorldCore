@@ -163,9 +163,9 @@ export class CharacterService {
 
     const jsonData = JSON.stringify({ spec, spec_version: specVersion, ...data });
     await writeCharacterCard(pngBuffer, jsonData, filePath);
-    await writeCharacterThumbnail(filePath, userId, fileName).catch(() => {
-      // Best-effort: the thumbnail endpoint regenerates on demand if missing.
-    });
+    await writeCharacterThumbnail(filePath, userId, fileName).catch((err) =>
+      console.debug('[character] thumbnail op skipped', { op: 'create', userId, fileName, err }),
+    );
 
     const createDate = new Date(now).toISOString();
     const dataSize = Buffer.from(jsonData).length;
@@ -228,8 +228,12 @@ export class CharacterService {
     await writeCharacterCard(oldFilePath, jsonData, newFilePath);
     await removeFile(oldFilePath);
     const oldThumbPath = path.join(userChars, thumbnailPathFor(charRow.avatar));
-    await removeFile(oldThumbPath).catch(() => {});
-    await writeCharacterThumbnail(newFilePath, userId, newFileName).catch(() => {});
+    await removeFile(oldThumbPath).catch((err) =>
+      console.debug('[character] thumbnail op skipped', { op: 'rename-remove', userId, oldThumbPath, err }),
+    );
+    await writeCharacterThumbnail(newFilePath, userId, newFileName).catch((err) =>
+      console.debug('[character] thumbnail op skipped', { op: 'rename-write', userId, newFileName, err }),
+    );
 
     await db
       .update(characters)
@@ -301,7 +305,9 @@ export class CharacterService {
       pngBuffer = avatarData;
     }
     await writeCharacterCard(pngBuffer, charRow.jsonData, filePath);
-    await writeCharacterThumbnail(filePath, userId, charRow.avatar).catch(() => {});
+    await writeCharacterThumbnail(filePath, userId, charRow.avatar).catch((err) =>
+      console.debug('[character] thumbnail op skipped', { op: 'avatar-write', userId, avatar: charRow.avatar, err }),
+    );
   }
 
   async bindPersona(id: number, userId: string, personaId: number | null): Promise<void> {
@@ -408,7 +414,9 @@ export class CharacterService {
     const pngPath = path.join(getUserCharacterPath(userId), charRow.avatar);
     await removeFile(pngPath);
     const thumbPath = path.join(getUserCharacterPath(userId), thumbnailPathFor(charRow.avatar));
-    await removeFile(thumbPath).catch(() => {});
+    await removeFile(thumbPath).catch((err) =>
+      console.debug('[character] thumbnail op skipped', { op: 'delete-remove', userId, thumbPath, err }),
+    );
 
     const chatFileName = charRow.fileName.replace('.png', '.json');
     const chatPath = path.join(getUserPath(userId), 'chats', chatFileName);
@@ -479,7 +487,9 @@ export class CharacterService {
     const avatarPath = path.join(userChars, charRow.avatar);
     const thumbPath = path.join(userChars, thumbnailPathFor(charRow.avatar));
     if (!(await fsExists(thumbPath))) {
-      await writeCharacterThumbnail(avatarPath, userId, charRow.avatar).catch(() => {});
+      await writeCharacterThumbnail(avatarPath, userId, charRow.avatar).catch((err) =>
+        console.debug('[character] thumbnail op skipped', { op: 'regen', userId, avatar: charRow.avatar, err }),
+      );
     }
     return (await fsExists(thumbPath)) ? thumbPath : null;
   }
@@ -578,8 +588,11 @@ export class CharacterService {
     await writeCharacterCard(dupFilePath, dupJsonData, dupFilePath);
     const sourceThumbPath = path.join(userChars, thumbnailPathFor(sourceRow.avatar));
     const dupThumbPath = path.join(userChars, thumbnailPathFor(dupFileName));
-    await copyFile(sourceThumbPath, dupThumbPath).catch(async () => {
-      await writeCharacterThumbnail(dupFilePath, userId, dupFileName).catch(() => {});
+    await copyFile(sourceThumbPath, dupThumbPath).catch(async (err) => {
+      console.debug('[character] thumbnail op skipped', { op: 'dup-copy', userId, dupFileName, err });
+      await writeCharacterThumbnail(dupFilePath, userId, dupFileName).catch((innerErr) =>
+        console.debug('[character] thumbnail op skipped', { op: 'dup-gen', userId, dupFileName, err: innerErr }),
+      );
     });
 
     const createDate = new Date(now).toISOString();
@@ -631,7 +644,9 @@ export class CharacterService {
     }
     const rewrittenJsonWithDates = JSON.stringify({ ...parsed, spec, spec_version: specVersion });
     await writeCharacterCard(pngData, rewrittenJsonWithDates, destPath);
-    await writeCharacterThumbnail(destPath, userId, fileName).catch(() => {});
+    await writeCharacterThumbnail(destPath, userId, fileName).catch((err) =>
+      console.debug('[character] thumbnail op skipped', { op: 'import', userId, fileName, err }),
+    );
 
     const sourceCreation = parsed.creation_date;
     const createDate = new Date(sourceCreation).toISOString();

@@ -1,10 +1,11 @@
+import { errorGuard } from '@/server/middleware/errorGuard';
 import { generateHandler } from '@/server/backends/chat-completions';
 import { ollamaStreamToReadable, passthroughSSE } from '@/server/services/streaming.service';
 import type { ChatCompletionRequest } from '@/shared/types/backends/chatcompletions';
 import { ChatCompletionRequestSchema } from '@/shared/schemas/backends/chatcompletions';
 
 export const streamingRoutes = {
-  chatStream: async (req: Request): Promise<Response> => {
+  chatStream: errorGuard(async (req: Request): Promise<Response> => {
     const body = await req.json();
     const parsed = ChatCompletionRequestSchema.parse(body);
 
@@ -39,5 +40,5 @@ export const streamingRoutes = {
         'X-Accel-Buffering': 'no',
       },
     });
-  },
+  }),
 };
