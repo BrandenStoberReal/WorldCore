@@ -12,7 +12,9 @@ afterEach(() => {
   messageSpy.mockClear();
 });
 
-mock.module('sonner', () => ({ toast: { error: errorSpy, success: successSpy, message: messageSpy } }));
+mock.module('sonner', () => ({
+  toast: { error: errorSpy, success: successSpy, message: messageSpy },
+}));
 
 describe('toastError', () => {
   it('parses API error envelope with code+message', () => {
@@ -37,9 +39,7 @@ describe('toastError', () => {
   });
 
   it('uses Status N description when envelope has no code', () => {
-    const err = new Error(
-      'API error 502: {"error":{"message":"Bad gateway"}}',
-    );
+    const err = new Error('API error 502: {"error":{"message":"Bad gateway"}}');
     toastError(err);
     const [title, options] = errorSpy.mock.calls[0]!;
     expect(title).toBe('Bad gateway');

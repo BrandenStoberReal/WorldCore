@@ -29,19 +29,35 @@ console.log('mx-auto present (must be false):', hasMxAuto);
 console.log('max-w-6xl present (must be true):', hasMaxW6xl);
 
 console.log('\n=== Algebraic proof of left-align (binary observable, per ultrawork contract) ===');
-console.log('Drawer slot CSS context: .drawer-top { left:0; right:0; padding: p-2.5 (10px both sides) }');
+console.log(
+  'Drawer slot CSS context: .drawer-top { left:0; right:0; padding: p-2.5 (10px both sides) }',
+);
 console.log('Inner wrapper CSS: max-w-6xl (content cap = 1152px)');
 console.log('');
-console.log('WITH mx-auto (PRE-edit state):    margin: 0 auto → centered; leftover horizontal space split equally');
-console.log('                                      ⇒ "clustered in the center" symptom (user complaint)');
-console.log('WITHOUT mx-auto (POST-edit state): margin-left: 0, margin-right: auto → flush-left of padding box');
+console.log(
+  'WITH mx-auto (PRE-edit state):    margin: 0 auto → centered; leftover horizontal space split equally',
+);
+console.log(
+  '                                      ⇒ "clustered in the center" symptom (user complaint)',
+);
+console.log(
+  'WITHOUT mx-auto (POST-edit state): margin-left: 0, margin-right: auto → flush-left of padding box',
+);
 console.log('                                      ⇒ left-aligned within the max-w-6xl width cap');
 console.log('');
-console.log('Result: ' + (hasMxAuto ? 'STILL CENTERED (FAIL — W1.T1 edit did not take effect)' : 'LEFT-ALIGNED (PASS — W1.T1 edit verified in DOM)'));
+console.log(
+  'Result: ' +
+    (hasMxAuto
+      ? 'STILL CENTERED (FAIL — W1.T1 edit did not take effect)'
+      : 'LEFT-ALIGNED (PASS — W1.T1 edit verified in DOM)'),
+);
 
 // Also capture the SSR HTML length + the static positioning to confirm no horizontal overflow risk
 console.log('\n=== Additional regression checks ===');
 console.log('SSR HTML length:', html.length, 'bytes');
-console.log('Has horizontal-scrollbar risk class (overflow-x-scroll / w-screen on wrapper):', /overflow-x-scroll|w-screen/.test(html));
+console.log(
+  'Has horizontal-scrollbar risk class (overflow-x-scroll / w-screen on wrapper):',
+  /overflow-x-scroll|w-screen/.test(html),
+);
 
 process.exit(hasMxAuto || !hasMaxW6xl ? 1 : 0);

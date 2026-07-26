@@ -229,10 +229,20 @@ export class CharacterService {
     await removeFile(oldFilePath);
     const oldThumbPath = path.join(userChars, thumbnailPathFor(charRow.avatar));
     await removeFile(oldThumbPath).catch((err) =>
-      console.debug('[character] thumbnail op skipped', { op: 'rename-remove', userId, oldThumbPath, err }),
+      console.debug('[character] thumbnail op skipped', {
+        op: 'rename-remove',
+        userId,
+        oldThumbPath,
+        err,
+      }),
     );
     await writeCharacterThumbnail(newFilePath, userId, newFileName).catch((err) =>
-      console.debug('[character] thumbnail op skipped', { op: 'rename-write', userId, newFileName, err }),
+      console.debug('[character] thumbnail op skipped', {
+        op: 'rename-write',
+        userId,
+        newFileName,
+        err,
+      }),
     );
 
     await db
@@ -306,7 +316,12 @@ export class CharacterService {
     }
     await writeCharacterCard(pngBuffer, charRow.jsonData, filePath);
     await writeCharacterThumbnail(filePath, userId, charRow.avatar).catch((err) =>
-      console.debug('[character] thumbnail op skipped', { op: 'avatar-write', userId, avatar: charRow.avatar, err }),
+      console.debug('[character] thumbnail op skipped', {
+        op: 'avatar-write',
+        userId,
+        avatar: charRow.avatar,
+        err,
+      }),
     );
   }
 
@@ -415,7 +430,12 @@ export class CharacterService {
     await removeFile(pngPath);
     const thumbPath = path.join(getUserCharacterPath(userId), thumbnailPathFor(charRow.avatar));
     await removeFile(thumbPath).catch((err) =>
-      console.debug('[character] thumbnail op skipped', { op: 'delete-remove', userId, thumbPath, err }),
+      console.debug('[character] thumbnail op skipped', {
+        op: 'delete-remove',
+        userId,
+        thumbPath,
+        err,
+      }),
     );
 
     const chatFileName = charRow.fileName.replace('.png', '.json');
@@ -488,7 +508,12 @@ export class CharacterService {
     const thumbPath = path.join(userChars, thumbnailPathFor(charRow.avatar));
     if (!(await fsExists(thumbPath))) {
       await writeCharacterThumbnail(avatarPath, userId, charRow.avatar).catch((err) =>
-        console.debug('[character] thumbnail op skipped', { op: 'regen', userId, avatar: charRow.avatar, err }),
+        console.debug('[character] thumbnail op skipped', {
+          op: 'regen',
+          userId,
+          avatar: charRow.avatar,
+          err,
+        }),
       );
     }
     return (await fsExists(thumbPath)) ? thumbPath : null;
@@ -589,9 +614,19 @@ export class CharacterService {
     const sourceThumbPath = path.join(userChars, thumbnailPathFor(sourceRow.avatar));
     const dupThumbPath = path.join(userChars, thumbnailPathFor(dupFileName));
     await copyFile(sourceThumbPath, dupThumbPath).catch(async (err) => {
-      console.debug('[character] thumbnail op skipped', { op: 'dup-copy', userId, dupFileName, err });
+      console.debug('[character] thumbnail op skipped', {
+        op: 'dup-copy',
+        userId,
+        dupFileName,
+        err,
+      });
       await writeCharacterThumbnail(dupFilePath, userId, dupFileName).catch((innerErr) =>
-        console.debug('[character] thumbnail op skipped', { op: 'dup-gen', userId, dupFileName, err: innerErr }),
+        console.debug('[character] thumbnail op skipped', {
+          op: 'dup-gen',
+          userId,
+          dupFileName,
+          err: innerErr,
+        }),
       );
     });
 
