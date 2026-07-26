@@ -4,6 +4,7 @@ import { isOnboardingNeeded } from './config';
 import { buildApiRoutes } from './routes';
 import { safePathWithin } from './util/safePath';
 import { securityHeaders } from './errors';
+import { resolveMimeType } from './mime';
 
 const needsOnboarding = isOnboardingNeeded();
 
@@ -69,18 +70,9 @@ const server = serve({
     }
     const file = Bun.file(safePath);
     if (await file.exists()) {
-      const ext = path.extname(safePath);
-      const mimeTypes: Record<string, string> = {
-        '.html': 'text/html',
-        '.js': 'application/javascript',
-        '.css': 'text/css',
-        '.svg': 'image/svg+xml',
-        '.png': 'image/png',
-        '.json': 'application/json',
-      };
       return new Response(file.stream(), {
         headers: {
-          'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+          'Content-Type': resolveMimeType(safePath),
           ...securityHeaders,
         },
       });
