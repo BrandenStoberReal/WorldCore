@@ -69,13 +69,22 @@ describe('Drawer navigation smoke — default state', () => {
     expect(html).toContain('data-topbar');
   });
 
-  it('NavRail renders all 5 section icons with correct data attributes', () => {
+  it('NavRail renders all 7 top-rail drawer icons', () => {
     const html = railHtml();
-    expect(html).toContain('data-drawer-icon="characters"');
     expect(html).toContain('data-drawer-icon="worldinfo"');
     expect(html).toContain('data-drawer-icon="extensions"');
     expect(html).toContain('data-drawer-icon="connections"');
     expect(html).toContain('data-drawer-icon="textoptions"');
+    expect(html).toContain('data-drawer-icon="ui-settings"');
+    expect(html).toContain('data-drawer-icon="settings"');
+    expect(html).toContain('data-drawer-icon="personas"');
+  });
+
+  it('NavRail renders all 3 hover sub-nav section icons', () => {
+    const html = railHtml();
+    expect(html).toContain('data-drawer-icon="chats"');
+    expect(html).toContain('data-drawer-icon="character-editor"');
+    expect(html).toContain('data-drawer-icon="lorebook"');
   });
 
   it('DrawerShell has top drawer and characters sidebar slots', () => {

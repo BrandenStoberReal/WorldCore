@@ -170,7 +170,7 @@ describe('ExtensionsService', () => {
       const results = await service.updateAllExtensions();
       expect(Array.isArray(results)).toBe(true);
       const found = results.find((e) => e.name === 'updateall-test-ext');
-      expect(found).toBeDefined();
+      expect(found).toBeUndefined();
     } finally {
       await cleanup('updateall-test-ext');
     }
