@@ -25,6 +25,7 @@ export function ExtensionsPanel() {
     queryFn: async () => {
       return await apiGet<ExtensionInfo[]>('/extensions/list');
     },
+    meta: { silenceErrorToast: true },
   });
 
   const toggleMutation = useMutation({

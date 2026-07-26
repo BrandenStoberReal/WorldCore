@@ -55,6 +55,7 @@ export function WorldInfoPanel() {
     queryFn: async () => {
       return await apiGet<WorldInfo[]>('/worldinfo/all');
     },
+    meta: { silenceErrorToast: true },
   });
 
   const createMutation = useMutation({

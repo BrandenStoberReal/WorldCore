@@ -63,6 +63,7 @@ export function SettingsPanel() {
     queryKey: ['/api/v1/characters/reconcile-list'],
     queryFn: () => apiPost<ReconcileListResponse>('/characters/reconcile-list', {}),
     enabled: false,
+    meta: { silenceErrorToast: true },
   });
 
   const orphans = scanQuery.data?.orphans ?? [];

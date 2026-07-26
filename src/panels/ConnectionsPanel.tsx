@@ -63,6 +63,7 @@ export function ConnectionsPanel() {
         method: 'POST',
         body: JSON.stringify({}),
       }) as Promise<ConnectionProfile[]>,
+    meta: { silenceErrorToast: true },
   });
 
   const selectedProfile = profiles?.find((p) => p.id === selectedProfileId);
@@ -97,7 +98,6 @@ export function ConnectionsPanel() {
     },
   });
 
-  // Update mutation
   const updateMutation = useMutation({
     mutationFn: async (data: ConnectionProfile) => {
       return apiFetch('/connection-profiles/update', {
@@ -113,7 +113,6 @@ export function ConnectionsPanel() {
     },
   });
 
-  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       return apiFetch('/connection-profiles/delete', {
