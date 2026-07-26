@@ -101,9 +101,6 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
     },
-    onError: (err) => {
-      console.error('character import failed', err);
-    },
   });
 
   /* ── handlers ── */
