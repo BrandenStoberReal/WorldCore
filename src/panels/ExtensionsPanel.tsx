@@ -14,9 +14,14 @@ import {
   GitBranch,
   Globe,
   Trash2,
+  Search,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
-import { cn, surfaceCard } from '@/lib/utils';
+import { InlineSection } from '@/components/drawers/InlineSection';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Badge } from '@/components/ui/badge';
+import { StatusToggle } from '@/components/ui/status-toggle';
+import { cn, surfaceCard, subtleEdge } from '@/lib/utils';
 import { apiGet, apiPost } from '@/lib/api';
 import { emit } from '@/lib/extensionEventBus';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -24,6 +29,7 @@ import type { ExtensionRow } from '@/shared/types/extensions';
 
 export function ExtensionsPanel() {
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState('');
   const [installOpen, setInstallOpen] = useState(false);
   const [installUrl, setInstallUrl] = useState('');
   const [installScope, setInstallScope] = useState<'user' | 'global'>('user');
@@ -90,6 +96,13 @@ export function ExtensionsPanel() {
     },
   });
 
+  const filtered = extensions?.filter(
+    (e) =>
+      e.displayName.toLowerCase().includes(search.toLowerCase()) ||
+      e.id.toLowerCase().includes(search.toLowerCase()) ||
+      e.author.toLowerCase().includes(search.toLowerCase()),
+  );
+
   if (isLoading) {
     return <LoadingSpinner size="lg" label="indexing modules" className="h-64" />;
   }
@@ -129,122 +142,136 @@ export function ExtensionsPanel() {
         }
       />
 
-      <div className="border-border bg-background/40 flex h-8 items-center gap-1.5 self-start rounded-md border px-2.5">
-        <span className="mono-tag text-muted-foreground/55">modules</span>
-        <span className="mono-tag text-ember tabular-nums">
-          {String(extensions?.length ?? 0).padStart(2, '0')}
-        </span>
-      </div>
+      <InlineSection panelId="extensions" sectionId="search" title="Search & Filter">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="text-muted-foreground/55 absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
+            <Input
+              placeholder="query · name, author, or id fragment..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 pl-8 font-mono text-[12px] tracking-tight"
+            />
+          </div>
+          <div className="border-border bg-background/40 flex h-8 items-center gap-1.5 rounded-md border px-2.5">
+            <span className="mono-tag text-muted-foreground/55">modules</span>
+            <span className="mono-tag text-ember tabular-nums">
+              {String(filtered?.length ?? 0).padStart(2, '0')}
+            </span>
+            <span className="mono-tag text-muted-foreground/40">/</span>
+            <span className="mono-tag text-foreground/70 tabular-nums">
+              {String(extensions?.length ?? 0).padStart(2, '0')}
+            </span>
+          </div>
+        </div>
+      </InlineSection>
 
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {extensions?.map((ext, idx) => (
+      <div className="grid gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {filtered?.map((ext, idx) => (
           <Card
             key={ext.id}
             className={cn(
               surfaceCard,
+              subtleEdge,
               'group relative overflow-hidden rounded-md py-0 transition-all',
-              'hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
+              'hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
               ext.enabled ? '' : 'opacity-55',
             )}
           >
-            <div className="bg-background/30 border-border/60 flex items-center justify-between border-b px-3 py-2">
+            {/* Top rail */}
+            <div className="bg-background/30 border-border/60 flex items-center justify-between border-b px-3 py-1.5">
               <div className="flex min-w-0 items-center gap-2">
-                <span className="mono-tag text-muted-foreground/45 tabular-nums">
-                  {`#${String(idx + 1).padStart(2, '0')}`}
+                <span className="mono-tag text-muted-foreground/55 tabular-nums">
+                  {`#${String(idx + 1).padStart(3, '0')}`}
                 </span>
                 <Package className="text-ember/70 h-3 w-3 shrink-0" />
-                <span className="mono-tag text-ember/80 truncate">{ext.displayName || ext.id}</span>
+                <span className="mono-tag text-ember/70 truncate">{ext.displayName || ext.id}</span>
                 {ext.scope === 'global' && (
                   <Globe
                     className="text-muted-foreground/60 h-3 w-3 shrink-0"
                     aria-label="global"
                   />
                 )}
+                <StatusToggle
+                  enabled={ext.enabled}
+                  onToggle={() => toggleMutation.mutate({ id: ext.id, enable: !ext.enabled })}
+                />
               </div>
-              <ForgeToggle
-                enabled={ext.enabled}
-                onToggle={() => toggleMutation.mutate({ id: ext.id, enable: !ext.enabled })}
-              />
             </div>
 
-            <CardContent className="space-y-2 p-3">
-              <p className="text-foreground/75 line-clamp-2 text-[12px] leading-relaxed">
+            <CardContent className="space-y-2 px-3 py-2">
+              <p className="text-foreground/80 line-clamp-2 text-[12px] leading-relaxed">
                 {ext.description || (
                   <span className="text-muted-foreground/40 italic">no description supplied</span>
                 )}
               </p>
 
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
-                <span className="mono-tag text-muted-foreground/65 inline-flex items-center gap-1">
-                  <GitBranch className="h-2.5 w-2.5" />v{ext.version}
-                </span>
-                <span className="mono-tag text-muted-foreground/65 inline-flex items-center gap-1">
-                  <User className="h-2.5 w-2.5" />
-                  {ext.author || 'anon'}
-                </span>
+              {/* Badges */}
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge label="VERSION" value={`v${ext.version}`} icon={GitBranch} />
+                <Badge label="AUTHOR" value={ext.author || 'anon'} icon={User} />
                 {ext.lastUpdatedAt && (
-                  <span className="mono-tag text-muted-foreground/65 inline-flex items-center gap-1">
-                    <Calendar className="h-2.5 w-2.5" />
-                    {new Date(ext.lastUpdatedAt).toLocaleDateString()}
-                  </span>
+                  <Badge
+                    label="UPDATED"
+                    value={new Date(ext.lastUpdatedAt).toLocaleDateString()}
+                    icon={Calendar}
+                  />
                 )}
-              </div>
-
-              <div className="border-border/40 -mx-3 -mb-1 flex justify-end gap-1.5 border-t px-3 pt-1 pb-1">
-                {ext.scope !== 'global' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => uninstallMutation.mutate(ext.id)}
-                    disabled={uninstallMutation.isPending}
-                    className="h-6"
-                    aria-label="uninstall extension"
-                  >
-                    <Trash2 className="h-2.5 w-2.5" />
-                    <span className="mono-tag">REMOVE</span>
-                  </Button>
-                )}
-                {ext.gitUrl && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => updateMutation.mutate(ext.id)}
-                    disabled={updateMutation.isPending}
-                    className="h-6"
-                  >
-                    <RefreshCw
-                      className={cn(
-                        'h-2.5 w-2.5',
-                        updateMutation.isPending &&
-                          updateMutation.variables === ext.id &&
-                          'animate-spin',
-                      )}
-                    />
-                    <span className="mono-tag">UPDATE MODULE</span>
-                  </Button>
-                )}
+                <Badge label="SCOPE" value={ext.scope} icon={Globe} />
               </div>
             </CardContent>
+
+            {/* Action rail — always visible */}
+            <div className="border-border/60 divide-border/60 flex items-stretch divide-x border-t">
+              {ext.gitUrl && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => updateMutation.mutate(ext.id)}
+                  disabled={updateMutation.isPending}
+                  className="hover:bg-accent/40 hover:text-ember h-8 flex-1 justify-center rounded-none border-0 font-medium"
+                >
+                  <RefreshCw
+                    className={cn(
+                      'h-3 w-3',
+                      updateMutation.isPending &&
+                        updateMutation.variables === ext.id &&
+                        'animate-spin',
+                    )}
+                  />
+                  <span className="mono-tag">Update</span>
+                </Button>
+              )}
+              {ext.scope !== 'global' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hover:bg-destructive/10 hover:text-destructive h-8 flex-1 justify-center rounded-none border-0 font-medium"
+                  onClick={() => uninstallMutation.mutate(ext.id)}
+                  disabled={uninstallMutation.isPending}
+                  aria-label="uninstall extension"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  <span className="mono-tag">Uninstall</span>
+                </Button>
+              )}
+            </div>
           </Card>
         ))}
       </div>
 
-      {extensions?.length === 0 && (
-        <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-md px-6 py-12')}>
-          <CardContent className="flex flex-col items-center justify-center text-center">
-            <div className="border-border bg-muted/40 mb-3 flex h-12 w-12 items-center justify-center rounded-md border">
-              <Package className="text-ember/60 h-5 w-5" />
-            </div>
-            <h3 className="display-host mb-1 text-lg">No modules</h3>
-            <p className="mono-tag text-muted-foreground/55 mb-4">
-              install a module from URL to extend WorldCore
-            </p>
+      {filtered?.length === 0 && (
+        <EmptyState
+          icon={<span className="display-host text-ember text-xl">∅</span>}
+          title="forge cold"
+          description="no modules forged — install a module from URL to extend WorldCore"
+          action={
             <Button size="sm" onClick={() => setInstallOpen(true)}>
               <Plus className="h-3.5 w-3.5" />
               Install Module
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
       )}
 
       <Modal
@@ -268,13 +295,13 @@ export function ExtensionsPanel() {
             <div className="flex gap-2">
               <ScopeChoice
                 label="user"
-                hint="per-user (private)"
+                hint="private forge (per-user)"
                 selected={installScope === 'user'}
                 onClick={() => setInstallScope('user')}
               />
               <ScopeChoice
                 label="global"
-                hint="shared across users (admin-only)"
+                hint="shared smithy (admin-only)"
                 selected={installScope === 'global'}
                 onClick={() => setInstallScope('global')}
               />
@@ -333,28 +360,6 @@ function ScopeChoice({
     >
       <div className="mono-tag text-foreground mb-0.5">{label}</div>
       <div className="text-muted-foreground/60 text-[11px] leading-tight">{hint}</div>
-    </button>
-  );
-}
-
-function ForgeToggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={enabled}
-      onClick={onToggle}
-      className={cn(
-        'relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-        enabled ? 'bg-ember' : 'bg-muted',
-      )}
-    >
-      <span className="sr-only">Toggle module</span>
-      <span
-        className={cn(
-          'bg-background pointer-events-none inline-block h-3 w-3 transform rounded-full shadow ring-0 transition-transform',
-          enabled ? 'translate-x-3.5' : 'translate-x-0',
-        )}
-      />
     </button>
   );
 }

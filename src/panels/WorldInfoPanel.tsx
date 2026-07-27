@@ -7,11 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/Modal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Plus, Trash2, Search, Pencil, Layers, Hash, Flame } from 'lucide-react';
-import { cn, surfaceCard } from '@/lib/utils';
+import { cn, surfaceCard, subtleEdge } from '@/lib/utils';
 import { apiGet, apiPost } from '@/lib/api';
 import { InlineSection } from '@/components/drawers/InlineSection';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Badge } from '@/components/ui/badge';
+import { StatusToggle } from '@/components/ui/status-toggle';
 import type { WorldInfo, WorldInfoEntry } from '@/shared/types/worldinfo';
 
 interface FormState {
@@ -252,6 +255,7 @@ export function WorldInfoPanel() {
             key={entry.uid}
             className={cn(
               surfaceCard,
+              subtleEdge,
               'group relative overflow-hidden rounded-md py-0 transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
               entry.disable ? 'opacity-55' : '',
             )}
@@ -263,34 +267,13 @@ export function WorldInfoPanel() {
                   {`#${String(idx + 1).padStart(3, '0')}`}
                 </span>
                 <span className="mono-tag text-ember/70 truncate">{entry.key || '{no_key}'}</span>
-                {!entry.disable && (
-                  <span className="mono-tag bg-ember/15 text-ember rounded-md px-1 py-px">ON</span>
-                )}
-                {entry.disable && (
-                  <span className="mono-tag bg-muted/50 text-muted-foreground/55 rounded-md px-1 py-px">
-                    OFF
-                  </span>
-                )}
+                <StatusToggle enabled={!entry.disable} showSwitch={false} />
               </div>
-
-              <div className="flex shrink-0 items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => openEdit(entry)}
-                  className="hover:text-ember h-6 w-6"
-                >
-                  <Pencil className="h-2.5 w-2.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-destructive hover:bg-destructive/10 h-6 w-6"
-                  onClick={() => setDeleteUid(entry.uid)}
-                >
-                  <Trash2 className="h-2.5 w-2.5" />
-                </Button>
-              </div>
+              {entry.comment && (
+                <span className="mono-tag text-muted-foreground/55 truncate">
+                  {entry.comment}
+                </span>
+              )}
             </div>
 
             <CardContent className="space-y-2 px-3 py-2">
@@ -310,27 +293,40 @@ export function WorldInfoPanel() {
                   label="MODE"
                   value={entry.constant ? 'CONST' : entry.selective ? 'SELECT' : 'TRIG'}
                 />
-                {entry.comment && (
-                  <span className="mono-tag text-muted-foreground/55 ml-auto min-w-0 truncate">
-                    {entry.comment}
-                  </span>
-                )}
               </div>
             </CardContent>
+
+            {/* Action rail — always visible */}
+            <div className="border-border/60 divide-border/60 flex items-stretch divide-x border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => openEdit(entry)}
+                className="hover:bg-accent/40 hover:text-ember h-8 flex-1 justify-center rounded-none border-0 font-medium"
+              >
+                <Pencil className="h-3 w-3" />
+                <span className="mono-tag">Edit</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDeleteUid(entry.uid)}
+                className="hover:bg-destructive/10 hover:text-destructive h-8 flex-1 justify-center rounded-none border-0 font-medium"
+              >
+                <Trash2 className="h-3 w-3" />
+                <span className="mono-tag">Condemn</span>
+              </Button>
+            </div>
           </Card>
         ))}
       </div>
 
       {filtered?.length === 0 && (
-        <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-md px-6 py-12')}>
-          <CardContent className="flex flex-col items-center justify-center text-center">
-            <div className="border-border bg-muted/40 mb-3 flex h-12 w-12 items-center justify-center rounded-md border">
-              <span className="display-host text-ember text-xl">∅</span>
-            </div>
-            <h3 className="display-host mb-1 text-lg">Archive empty</h3>
-            <p className="mono-tag text-muted-foreground/55">inscribe your first lore tablet</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<span className="display-host text-ember text-xl">∅</span>}
+          title="Archive empty"
+          description="inscribe your first lore tablet"
+        />
       )}
 
       {/* Create/Edit Modal */}
@@ -515,32 +511,5 @@ function ToggleRow({
         />
       </span>
     </button>
-  );
-}
-
-function Badge({
-  label,
-  value,
-  icon: Icon,
-  accent,
-}: {
-  label: string;
-  value: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  accent?: boolean;
-}) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px]',
-        accent
-          ? 'border-ember/40 bg-ember/10 text-ember'
-          : 'border-border bg-muted/40 text-foreground/70',
-      )}
-    >
-      <span className="mono-tag opacity-70">{label}</span>
-      {Icon && <Icon className="h-2.5 w-2.5 opacity-70" />}
-      <span className="mono-tag font-bold tabular-nums">{value}</span>
-    </span>
   );
 }

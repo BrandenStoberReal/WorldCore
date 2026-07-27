@@ -407,7 +407,7 @@
     top: var(--topbar-height, 40px);
     left: 0;
     right: 0;
-    max-height: calc(100vh - var(--topbar-height, 40px));
+    max-height: 100vh;
     z-index: 20;
     overflow-y: auto;
     overflow-x: hidden;
