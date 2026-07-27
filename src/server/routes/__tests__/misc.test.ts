@@ -282,7 +282,7 @@ describe('Extensions routes (T25)', () => {
       new Request('http://localhost/api/v1/extensions/enable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'nonexistent-t25' }),
+        body: JSON.stringify({ id: 'nonexistent-t25' }),
       }),
     );
     expect(res.status).toBe(404);
@@ -293,7 +293,7 @@ describe('Extensions routes (T25)', () => {
       new Request('http://localhost/api/v1/extensions/disable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'nonexistent-t25' }),
+        body: JSON.stringify({ id: 'nonexistent-t25' }),
       }),
     );
     expect(res.status).toBe(404);

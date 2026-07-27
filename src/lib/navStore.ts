@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { emit } from '@/lib/extensionEventBus';
 
 export type SectionId =
   | 'characters'
@@ -81,16 +82,22 @@ export const useNavStore = create<NavState>((set, get) => ({
   connected: false,
   alwaysShowViewportNavbar: persisted.alwaysShowViewportNavbar ?? false,
   setConnected: (next) => set({ connected: next }),
-  openSection: (id) => set({ sectionId: id, topDrawer: null, prevSectionId: null }),
+  openSection: (id) => {
+    set({ sectionId: id, topDrawer: null, prevSectionId: null });
+    emit('viewport_changed', { sectionId: id });
+  },
   openTopDrawer: (id) =>
     set((state) => {
       if (state.topDrawer === id) {
+        const next = state.prevSectionId ?? 'chats';
+        emit('top_drawer_changed', { drawerId: null });
         return {
           topDrawer: null,
-          sectionId: state.prevSectionId ?? 'chats',
+          sectionId: next,
           prevSectionId: null,
         };
       }
+      emit('top_drawer_changed', { drawerId: id });
       return {
         topDrawer: id,
         sectionId: id,
@@ -98,11 +105,15 @@ export const useNavStore = create<NavState>((set, get) => ({
       };
     }),
   closeTopDrawer: () =>
-    set((state) => ({
-      topDrawer: null,
-      sectionId: state.prevSectionId ?? state.sectionId,
-      prevSectionId: null,
-    })),
+    set((state) => {
+      const next = state.prevSectionId ?? state.sectionId;
+      emit('top_drawer_changed', { drawerId: null });
+      return {
+        topDrawer: null,
+        sectionId: next,
+        prevSectionId: null,
+      };
+    }),
   toggleCharacters: () => {
     set((state) => {
       const next = { charactersOpen: !state.charactersOpen };

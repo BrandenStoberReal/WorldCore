@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ChatMessage } from '@/shared/types/chat';
 import { apiGet, getPreset, getSettings, listPresets, savePreset, saveSettings } from '@/lib/api';
+import { emit } from '@/lib/extensionEventBus';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -52,6 +53,7 @@ export const useAppStore = create<AppStore>((set) => ({
         avatarPath: me.avatar || undefined,
       };
       set({ user });
+      emit('user_initialized', { userId: user.id });
     } catch {
       /* leave user null if backend unreachable */
     }
@@ -363,10 +365,19 @@ export const useChatStore = create<ChatStore>((set) => ({
   messages: [],
   isGenerating: false,
   streamingContent: '',
-  setActiveChat: (id) => set({ activeChatId: id }),
-  setActiveCharacter: (id) => set({ activeCharacterId: id }),
+  setActiveChat: (id) => {
+    set({ activeChatId: id });
+    emit('chat_changed', { chatId: id });
+  },
+  setActiveCharacter: (id) => {
+    set({ activeCharacterId: id });
+    emit('character_changed', { characterId: id });
+  },
   setMessages: (messages) => set({ messages }),
-  addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
+  addMessage: (message) => {
+    set((state) => ({ messages: [...state.messages, message] }));
+    emit('new_message', message);
+  },
   setStreamingContent: (content) => set({ streamingContent: content }),
   appendStreamingContent: (content) =>
     set((state) => ({ streamingContent: state.streamingContent + content })),

@@ -14,6 +14,7 @@ import {
   PanelLeftClose,
 } from 'lucide-react';
 import { apiFetch, apiPost } from '@/lib/api';
+import { emit } from '@/lib/extensionEventBus';
 import { cn, estimateTokens } from '@/lib/utils';
 import { InlineEdit } from '@/components/InlineEdit';
 import { EditableTags } from '@/components/EditableTags';
@@ -98,8 +99,9 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
       }
       return (await res.json()) as { ok: true; id: number };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
+      emit('character_import', { id: result.id });
     },
   });
 

@@ -5,6 +5,7 @@ import { buildApiRoutes } from './routes';
 import { safePathWithin } from './util/safePath';
 import { securityHeaders } from './errors';
 import { resolveMimeType } from './mime';
+import { SHARED_CONST } from '@/shared/constants';
 
 const needsOnboarding = isOnboardingNeeded();
 
@@ -18,11 +19,14 @@ const htmlContent = await distHtml.text();
 const apiRoutes = buildApiRoutes();
 
 const { runMigrations } = await import('./db/migrate');
-const { ensureUserDirs } = await import('./storage/paths');
+const { ensureUserDirs, ensureGlobalExtensionRoot } = await import('./storage/paths');
 const { setStartFn } = await import('./routes/onboarding.routes');
+const { seedPreinstalledGlobalExtensions } = await import('./services/extensions.service');
 
 runMigrations();
 ensureUserDirs();
+ensureGlobalExtensionRoot();
+await seedPreinstalledGlobalExtensions();
 
 let stopWatcher: (() => Promise<void>) | null = null;
 
@@ -50,6 +54,12 @@ const server = serve({
     const pathname = url.pathname;
 
     if (pathname.startsWith('/api/')) {
+      if (pathname.startsWith(`${SHARED_CONST.API_VERSION_PREFIX}/extensions/assets/`)) {
+        const assetHandler = apiRoutes[`${SHARED_CONST.API_VERSION_PREFIX}/extensions/asset`];
+        if (assetHandler) {
+          return assetHandler(req);
+        }
+      }
       const handler = apiRoutes[pathname];
       if (handler) {
         return handler(req);

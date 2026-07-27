@@ -269,12 +269,17 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/content`] = contentRoutes.handle;
 
   routes[`${PREFIX}/extensions/list`] = extensionsRoutes.list;
+  routes[`${PREFIX}/extensions/get`] = extensionsRoutes.get;
   routes[`${PREFIX}/extensions/enable`] = extensionsRoutes.enable;
   routes[`${PREFIX}/extensions/disable`] = extensionsRoutes.disable;
   routes[`${PREFIX}/extensions/install`] = extensionsRoutes.install;
   routes[`${PREFIX}/extensions/uninstall`] = extensionsRoutes.uninstall;
   routes[`${PREFIX}/extensions/update`] = extensionsRoutes.update;
   routes[`${PREFIX}/extensions/updateAll`] = extensionsRoutes.updateAll;
+  routes[`${PREFIX}/extensions/validate`] = extensionsRoutes.validate;
+  routes[`${PREFIX}/extensions/patch-settings`] = extensionsRoutes.patchSettings;
+  routes[`${PREFIX}/extensions/get-settings`] = extensionsRoutes.getSettings;
+  routes[`${PREFIX}/extensions/asset`] = extensionsRoutes.serveAsset;
 
   // === Connection Profiles ===
   routes[`${PREFIX}/connection-profiles/create`] = connectionProfilesRoutes.create;

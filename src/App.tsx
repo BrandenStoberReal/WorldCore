@@ -7,12 +7,14 @@ import { Toaster } from '@/components/ui/sonner';
 import { useAppStore } from '@/lib/stores';
 import { checkOnboardingStatus } from '@/lib/api';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useExtensionBootloader } from '@/hooks/useExtensionBootloader';
 import '@/index.css';
 
 export function App() {
   const [onboardingNeeded, setOnboardingNeeded] = useState<boolean | null>(null);
   const initUser = useAppStore((s) => s.initUser);
   const initTheme = useAppStore((s) => s.initTheme);
+  const bootloader = useExtensionBootloader();
   useKeyboardShortcuts();
 
   useEffect(() => {
@@ -24,6 +26,10 @@ export function App() {
       }
     });
   }, [initUser, initTheme]);
+
+  if (bootloader.error && typeof console !== 'undefined') {
+    console.warn('[worldcore-ext] boot error:', bootloader.error.message);
+  }
 
   let content: React.ReactNode = null;
   if (onboardingNeeded === true) {

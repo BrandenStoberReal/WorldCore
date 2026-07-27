@@ -252,8 +252,17 @@ export const connectionProfiles = sqliteTable('connection_profiles', {
 export const extensions = sqliteTable('extensions', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  displayName: text('display_name').notNull().default(''),
   version: text('version').notNull().default(''),
+  author: text('author').default(''),
+  description: text('description').default(''),
+  gitUrl: text('git_url'),
+  branch: text('branch'),
+  scope: text('scope').notNull().default('user'),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
   settings: text('settings', { mode: 'json' }).$type<Record<string, unknown>>().default({}),
+  manifestCache: text('manifest_cache', { mode: 'json' }).$type<unknown>(),
+  installedAt: text('installed_at'),
+  lastUpdatedAt: text('last_updated_at'),
   userId: text('user_id').notNull().default('default-user'),
 });

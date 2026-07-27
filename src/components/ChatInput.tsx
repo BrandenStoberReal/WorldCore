@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Square } from 'lucide-react';
-import { cn, surfaceCard } from '@/lib/utils';
+import { Send, Loader2 } from 'lucide-react';
+import { cn, surfaceCard, ambientGlow } from '@/lib/utils';
+import { apiPost } from '@/lib/api';
+import { ExtensionSlot } from '@/lib/extensionSlots';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -10,10 +12,51 @@ interface ChatInputProps {
   isGenerating: boolean;
 }
 
+const TOKEN_DEBOUNCE_MS = 400;
+
 export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [focused, setFocused] = useState(false);
+  const [tokenCount, setTokenCount] = useState<number | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchTokenCount = useCallback(async (text: string) => {
+    if (!text.trim()) {
+      setTokenCount(null);
+      setTokenLoading(false);
+      return;
+    }
+    setTokenLoading(true);
+    try {
+      const res = await apiPost<{ count: number }>('/tokenizers/count', {
+        model: 'cl100k_base',
+        text,
+      });
+      setTokenCount(res.count);
+    } catch {
+      setTokenCount(Math.ceil(text.length / 4));
+    } finally {
+      setTokenLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!value.trim()) {
+      setTokenCount(null);
+      setTokenLoading(false);
+      return;
+    }
+    setTokenLoading(true);
+    debounceRef.current = setTimeout(() => {
+      void fetchTokenCount(value);
+    }, TOKEN_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [value, fetchTokenCount]);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -28,6 +71,8 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
     if (!trimmed || disabled) return;
     onSend(trimmed);
     setValue('');
+    setTokenCount(null);
+    setTokenLoading(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
@@ -40,10 +85,19 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
     }
   };
 
+  const handleSendClick = () => {
+    if (isGenerating) {
+      onStop();
+    } else {
+      handleSubmit();
+    }
+  };
+
+  const canSend = value.trim() && !disabled && !isGenerating;
+
   return (
     <div className="border-border/60 bg-background/60 supports-[backdrop-filter]:bg-background/40 safe-area-bottom shrink-0 border-t p-3 backdrop-blur-sm sm:p-4">
       <div className="relative mx-auto max-w-6xl">
-        {/* Stoker frame — outer ring with ember hairline */}
         <div
           className={cn(
             surfaceCard,
@@ -54,11 +108,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
             aria-hidden
             className="via-ember/60 pointer-events-none absolute -top-px right-6 left-6 h-px bg-gradient-to-r from-transparent to-transparent opacity-0 transition-opacity focus-within:opacity-100"
           />
-          <div className="flex items-end gap-2 px-3 pt-3 pb-3">
-            <div className="flex shrink-0 flex-col justify-between gap-1">
-              <span className="mono-tag text-ember/70">{`>`}</span>
-              <span className="mono-tag text-muted-foreground/40 hidden sm:block">STOKE</span>
-            </div>
+          <div className="relative flex items-center gap-2 px-3 py-3">
             <textarea
               ref={textareaRef}
               value={value}
@@ -66,51 +116,41 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
               onKeyDown={handleKeyDown}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              placeholder={isGenerating ? 'generating...' : 'type a message...'}
+              placeholder={
+                isGenerating ? 'generating...' : 'type a message... (⏎ send, ⇧⏎ newline)'
+              }
               rows={1}
               className="placeholder:text-muted-foreground/50 flex max-h-40 min-h-9 flex-1 resize-none bg-transparent font-mono text-[13.5px] leading-relaxed outline-none disabled:opacity-50"
               disabled={disabled && !isGenerating}
             />
+            <div className="mono-tag text-muted-foreground/60 shrink-0 text-sm tabular-nums">
+              {tokenLoading ? (
+                <span className="inline-block animate-pulse">...</span>
+              ) : tokenCount !== null ? (
+                <span>{tokenCount}</span>
+              ) : null}
+            </div>
+            <Button
+              size="icon-sm"
+              onClick={handleSendClick}
+              disabled={!canSend && !isGenerating}
+              className={cn(
+                'shrink-0 self-end transition-all duration-200',
+                isGenerating && 'border-ember/50 text-ember hover:border-ember/70 hover:text-ember',
+                !isGenerating && ambientGlow,
+              )}
+              title={isGenerating ? 'Stop generation' : 'Send message'}
+            >
+              {isGenerating ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5" />
+              )}
+            </Button>
           </div>
         </div>
 
-        {/* Action rail */}
-        <div
-          className={cn(
-            'mt-2 flex items-center justify-between transition-opacity duration-200',
-            focused || isGenerating ? 'opacity-100' : 'opacity-0',
-          )}
-        >
-          <div className="mono-tag text-muted-foreground/40 hidden items-center gap-3 sm:flex">
-            <span>{`{ esc }`} dismiss</span>
-            <span>{`{ ⇧ + ⏎ }`} newline</span>
-            <span>{`{ ⏎ }`} transmit</span>
-          </div>
-
-          {isGenerating ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onStop}
-              className="hover:border-destructive/60 hover:text-destructive touch-target h-8 gap-1.5 transition-transform hover:scale-105 sm:h-7"
-              title="Stop generation"
-            >
-              <Square className="h-4 w-4 fill-current sm:h-3 sm:w-3" />
-              <span className="mono-tag">ABORT</span>
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              onClick={handleSubmit}
-              disabled={!value.trim() || disabled}
-              className="touch-target h-8 gap-1.5 transition-transform hover:scale-105 sm:h-7"
-              title="Send message"
-            >
-              <Send className="h-4 w-4 sm:h-3 sm:w-3" />
-              <span className="mono-tag font-bold">TRANSMIT</span>
-            </Button>
-          )}
-        </div>
+        <ExtensionSlot slotId="chat-input-toolbar" />
       </div>
     </div>
   );

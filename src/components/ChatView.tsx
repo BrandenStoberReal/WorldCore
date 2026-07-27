@@ -7,6 +7,7 @@ import { ChatInput } from '@/components/ChatInput';
 import { useChatStore, useGenerationStore } from '@/lib/stores';
 import { apiGet, apiPost, streamChat } from '@/lib/api';
 import { cn, frostedGlass } from '@/lib/utils';
+import { emit } from '@/lib/extensionEventBus';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useResolvedPersona } from '@/hooks/useResolvedPersona';
 import { setChatPersona } from '@/lib/api';
@@ -165,6 +166,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       abortRef.current = null;
     }
     setIsGenerating(false);
+    emit('generation_stopped', { characterId });
     if (streamingContent) {
       commitStreaming(character?.name ?? 'Assistant');
     }
@@ -204,6 +206,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       const model = (settings?.chat_completion_model as string) || 'gpt-3.5-turbo';
 
       setIsGenerating(true);
+      emit('generation_started', { characterId });
       setStreamingContent('');
 
       abortRef.current = new AbortController();
@@ -290,6 +293,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         }
       } finally {
         setIsGenerating(false);
+        emit('generation_stopped', { characterId });
         abortRef.current = null;
       }
     },
@@ -333,6 +337,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       const newMessages = [...messages];
       newMessages[index] = updatedMsg;
       setMessages(newMessages);
+      emit('message_updated', { index, message: updatedMsg });
 
       try {
         await apiPost('/chats/message', {
@@ -357,6 +362,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       const truncatedMessages = messages.slice(0, index);
 
       setIsGenerating(true);
+      emit('generation_started', { characterId });
       setStreamingContent('');
       abortRef.current = new AbortController();
 
@@ -436,6 +442,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         }
       } finally {
         setIsGenerating(false);
+        emit('generation_stopped', { characterId });
         abortRef.current = null;
       }
     },

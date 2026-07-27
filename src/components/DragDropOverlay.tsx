@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Upload, Check, X, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { emit } from '@/lib/extensionEventBus';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 type FileStatus = 'pending' | 'uploading' | 'success' | 'error';
@@ -21,7 +22,7 @@ function isPngFile(file: File): boolean {
   return lower.endsWith('.png') || file.type === 'image/png';
 }
 
-async function postImport(file: File): Promise<void> {
+async function postImport(file: File): Promise<number> {
   const fd = new FormData();
   fd.append('file', file);
   const res = await fetch(IMPORT_ENDPOINT, { method: 'POST', body: fd });
@@ -33,6 +34,7 @@ async function postImport(file: File): Promise<void> {
   if (!data?.ok) {
     throw new Error('Import failed: malformed response');
   }
+  return data.id;
 }
 
 export function DragDropOverlay() {
@@ -127,9 +129,10 @@ export function DragDropOverlay() {
           prev.map((f, j) => (j === idx ? { ...f, status: 'uploading' as FileStatus } : f)),
         );
         try {
-          await postImport(file);
+          const id = await postImport(file);
           if (sessionRef.current !== sessionId) return;
           anySuccess = true;
+          emit('character_import', { id });
           setFiles((prev) =>
             prev.map((f, j) => (j === idx ? { ...f, status: 'success' as FileStatus } : f)),
           );

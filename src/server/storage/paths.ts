@@ -1,5 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { ValidationError } from '../errors';
 
 export const DATA_ROOT = process.env.WORLDCORE_DATA_ROOT ?? path.resolve('data');
 export const USER_ROOT = path.join(DATA_ROOT, 'default-user');
@@ -51,6 +52,10 @@ export function ensureUserDirs(): void {
   }
 }
 
+export function ensureGlobalExtensionRoot(): void {
+  fs.mkdirSync(getGlobalExtensionRoot(), { recursive: true });
+}
+
 export function getUserPath(userId: string): string {
   return path.join(DATA_ROOT, userId);
 }
@@ -74,4 +79,61 @@ export function ensureUserCharacterDir(userId: string): void {
 export function ensureUserChatDirs(userId: string): void {
   fs.mkdirSync(getUserChatPath(userId), { recursive: true });
   fs.mkdirSync(getUserGroupChatPath(userId), { recursive: true });
+}
+
+function sanitizeSlug(slug: string): string {
+  if (!/^[a-z0-9-]+$/.test(slug)) {
+    throw new ValidationError({ message: 'invalid slug' });
+  }
+  return slug;
+}
+
+export function getGlobalExtensionRoot(): string {
+  return path.join(DATA_ROOT, 'extensions');
+}
+
+export function getGlobalExtensionPath(extId: string): string {
+  return path.join(getGlobalExtensionRoot(), sanitizeSlug(extId));
+}
+
+export function getUserExtensionRoot(userId: string): string {
+  return path.join(DATA_ROOT, userId, 'extensions');
+}
+
+export function getUserExtensionPath(userId: string, extId: string): string {
+  return path.join(getUserExtensionRoot(userId), sanitizeSlug(extId));
+}
+
+export function ensureUserExtensionDir(userId: string): void {
+  fs.mkdirSync(getUserExtensionRoot(userId), { recursive: true });
+}
+
+export function safeExtensionPath(root: string, relPath: string): string {
+  const resolved = path.resolve(root, relPath);
+  if (resolved !== root && !resolved.startsWith(root + path.sep)) {
+    throw new ValidationError({ message: 'path traversal detected' });
+  }
+  // Defense in depth against symlink-based traversal. `path.resolve` is purely
+  // lexical on POSIX — a symlinked entry inside the extension dir would pass
+  // the prefix check above while `Bun.file(...).stream()` follows the link at
+  // read time, reading the link target outside the extension root.
+  //
+  // Only enforce the realpath guard when both endpoints exist on disk; missing
+  // files (ENOENT) are intentional 404s handled by the caller via Bun.file.exists().
+  let realRoot: string;
+  try {
+    realRoot = fs.realpathSync(root);
+  } catch {
+    return resolved;
+  }
+  try {
+    const realResolved = fs.realpathSync(resolved);
+    if (realResolved !== realRoot && !realResolved.startsWith(realRoot + path.sep)) {
+      throw new ValidationError({ message: 'symlink path traversal detected' });
+    }
+  } catch (err) {
+    if (err instanceof ValidationError) throw err;
+    // ENOENT for the resolved file — caller's Bun.file(...).exists() will 404.
+  }
+  return resolved;
 }

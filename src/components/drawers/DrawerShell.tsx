@@ -17,6 +17,7 @@ import { SettingsPanel } from '@/panels/SettingsPanel';
 import { UISettingsPanel } from '@/panels/UISettingsPanel';
 import { PersonaPanel } from '@/panels/persona/PersonaPanel';
 import { GenerationPanel } from '@/panels/GenerationPanel';
+import { ExtensionPanelSlot } from '@/lib/extensionSlots';
 import { cn } from '@/lib/utils';
 
 const TOP_DRAWER_PANELS: Record<string, React.ComponentType> = {
@@ -122,6 +123,7 @@ export function DrawerShell() {
 
       <DrawerSlot direction="top" open={topDrawer !== null}>
         {TopPanel && <TopPanel />}
+        <ExtensionPanelSlot target="top-drawer" />
       </DrawerSlot>
 
       <div
