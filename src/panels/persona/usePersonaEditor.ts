@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { editPersona, setPersonaAvatar, setDefaultPersona, deletePersona } from '@/lib/api';
 import type { Persona } from '@/shared/types/persona';
 
@@ -44,6 +44,16 @@ export function usePersonaEditor(persona: Persona): PersonaEditorState {
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setName(persona.name);
+    setDescription(persona.description);
+    setPersonality(persona.personality);
+    setScenario(persona.scenario);
+    setSystemPrompt(persona.systemPrompt);
+    setAvatarPreview(persona.avatar || null);
+    setAvatarDataUrl(null);
+  }, [persona.id]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
