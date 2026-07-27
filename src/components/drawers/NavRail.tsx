@@ -55,9 +55,9 @@ const DRAWER_ITEMS: NavItem[] = [
     label: 'Text Options',
     behavior: 'top-drawer',
   },
+  { id: 'personas', icon: <UserCircle size={16} />, label: 'Personas', behavior: 'top-drawer' },
   { id: 'ui-settings', icon: <Palette size={16} />, label: 'UI Settings', behavior: 'top-drawer' },
   { id: 'settings', icon: <Settings size={16} />, label: 'Settings', behavior: 'top-drawer' },
-  { id: 'personas', icon: <UserCircle size={16} />, label: 'Personas', behavior: 'top-drawer' },
 ];
 
 export function NavRail() {
