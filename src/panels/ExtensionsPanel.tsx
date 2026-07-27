@@ -113,7 +113,7 @@ export function ExtensionsPanel() {
             <Button
               variant="outline"
               onClick={() => updateAllMutation.mutate()}
-              disabled={updateAllMutation.isPending || !extensions?.length}
+              disabled={updateAllMutation.isPending || !extensions?.some(e => e.gitUrl)}
               className="h-8"
             >
               <RefreshCw
@@ -204,23 +204,25 @@ export function ExtensionsPanel() {
                     <span className="mono-tag">REMOVE</span>
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => updateMutation.mutate(ext.id)}
-                  disabled={updateMutation.isPending || !ext.gitUrl}
-                  className="h-6"
-                >
-                  <RefreshCw
-                    className={cn(
-                      'h-2.5 w-2.5',
-                      updateMutation.isPending &&
-                        updateMutation.variables === ext.id &&
-                        'animate-spin',
-                    )}
-                  />
-                  <span className="mono-tag">UPDATE MODULE</span>
-                </Button>
+                {ext.gitUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateMutation.mutate(ext.id)}
+                    disabled={updateMutation.isPending}
+                    className="h-6"
+                  >
+                    <RefreshCw
+                      className={cn(
+                        'h-2.5 w-2.5',
+                        updateMutation.isPending &&
+                          updateMutation.variables === ext.id &&
+                          'animate-spin',
+                      )}
+                    />
+                    <span className="mono-tag">UPDATE MODULE</span>
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
