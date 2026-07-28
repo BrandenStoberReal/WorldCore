@@ -9,6 +9,10 @@ import {
   registerSlashCommand,
   unregisterSlashCommand,
 } from '@/lib/extensionRegistry';
+import {
+  registerCardSource as registerCardSourceImpl,
+  unregisterCardSource as unregisterCardSourceImpl,
+} from '@/lib/cardSourceRegistry';
 import { apiFetch, apiGet, apiPost } from '@/lib/api';
 import type { Character, ShallowCharacter } from '@/shared/types/character';
 import type { ChatMessage } from '@/shared/types/chat';
@@ -255,6 +259,12 @@ export function createWorldCoreApi(opts: CreateWorldCoreApiOptions): WorldCoreAP
       link.href = href;
       document.head.appendChild(link);
       stylesheetRegistry.set(href, link);
+    },
+    registerCardSource: (source) => {
+      registerCardSourceImpl(source, extId);
+    },
+    unregisterCardSource: (sourceId) => {
+      unregisterCardSourceImpl(sourceId);
     },
     helpers: {
       characters: {

@@ -1,4 +1,5 @@
 import type { FC, ReactNode } from 'react';
+import { clearCardSourcesForExtId } from './cardSourceRegistry';
 
 export interface PanelConfig {
   id: string;
@@ -133,6 +134,8 @@ export function clearExtension(extId: string): void {
   for (const slotId of affectedSlots) {
     notifySlotChange(slotId);
   }
+
+  clearCardSourcesForExtId(extId);
 }
 
 export function subscribeSlot(slotId: string, cb: () => void): () => void {

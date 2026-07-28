@@ -1,6 +1,6 @@
 import type { ClassValue } from 'clsx';
 import type { AppStore, GenerationState, ChatStore } from '@/lib/stores';
-import type { Character, ShallowCharacter } from '@/shared/types/character';
+import type { Character, ShallowCharacter, CardSource } from '@/shared/types/character';
 import type { ChatMessage } from '@/shared/types/chat';
 import type { SectionId, TopDrawerId } from '@/lib/navStore';
 
@@ -173,5 +173,7 @@ export interface WorldCoreAPI {
   registerSettingsPanel(component: React.FC): void;
   unregisterSettingsPanel(): void;
   registerStylesheet(href: string): void;
+  registerCardSource(source: CardSource): void;
+  unregisterCardSource(sourceId: string): void;
   helpers: WorldCoreHelpers;
 }
