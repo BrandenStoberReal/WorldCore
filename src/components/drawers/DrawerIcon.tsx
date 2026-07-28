@@ -7,9 +7,17 @@ interface DrawerIconProps {
   label: string;
   sectionId: SectionId;
   behavior: 'section' | 'top-drawer' | 'characters';
+  /**
+   * Marks the icon as character-contextual. Renders a small ember dot at the
+   * top-right corner so users can tell which icons are tied to the active
+   * character vs always-available. The parent is responsible for actually
+   * hiding the icon when no character is selected — this flag only controls
+   * the visual marker.
+   */
+  requiresCharacter?: boolean;
 }
 
-export function DrawerIcon({ icon, label, sectionId, behavior }: DrawerIconProps) {
+export function DrawerIcon({ icon, label, sectionId, behavior, requiresCharacter }: DrawerIconProps) {
   const activeSection = useNavStore((s) => s.sectionId);
   const topDrawer = useNavStore((s) => s.topDrawer);
   const charactersOpen = useNavStore((s) => s.charactersOpen);
@@ -41,7 +49,7 @@ export function DrawerIcon({ icon, label, sectionId, behavior }: DrawerIconProps
       aria-pressed={isActive}
       title={label}
       className={cn(
-        'flex items-center justify-center rounded p-1.5 transition-all duration-200 hover:scale-105',
+        'relative flex items-center justify-center rounded p-1.5 transition-all duration-200 hover:scale-105',
         'hover:bg-accent hover:text-accent-foreground',
         isActive
           ? 'text-accent-foreground bg-accent scale-105'
@@ -49,6 +57,12 @@ export function DrawerIcon({ icon, label, sectionId, behavior }: DrawerIconProps
       )}
     >
       {icon}
+      {requiresCharacter && (
+        <span
+          aria-hidden
+          className="bg-ember pointer-events-none absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-background"
+        />
+      )}
     </button>
   );
 }

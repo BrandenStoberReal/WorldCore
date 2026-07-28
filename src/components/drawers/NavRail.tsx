@@ -11,16 +11,19 @@ import {
   UserCircle,
   Compass,
 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { DrawerIcon } from './DrawerIcon';
 import { useNavStore, type SectionId, type TopDrawerId } from '@/lib/navStore';
+import { useChatStore } from '@/lib/stores';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
   id: SectionId;
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   behavior: 'section' | 'top-drawer' | 'characters';
+  requiresCharacter?: boolean;
 }
 
 function ConnectionIcon() {
@@ -36,14 +39,21 @@ function ConnectionIcon() {
 }
 
 const SECTION_ITEMS: NavItem[] = [
-  { id: 'chats', icon: <MessageSquare size={16} />, label: 'Chats', behavior: 'section' },
+  { id: 'chats', icon: <MessageSquare size={16} />, label: 'Chats', behavior: 'section', requiresCharacter: true },
   {
     id: 'character-editor',
     icon: <Pencil size={16} />,
     label: 'Character Editor',
     behavior: 'section',
+    requiresCharacter: true,
   },
-  { id: 'lorebook', icon: <BookMarked size={16} />, label: 'Lorebook', behavior: 'section' },
+  {
+    id: 'lorebook',
+    icon: <BookMarked size={16} />,
+    label: 'Lorebook',
+    behavior: 'section',
+    requiresCharacter: true,
+  },
   { id: 'character-browser', icon: <Compass size={16} />, label: 'Browse', behavior: 'section' },
 ];
 
@@ -65,6 +75,7 @@ const DRAWER_ITEMS: NavItem[] = [
 export function NavRail() {
   const alwaysShowViewportNavbar = useNavStore((s) => s.alwaysShowViewportNavbar);
   const topDrawer = useNavStore((s) => s.topDrawer);
+  const activeCharacterId = useChatStore((s) => s.activeCharacterId);
   const { isMobile } = useBreakpoint();
   const drawerOpen = topDrawer !== null;
 
@@ -114,15 +125,18 @@ export function NavRail() {
               : 'group-hover/nav:border-border/60 h-0 overflow-hidden border-transparent opacity-0 group-hover/nav:h-9 group-hover/nav:py-1 group-hover/nav:opacity-100',
         )}
       >
-        {SECTION_ITEMS.map((item) => (
-          <DrawerIcon
-            key={item.id}
-            icon={item.icon}
-            label={item.label}
-            sectionId={item.id}
-            behavior={item.behavior}
-          />
-        ))}
+          {SECTION_ITEMS.filter((item) => !item.requiresCharacter || activeCharacterId !== null).map(
+            (item) => (
+              <DrawerIcon
+                key={item.id}
+                icon={item.icon}
+                label={item.label}
+                sectionId={item.id}
+                behavior={item.behavior}
+                requiresCharacter={item.requiresCharacter}
+              />
+            ),
+          )}
       </nav>
     </header>
   );

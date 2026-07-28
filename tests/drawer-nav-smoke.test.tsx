@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useNavStore } from '../src/lib/navStore';
+import { useChatStore } from '../src/lib/stores';
 import { DrawerShell } from '../src/components/drawers/DrawerShell';
 import { CenterPageHost } from '../src/components/drawers/CenterPageHost';
 import { NavRail } from '../src/components/drawers/NavRail';
@@ -15,7 +16,7 @@ const testQueryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
 });
 
-/** Reset the store to its initial state before every test. */
+/** Reset the nav + chat stores to their initial state before every test. */
 function resetStore() {
   useNavStore.setState({
     sectionId: 'chats',
@@ -23,6 +24,7 @@ function resetStore() {
     topDrawer: null,
     charactersOpen: false,
   });
+  useChatStore.setState({ activeCharacterId: null });
 }
 
 /** Render DrawerShell to static markup and return the HTML string. */
@@ -80,11 +82,12 @@ describe('Drawer navigation smoke — default state', () => {
     expect(html).toContain('data-drawer-icon="personas"');
   });
 
-  it('NavRail renders all 3 hover sub-nav section icons', () => {
+  it('NavRail hides character-gated section icons when no active character', () => {
     const html = railHtml();
-    expect(html).toContain('data-drawer-icon="chats"');
-    expect(html).toContain('data-drawer-icon="character-editor"');
-    expect(html).toContain('data-drawer-icon="lorebook"');
+    expect(html).toContain('data-drawer-icon="character-browser"');
+    expect(html).not.toContain('data-drawer-icon="chats"');
+    expect(html).not.toContain('data-drawer-icon="character-editor"');
+    expect(html).not.toContain('data-drawer-icon="lorebook"');
   });
 
   it('DrawerShell has top drawer and characters sidebar slots', () => {

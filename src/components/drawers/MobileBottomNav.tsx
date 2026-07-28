@@ -1,5 +1,6 @@
 import { MessageSquare, Pencil, BookMarked, Zap, Users, Settings, Compass } from 'lucide-react';
 import { useNavStore, type SectionId } from '@/lib/navStore';
+import { useChatStore } from '@/lib/stores';
 import { cn } from '@/lib/utils';
 
 interface MobileBottomNavProps {
@@ -11,12 +12,13 @@ interface NavItem {
   id: SectionId | 'generation' | 'characters';
   icon: React.ReactNode;
   label: string;
+  requiresCharacter?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'chats', icon: <MessageSquare size={20} />, label: 'Chats' },
-  { id: 'character-editor', icon: <Pencil size={20} />, label: 'Editor' },
-  { id: 'lorebook', icon: <BookMarked size={20} />, label: 'Lore' },
+  { id: 'chats', icon: <MessageSquare size={20} />, label: 'Chats', requiresCharacter: true },
+  { id: 'character-editor', icon: <Pencil size={20} />, label: 'Editor', requiresCharacter: true },
+  { id: 'lorebook', icon: <BookMarked size={20} />, label: 'Lore', requiresCharacter: true },
   { id: 'generation', icon: <Zap size={20} />, label: 'Gen' },
   { id: 'characters', icon: <Users size={20} />, label: 'Chars' },
   { id: 'character-browser', icon: <Compass size={20} />, label: 'Browse' },
@@ -27,6 +29,7 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBo
   const openSection = useNavStore((s) => s.openSection);
   const charactersOpen = useNavStore((s) => s.charactersOpen);
   const toggleCharacters = useNavStore((s) => s.toggleCharacters);
+  const activeCharacterId = useChatStore((s) => s.activeCharacterId);
 
   const handleItemClick = (item: NavItem) => {
     if (item.id === 'generation') {
@@ -47,19 +50,25 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBo
   return (
     <nav className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/80 safe-area-bottom border-t backdrop-blur-md">
       <div className="flex items-center justify-around px-2 py-1">
-        {NAV_ITEMS.map((item) => (
+        {NAV_ITEMS.filter((item) => !item.requiresCharacter || activeCharacterId !== null).map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => handleItemClick(item)}
             className={cn(
-              'touch-target flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-2 transition-colors',
+              'relative touch-target flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-2 transition-colors',
               isActive(item) ? 'text-ember' : 'text-muted-foreground hover:text-foreground',
             )}
             aria-label={item.label}
             aria-current={isActive(item) ? 'page' : undefined}
           >
             {item.icon}
+            {item.requiresCharacter && (
+              <span
+                aria-hidden
+                className="bg-ember pointer-events-none absolute top-1 right-2 h-1.5 w-1.5 rounded-full ring-2 ring-background"
+              />
+            )}
             <span className="text-[10px] font-medium">{item.label}</span>
           </button>
         ))}
