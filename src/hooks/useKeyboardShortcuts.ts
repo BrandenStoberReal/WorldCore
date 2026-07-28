@@ -9,6 +9,7 @@ const SECTION_SHORTCUTS: Record<string, SectionId> = {
   '5': 'extensions',
   '6': 'connections',
   '7': 'settings',
+  '8': 'character-browser',
 };
 
 export function useKeyboardShortcuts() {

@@ -3,12 +3,14 @@ import { ChatsPanel } from '@/panels/ChatsPanel';
 import { CharactersPanel } from '@/panels/CharactersPanel';
 import { CharacterEditorPanel } from '@/panels/CharacterEditorPanel';
 import { LorebookPanel } from '@/panels/LorebookPanel';
+import { CharacterBrowserPanel } from '@/panels/CharacterBrowserPanel';
 
 const CENTER_SECTIONS: Partial<Record<SectionId, React.ComponentType>> = {
   chats: ChatsPanel,
   characters: CharactersPanel,
   'character-editor': CharacterEditorPanel,
   lorebook: LorebookPanel,
+  'character-browser': CharacterBrowserPanel,
 };
 
 export function CenterPageHost() {

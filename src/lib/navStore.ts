@@ -12,7 +12,8 @@ export type SectionId =
   | 'lorebook'
   | 'settings'
   | 'ui-settings'
-  | 'personas';
+  | 'personas'
+  | 'character-browser';
 
 /** Top drawers fold down from the top bar */
 export type TopDrawerId =

@@ -1,4 +1,4 @@
-import { MessageSquare, Pencil, BookMarked, Zap, Users, Settings } from 'lucide-react';
+import { MessageSquare, Pencil, BookMarked, Zap, Users, Settings, Compass } from 'lucide-react';
 import { useNavStore, type SectionId } from '@/lib/navStore';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'lorebook', icon: <BookMarked size={20} />, label: 'Lore' },
   { id: 'generation', icon: <Zap size={20} />, label: 'Gen' },
   { id: 'characters', icon: <Users size={20} />, label: 'Chars' },
+  { id: 'character-browser', icon: <Compass size={20} />, label: 'Browse' },
 ];
 
 export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBottomNavProps) {

@@ -9,6 +9,7 @@ import {
   Pencil,
   Palette,
   UserCircle,
+  Compass,
 } from 'lucide-react';
 import { DrawerIcon } from './DrawerIcon';
 import { useNavStore, type SectionId, type TopDrawerId } from '@/lib/navStore';
@@ -43,6 +44,7 @@ const SECTION_ITEMS: NavItem[] = [
     behavior: 'section',
   },
   { id: 'lorebook', icon: <BookMarked size={16} />, label: 'Lorebook', behavior: 'section' },
+  { id: 'character-browser', icon: <Compass size={16} />, label: 'Browse', behavior: 'section' },
 ];
 
 const DRAWER_ITEMS: NavItem[] = [
