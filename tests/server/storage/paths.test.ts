@@ -70,8 +70,8 @@ describe('getGlobalExtensionRoot', () => {
 
 describe('getGlobalExtensionPath', () => {
   it('returns DATA_ROOT/extensions/<slug>', () => {
-    expect(getGlobalExtensionPath('hello-world')).toBe(
-      path.join(DATA_ROOT, 'extensions', 'hello-world'),
+    expect(getGlobalExtensionPath('demo-ext')).toBe(
+      path.join(DATA_ROOT, 'extensions', 'demo-ext'),
     );
   });
 
@@ -96,8 +96,8 @@ describe('getUserExtensionRoot', () => {
 
 describe('getUserExtensionPath', () => {
   it('returns DATA_ROOT/<userId>/extensions/<slug>', () => {
-    expect(getUserExtensionPath('user1', 'hello-world')).toBe(
-      path.join(DATA_ROOT, 'user1', 'extensions', 'hello-world'),
+    expect(getUserExtensionPath('user1', 'demo-ext')).toBe(
+      path.join(DATA_ROOT, 'user1', 'extensions', 'demo-ext'),
     );
   });
 

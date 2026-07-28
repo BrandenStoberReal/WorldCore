@@ -32,13 +32,13 @@ directory. No build step — extensions ship raw `.js`/`.ts`/`.tsx`.
   - [registerPanel / unregisterPanel](#registerpanel--unregisterpanel)
   - [registerSlot / unregisterSlot](#registerslot--unregisterslot)
   - [registerSlashCommand / unregisterSlashCommand](#registerslashcommand--unregisterslashcommand)
+  - [registerCardSource / unregisterCardSource](#registercardsource--unregistercardsource)
   - [registerSettingsPanel / unregisterSettingsPanel](#registersettingspanel--unregistersettingspanel)
   - [registerStylesheet](#registerstylesheet)
   - [helpers](#helpers)
 - [Event Types](#event-types)
 - [Slot IDs](#slot-ids)
 - [Server API](#server-api)
-- [Reference: hello-world Extension](#reference-hello-world-extension)
 - [Common Pitfalls](#common-pitfalls)
 
 ---
@@ -501,6 +501,233 @@ unregisterSlashCommand(name: string): void
 Register a `/name` command available in the chat input. When the user types
 `/name args`, the handler receives the arguments string.
 
+### registerCardSource / unregisterCardSource
+
+```ts
+registerCardSource(source: CardSource): void
+unregisterCardSource(sourceId: string): void
+```
+
+Register a **card source** that the built-in Character Browser panel aggregates
+and renders. The browser shell (center viewport section `character-browser`,
+opened via the `Browse` nav rail or `Alt+8`) handles search UI, source filter
+chips, the card grid, dedup against installed characters, and the
+download → import flow. A source extension only **provides data**.
+
+This is the contract for browsing character cards from external libraries
+without wiring up custom UI — drop a single `index.js` into
+`data/extensions/<your-source>/`, call `registerCardSource`, activate, and the
+browser panel picks it up automatically.
+
+#### `CardSource` contract
+
+```ts
+interface CardSource {
+  /** Stable unique id, lowercase alphanumeric + hyphens (e.g. 'chub'). */
+  id: string;
+  /** Human-readable name shown on the source filter chip. */
+  label: string;
+  /** Optional blurb shown in the source info popover. */
+  description?: string;
+  /**
+   * Optional lucide icon name (e.g. 'Library', 'Globe'). The framework resolves
+   * it; sources must not bundle lucide or React.
+   */
+  icon?: string;
+  /**
+   * Search the source's catalog. The framework auto-detects three return
+   * shapes (see below) and normalizes to a single array. If omitted, the
+   * source contributes no results in any search query.
+   */
+  search?: (
+    query: string,
+    opts?: { cursor?: string; limit?: number },
+  ) => CardListing[] | { items: CardListing[]; nextCursor?: string } | AsyncIterable<CardListing>;
+  /**
+   * Fetch the raw card bytes for a listing. The framework POSTs the returned
+   * ArrayBuffer to /api/v1/characters/import, which normalizes the card to
+   * chara_card_v3 and writes it to the user's library. Must NOT throw
+   * synchronously; reject the returned Promise on error instead.
+   */
+  fetchCard: (listing: CardListing) => Promise<ArrayBuffer>;
+}
+```
+
+#### `CardListing` shape
+
+```ts
+interface CardListing {
+  sourceId: string; // echoes the CardSource.id
+  cardId: string; // source-local id, must be non-empty
+  name: string; // non-empty (truncated in the grid)
+  description?: string;
+  avatarUrl?: string; // remote preview URL (validated as a URL by Zod)
+  creator?: string;
+  tags?: string[]; // first 3 shown in the grid, "+N" overflow
+  /**
+   * Opaque payload the framework echoes verbatim to fetchCard. The framework
+   * never inspects this field — use it to carry source-specific bookkeeping
+   * (e.g. `{ id: 42 }` for a remote card id).
+   */
+  payload?: unknown;
+}
+```
+
+Both `CardListing` (`CardListingSchema`) and the search options
+(`CardSearchOptionsSchema`) are defined as Zod schemas in
+`src/shared/schemas/character.ts` and derived as TypeScript types in
+`src/shared/types/character.ts`. The `CardSource` interface is a documented
+plain-TS exception to the type-first rule because Zod cannot describe function
+members — do not extend this exception to data shapes.
+
+#### Search result shapes
+
+The framework auto-detects which variant `search()` returns and normalizes it
+into an array. Pick whichever matches your backend; **you do not need to
+declare which you're using**.
+
+```js
+// 1. Plain array — simplest, fine for static catalogs.
+search(query) {
+  return cards.filter(c => c.name.includes(query)).map(toListing);
+}
+
+// 2. Paginated cursor — for backends that page results. V1 only renders the
+//    first page (no infinite-scroll UI yet); nextCursor is stored but unused.
+search(query) {
+  return fetchJson(`/search?q=${encodeURIComponent(query)}`)
+    .then(r => ({ items: r.results, nextCursor: r.next }));
+}
+
+// 3. AsyncIterable — for streaming backends.
+async function* search(query) {
+  for await (const page of streamPages(query)) {
+    for (const card of page) yield toListing(card);
+  }
+}
+```
+
+You may also return a `Promise` resolving to any of those shapes. If a source
+rejects or throws, that source contributes zero results for the current query
+— other sources still render. Source-level errors are logged via the browser
+console (the framework does not surface source errors to the user, by design).
+
+#### Dedup behavior
+
+The browser dedups the combined results from all active sources by
+`` `${sourceId}::${cardId}` ``, then checks each against the user's installed
+characters by `` `${name.toLowerCase()}\u0000${creator || ''}` ``. Cards that
+match an installed character render with a `Check` icon and a disabled
+"Already in library" button — no duplicate is imported through the browser.
+
+This is **client-side only**. The server-side `importCharacter` overwrites the
+PNG file by sanitized name (intentional), so dedup happens before the import
+POST to avoid clobbers.
+
+#### Download flow
+
+When the user clicks a card's download button, the framework:
+
+1. Calls `source.fetchCard(listing)` to get raw bytes (PNG, JSON, YAML, or a
+   `card.json`-style zip — all formats accepted by the importer).
+2. Wraps the `ArrayBuffer` as a `File` in `FormData` under the `'file'` field.
+3. POSTs to `/api/v1/characters/import`.
+4. Invalidates `['/api/v1/characters/all']` so other components re-fetch.
+5. Emits the `character_import` event with `{ id, name }`.
+6. Toasts success.
+
+Downloads are serialized (one at a time) in V1.
+
+#### Worked example: Local Library source
+
+This is the preinstalled demo source at `data/extensions/local-library/`. It
+lists cards already in the user's library (so the browser's full pipeline —
+search, grid, dedup, download, import — can be exercised end-to-end with no
+network call):
+
+```js
+const api = globalThis.WorldCore;
+const SOURCE_ID = 'local-library';
+
+function toListing(c) {
+  return {
+    sourceId: SOURCE_ID,
+    cardId: String(c.id),
+    name: c.name || 'Untitled',
+    description: c.description || '',
+    avatarUrl: '/api/v1/characters/thumbnail?id=' + c.id,
+    creator: c.creator || '',
+    tags: Array.isArray(c.tags) ? c.tags.slice(0, 5) : [],
+    payload: { id: c.id }, // echoed back to fetchCard verbatim
+  };
+}
+
+api.registerCardSource({
+  id: SOURCE_ID,
+  label: 'Local Library',
+  description: 'Your existing characters available for re-import.',
+  icon: 'Library',
+  search: function (query) {
+    try {
+      const list = api.helpers.characters.list(); // returns Promise<ShallowCharacter[]>
+      const handle = (chars) => {
+        const q = (query || '').toLowerCase().trim();
+        if (!q) return [];
+        return (chars || [])
+          .filter((c) =>
+            [c.name, c.description, c.creator, (c.tags || []).join(' ')].some((s) =>
+              (s || '').toLowerCase().includes(q),
+            ),
+          )
+          .map(toListing);
+      };
+      return list && typeof list.then === 'function' ? list.then(handle, () => []) : handle(list);
+    } catch (err) {
+      api.logger.namespace(SOURCE_ID).error('search threw', err);
+      return [];
+    }
+  },
+  fetchCard: function (listing) {
+    const id = listing.payload && listing.payload.id;
+    if (!id) return Promise.reject(new Error('missing payload.id'));
+    // NOTE: api.apiFetch calls res.json() on success — unsuitable for binary.
+    // Use raw fetch() for non-JSON responses.
+    return fetch('/api/v1/characters/export-png?id=' + encodeURIComponent(id)).then(function (res) {
+      if (!res.ok) throw new Error('Export-png failed: ' + res.status);
+      return res.arrayBuffer();
+    });
+  },
+});
+
+globalThis.__WorldCore_activate__(SOURCE_ID);
+```
+
+#### Lifecycle & teardown
+
+Card sources are tied to the extension's `extId` at registration time (the
+framework pins `api.meta.extId`). When the extension is disabled or
+uninstalled, `extensionRegistry.clearExtension(extId)` cascades to call
+`clearCardSourcesForExtId(extId)`, wiping every source that extension
+registered. No manual cleanup is required.
+
+A re-registration with the same `source.id` is idempotent — the second
+registration overwrites the first, mirroring `registerPanel` semantics.
+
+#### Validation
+
+`registerCardSource` throws synchronously if:
+
+- `source.id` is empty or whitespace-only
+- `source.fetchCard` is missing or not a function
+
+It does **not** validate `source.search` shape or `CardListing` payload shape
+at registration time — those are validated at runtime by the framework's
+search-result normalization and (for the listing) by the implicit `unknown`
+type on `payload`. Source authors are responsible for returning well-shaped
+listings; malformed listings may be silently dropped by the grid render.
+
+---
+
 ### registerSettingsPanel / unregisterSettingsPanel
 
 ```ts
@@ -622,53 +849,6 @@ All routes are under `/api/v1/extensions/`. Auth required for all routes (via
 
 ---
 
-## Reference: hello-world Extension
-
-```js
-const api = globalThis.WorldCore;
-const { react } = api;
-
-function HelloWorldSlot() {
-  const [count, setCount] = react.useState(0);
-  const [label, setLabel] = react.useState('hello, world');
-
-  // Subscribe to events — return the unsubscribe fn for cleanup
-  react.useEffect(() => {
-    const off = api.events.on('new_message', (msg) => {
-      setCount((c) => c + 1);
-      console.log(`${msg.name}: ${msg.mes}`);
-    });
-    return off;
-  }, []);
-
-  // Access extension settings
-  react.useEffect(() => {
-    void api.settings.get('label');
-  }, []);
-
-  return react.createElement(
-    'div',
-    { className: 'worldcore-hello-world' },
-    react.createElement('span', { className: 'whw-label' }, label),
-    react.createElement('span', { className: 'whw-count' }, String(count)),
-  );
-}
-
-api.registerSlot('chat-input-toolbar', HelloWorldSlot);
-
-api.registerSlashCommand(
-  'hello',
-  (args) => {
-    api.toast.success(`hello slash arg: ${args || '(none)'}`);
-  },
-  'prints a hello message',
-);
-
-globalThis.__WorldCore_activate__('hello-world');
-```
-
----
-
 ## Common Pitfalls
 
 ### 1. Re-reading `globalThis.WorldCore` in effects or async code
@@ -734,3 +914,53 @@ await apiGet('/some/endpoint');
 
 Peer dependencies are not supported in API v1. Set `peerDependencies: []` in
 your manifest.
+
+### 7. Using `apiFetch` / `apiGet` / `apiPost` for binary responses
+
+`apiFetch` (and its `apiGet` / `apiPost` wrappers) calls `res.json()` on a
+successful 2xx response. This **throws** when the body is binary (PNG bytes,
+zip archives, audio). Card source `fetchCard` implementations and any other
+binary-fetch code must use raw `fetch()` with a relative path:
+
+```js
+// Wrong — api.json() will throw on PNG bytes
+const buf = await api.apiFetch('/characters/export-png?id=42');
+//                     ^^^^^^^^^^ Promise<unknown>, then res.json() fails
+
+// Correct — raw fetch, then .arrayBuffer()
+const res = await fetch('/api/v1/characters/export-png?id=42');
+if (!res.ok) throw new Error(`HTTP ${res.status}`);
+const buf = await res.arrayBuffer();
+```
+
+Note the path prefix differs: `apiFetch` prepends `/api/v1` for you; raw
+`fetch()` requires you to add it (use a relative path to keep it portable).
+
+### 8. Throwing synchronously from `CardSource.search`
+
+The browser panel calls each active source's `search()` inside a `try/catch`
+on the Promise chain, but a **synchronous throw** escapes the chain and aborts
+the entire search (all sources lose their results) before the catch runs.
+Always catch your own setup errors and return `[]`:
+
+```js
+// Wrong — synchronous throw aborts every source's search
+search(query) {
+  const items = someSyncApiThatMightThrow(query);
+  return items;
+}
+
+// Correct — catch and return empty
+search(query) {
+  try {
+    return someSyncApiThatMightThrow(query) ?? [];
+  } catch (err) {
+    api.logger.namespace('my-source').error('search threw', err);
+    return [];
+  }
+}
+```
+
+For `fetchCard`, the contract is the inverse: **reject** the returned Promise
+rather than throwing synchronously (the framework wraps the call in `await`
+and surfaces the rejection as an error toast for that specific card).
