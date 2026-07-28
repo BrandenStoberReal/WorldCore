@@ -13,6 +13,8 @@ import {
   CharacterCreateInputSchema,
   CharacterEditAttributeInputSchema,
   CropSchema,
+  CardSearchOptionsSchema,
+  CardListingSchema,
 } from '@/shared/schemas/character';
 
 export type CharacterSpecVersion = z.infer<typeof CharacterSpecVersionSchema>;
@@ -28,3 +30,28 @@ export type ShallowCharacter = z.infer<typeof ShallowCharacterSchema>;
 export type CharacterCreateInput = z.infer<typeof CharacterCreateInputSchema>;
 export type CharacterEditAttributeInput = z.infer<typeof CharacterEditAttributeInputSchema>;
 export type Crop = z.infer<typeof CropSchema>;
+
+export type CardSearchOptions = z.infer<typeof CardSearchOptionsSchema>;
+export type CardListing = z.infer<typeof CardListingSchema>;
+
+// Result shape a CardSource.search() may return. The framework auto-detects
+// which variant and normalizes to an array.
+export type CardSearchResult =
+  | CardListing[]
+  | { items: CardListing[]; nextCursor?: string }
+  | AsyncIterable<CardListing>;
+
+/* eslint-disable-next-line @typescript-eslint/no-empty-interface --
+   CardSource is a plain TS interface (not Zod-derived) because it carries
+   function members (search, fetchCard) that Zod cannot describe. This is a
+   documented, narrow exception to the type-first rule. Do NOT take this as
+   precedent for non-Zod data shapes. */
+export interface CardSource {
+  id: string;
+  label: string;
+  description?: string;
+  /** Lucide icon name. The framework resolves it via dynamic import; sources must not import React. */
+  icon?: string;
+  search?: (query: string, opts?: CardSearchOptions) => CardSearchResult;
+  fetchCard: (listing: CardListing) => Promise<ArrayBuffer>;
+}

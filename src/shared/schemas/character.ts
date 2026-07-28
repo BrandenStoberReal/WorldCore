@@ -180,3 +180,19 @@ export const CropSchema = z.object({
   x: z.number(),
   y: z.number(),
 });
+
+export const CardSearchOptionsSchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const CardListingSchema = z.object({
+  sourceId: z.string().min(1),
+  cardId: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  avatarUrl: z.string().url().optional(),
+  creator: z.string().optional(),
+  tags: z.array(z.string()).default([]),
+  payload: z.unknown().optional(),
+});
