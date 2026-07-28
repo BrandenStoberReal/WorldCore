@@ -212,6 +212,22 @@ export const characterRoutes = {
     }),
   ),
 
+  exportPng: errorGuard(
+    withUserId(async (req: Request, userId: string): Promise<Response> => {
+      const id = Number(new URL(req.url).searchParams.get('id'));
+      if (!id || id <= 0) {
+        return Response.json(
+          { error: { code: 'VALIDATION_ERROR', message: 'Missing or invalid id parameter' } },
+          { status: 400 },
+        );
+      }
+      const result = await exportCharacter(id, userId, 'png');
+      return new Response(result.data as unknown as Blob, {
+        headers: { 'Content-Type': result.mimeType },
+      });
+    }),
+  ),
+
   reconcileList: errorGuard(
     withUserId(async (req: Request, userId: string): Promise<Response> => {
       await req.json().catch(() => ({}));

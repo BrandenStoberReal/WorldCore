@@ -111,6 +111,7 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/characters/duplicate`] = characterRoutes.duplicate;
   routes[`${PREFIX}/characters/import`] = characterRoutes.import;
   routes[`${PREFIX}/characters/export`] = characterRoutes.export;
+  routes[`${PREFIX}/characters/export-png`] = characterRoutes.exportPng;
   routes[`${PREFIX}/characters/avatar`] = characterRoutes.getAvatar;
   routes[`${PREFIX}/characters/thumbnail`] = characterRoutes.getThumbnail;
   routes[`${PREFIX}/characters/reconcile-list`] = characterRoutes.reconcileList;
