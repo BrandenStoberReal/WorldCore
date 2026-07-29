@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Save, RotateCcw, Zap, Copy, PanelLeftClose } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useGenerationStore } from '@/lib/stores';
+import { useAppStore, useGenerationStore } from '@/lib/stores';
 import { GenerationSlider } from '@/components/GenerationSlider';
 import { InlineSection } from '@/components/drawers/InlineSection';
 import {
@@ -27,6 +27,7 @@ type PresetStatus = 'idle' | 'saving' | 'loading' | 'ok' | 'err';
 export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: GenerationSidebarProps) {
   const store = useGenerationStore();
   const { mode } = store;
+  const { streamingEnabled, setStreamingEnabled } = useAppStore();
   const [presetStatus, setPresetStatus] = useState<PresetStatus>('idle');
   const [presetMessage, setPresetMessage] = useState<string>('');
   const [saveName, setSaveName] = useState('');
@@ -572,17 +573,17 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <button
                 type="button"
                 role="switch"
-                aria-checked={store.streaming}
-                onClick={() => update('streaming', !store.streaming)}
+                aria-checked={streamingEnabled}
+                onClick={() => setStreamingEnabled(!streamingEnabled)}
                 className={cn(
-                  'relative h-4 w-7 rounded-full transition-colors duration-200',
-                  store.streaming ? 'bg-ember/60' : 'bg-border',
+                  'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
+                  streamingEnabled ? 'bg-ember/60' : 'bg-border',
                 )}
               >
                 <span
                   className={cn(
-                    'absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
-                    store.streaming ? 'translate-x-3.5' : 'translate-x-0.5',
+                    'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                    streamingEnabled ? 'translate-x-3' : 'translate-x-0',
                   )}
                 />
               </button>

@@ -3,6 +3,7 @@ import type { AppStore, GenerationState, ChatStore } from '@/lib/stores';
 import type { Character, ShallowCharacter, CardSource } from '@/shared/types/character';
 import type { ChatMessage } from '@/shared/types/chat';
 import type { SectionId, TopDrawerId } from '@/lib/navStore';
+import type { StreamChatRequest } from '@/lib/api';
 
 export type WorldCorePanelTarget = 'top-drawer' | 'center';
 
@@ -17,11 +18,33 @@ export type WorldCoreEventTypes =
   | 'generation_started'
   | 'generation_stopped'
   | 'message_updated'
+  | 'message_removed'
+  | 'message_chunk_received'
   | 'new_message'
   | 'user_initialized'
   | 'viewport_changed'
   | 'top_drawer_changed'
   | 'character_import';
+
+/**
+ * Mutable context passed to a generation interceptor. Extensions mutate
+ * `ctx.request` in place to rewrite the in-flight prompt + gen params for this
+ * single generation only. Mutations are NEVER persisted to chat state, settings,
+ * or the database — they are transit-time only.
+ *
+ * `ctx.id` is a stable opaque string for this generation, useful for
+ * correlating events across the interceptor + the chunk_received lifecycle.
+ *
+ * `ctx.abort()` allows an interceptor to short-circuit the generation
+ * entirely; the caller treats the response as user-cancelled.
+ */
+export interface WorldCoreGenerationContext {
+  id: string;
+  request: StreamChatRequest;
+  abort: () => void;
+}
+
+export type GenerationInterceptorHandler = (ctx: WorldCoreGenerationContext) => void;
 
 export type WorldCoreSlotId =
   'chat-input-toolbar' | 'message-actions' | 'character-editor-sidebar' | 'generation-panel-bottom';
@@ -175,5 +198,7 @@ export interface WorldCoreAPI {
   registerStylesheet(href: string): void;
   registerCardSource(source: CardSource): void;
   unregisterCardSource(sourceId: string): void;
+  registerGenerationInterceptor(id: string, handler: GenerationInterceptorHandler): void;
+  unregisterGenerationInterceptor(id: string): void;
   helpers: WorldCoreHelpers;
 }

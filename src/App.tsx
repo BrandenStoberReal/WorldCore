@@ -13,7 +13,7 @@ import '@/index.css';
 export function App() {
   const [onboardingNeeded, setOnboardingNeeded] = useState<boolean | null>(null);
   const initUser = useAppStore((s) => s.initUser);
-  const initTheme = useAppStore((s) => s.initTheme);
+  const initSettings = useAppStore((s) => s.initSettings);
   const bootloader = useExtensionBootloader();
   useKeyboardShortcuts();
 
@@ -22,10 +22,10 @@ export function App() {
       setOnboardingNeeded(needed);
       if (!needed) {
         void initUser();
-        void initTheme();
+        void initSettings();
       }
     });
-  }, [initUser, initTheme]);
+  }, [initUser, initSettings]);
 
   if (bootloader.error && typeof console !== 'undefined') {
     console.warn('[worldcore-ext] boot error:', bootloader.error.message);

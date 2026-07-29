@@ -135,6 +135,7 @@ function buildShallowCharacter(
     data_size: dataSize,
     name: data.name ?? 'Unknown',
     description: data.description ?? '',
+    creator_notes: data.creator_notes ?? '',
     tags: data.tags ?? [],
     creator: data.creator ?? '',
     character_version: data.character_version ?? '',

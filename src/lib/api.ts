@@ -59,6 +59,17 @@ export async function saveSettings(patch: Record<string, unknown>): Promise<unkn
   return await apiPost('/settings/save', patch);
 }
 
+/**
+ * Read-modify-write for the settings bag. The server endpoint `/settings/save`
+ * does a FULL REPLACE of the entire settings object, so callers MUST merge with
+ * existing settings before sending — otherwise they silently clobber other
+ * fields (e.g. theme vs connection settings). This helper handles the merge.
+ */
+export async function saveSettingsPatch(patch: Record<string, unknown>): Promise<unknown> {
+  const current = await getSettings<Record<string, unknown>>();
+  return await saveSettings({ ...current, ...patch });
+}
+
 /** List all presets in a category. */
 export async function listPresets(category: string): Promise<unknown[]> {
   return await apiPost<unknown[]>('/presets/all', { category });
@@ -122,11 +133,35 @@ export interface StreamChatRequest {
 }
 
 export async function* streamChat(request: StreamChatRequest): AsyncGenerator<string> {
+  // Non-streaming transport: server returns one whole JSON response.
+  // Validate before parsing so 4xx/5xx surfaces as an error instead of an empty message.
+  if (request.streaming === false) {
+    const res = await fetch(`${BASE}/ai/1.1/api/openai/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => res.statusText);
+      throw new Error(`streamChat non-streaming request failed (${res.status}): ${errText}`);
+    }
+    const data = (await res.json()) as Record<string, unknown>;
+    const choices = data.choices as Array<{ message?: { content?: string } }> | undefined;
+    const content = choices?.[0]?.message?.content;
+    if (content) yield content;
+    return;
+  }
+
   const res = await fetch(`${BASE}/ai/1.1/api/openai/chat/stream`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => res.statusText);
+    throw new Error(`streamChat SSE request failed (${res.status}): ${errText}`);
+  }
 
   if (!res.body) {
     throw new Error('No stream body');
@@ -234,4 +269,46 @@ export async function setChatPersona(
   personaId: number | null,
 ): Promise<{ ok: boolean }> {
   return await apiPost<{ ok: boolean }>('/chats/set-persona', { fileId, personaId });
+}
+
+// === Generation Interceptors ===
+import { getGenerationInterceptors } from '@/lib/generationInterceptorRegistry';
+import type { WorldCoreGenerationContext } from '@/shared/types/worldcore-api';
+
+/**
+ * Run all registered generation interceptors sequentially against the given
+ * request. Each interceptor mutates `ctx.request` in place. If an interceptor
+ * throws, the error is logged and that interceptor is skipped — the chain
+ * continues with the prior request. If `ctx.abort()` is called by any
+ * interceptor, this function returns `null` to signal the caller to cancel.
+ *
+ * Generates a stable opaque `id` per call (used for cross-event correlation).
+ */
+export async function runGenerationInterceptors(
+  request: StreamChatRequest,
+  signal: AbortSignal,
+): Promise<StreamChatRequest | null> {
+  const interceptors = getGenerationInterceptors();
+  if (interceptors.length === 0) return request;
+
+  let aborted = false;
+  const ctx: WorldCoreGenerationContext = {
+    id: `gen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    request,
+    abort: () => {
+      aborted = true;
+    },
+  };
+
+  for (const { id, handler, extId } of interceptors) {
+    if (aborted) return null;
+    if (signal.aborted) return null;
+    try {
+      handler(ctx);
+    } catch (err) {
+      console.error(`[worldcore-ext:${extId}] generation interceptor "${id}" threw:`, err);
+    }
+  }
+
+  return aborted ? null : request;
 }

@@ -9,6 +9,20 @@ export const streamingRoutes = {
     const body = await req.json();
     const parsed = ChatCompletionRequestSchema.parse(body);
 
+    // streaming === false → user has token streaming disabled in UI; return whole JSON
+    if (parsed.streaming === false) {
+      const nonStreamReq: ChatCompletionRequest = { ...parsed, stream: false };
+      const response = await generateHandler(nonStreamReq);
+      // Return the upstream body as-is. Ollama adapter forwards stream: req.stream,
+      // so it returns a single NDJSON/JSON object. Other adapters return OpenAI-shape
+      // JSON. Keep upstream Content-Type if it's JSON, otherwise force application/json.
+      const ct = response.headers.get('Content-Type') ?? '';
+      const headers: Record<string, string> = {
+        'Content-Type': ct.includes('application/json') ? ct : 'application/json',
+      };
+      return new Response(response.body, { status: response.status, headers });
+    }
+
     const streamReq: ChatCompletionRequest = {
       ...parsed,
       stream: true,

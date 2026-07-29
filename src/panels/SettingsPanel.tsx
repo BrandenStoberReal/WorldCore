@@ -2,10 +2,13 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { StatusToggle } from '@/components/ui/status-toggle';
+import { GenerationSlider } from '@/components/GenerationSlider';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Search, FileX } from 'lucide-react';
 import { cn, surfaceCard } from '@/lib/utils';
 import { apiPost } from '@/lib/api';
+import { useAppStore } from '@/lib/stores';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert } from '@/components/ui/alert';
 
@@ -51,6 +54,8 @@ function reasonLabel(orphan: OrphanCharacterFile): string {
 
 export function SettingsPanel() {
   const queryClient = useQueryClient();
+  const { streamingEnabled, smoothStreaming, setStreamingEnabled, setSmoothStreaming } =
+    useAppStore();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteResult, setDeleteResult] = useState<{
@@ -129,6 +134,43 @@ export function SettingsPanel() {
           </p>
         </div>
       </header>
+
+      {/* ── Streaming card ── */}
+      <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-md')}>
+        <CardHeader className="px-4 pt-4 pb-3">
+          <CardTitle className="display-host text-[15px] leading-tight">Streaming</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 px-4 pb-4">
+          {/* Streaming enable toggle */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-0.5">
+              <span className="display-host text-foreground/85 text-[13px] font-medium">
+                Token streaming
+              </span>
+              <span className="text-muted-foreground/60 text-[11px]">
+                Use SSE token streaming for backends that support it. Off = whole response.
+              </span>
+            </div>
+            <StatusToggle
+              enabled={streamingEnabled}
+              onToggle={() => setStreamingEnabled(!streamingEnabled)}
+            />
+          </div>
+
+          {/* Smooth streaming slider */}
+          <div className={cn('space-y-2', !streamingEnabled && 'pointer-events-none opacity-50')}>
+            <GenerationSlider
+              label="Smooth streaming"
+              value={smoothStreaming}
+              min={0}
+              max={100}
+              step={1}
+              onChange={(v) => setSmoothStreaming(v)}
+              description="0 = instant, 100 = slowest with fade-in per drip."
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ── Character files reconciliation card ── */}
       <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-md')}>

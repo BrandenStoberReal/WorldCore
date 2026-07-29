@@ -18,6 +18,7 @@ export const ChatMessageSchema = z
     is_user: z.boolean(),
     send_date: z.string().datetime().optional(),
     mes: z.string(),
+    thinking: z.string().optional(),
     extra: z
       .object({
         name2: z.string().optional(),

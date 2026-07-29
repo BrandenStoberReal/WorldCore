@@ -21,7 +21,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ConnectionProfileForm } from '@/components/ConnectionProfileForm';
-import { apiFetch, saveSettings } from '@/lib/api';
+import { apiFetch, saveSettingsPatch } from '@/lib/api';
 import { useNavStore } from '@/lib/navStore';
 import { useGenerationStore } from '@/lib/stores';
 import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
@@ -159,7 +159,7 @@ export function ConnectionsPanel() {
       const source = (typeof config.type === 'string' && config.type) || apiType;
       const model = (typeof config.model === 'string' && config.model) || '';
       try {
-        await saveSettings({
+        await saveSettingsPatch({
           chat_completion_source: source,
           chat_completion_model: model,
           api: apiType,

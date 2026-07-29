@@ -1,5 +1,6 @@
 import type { FC, ReactNode } from 'react';
 import { clearCardSourcesForExtId } from './cardSourceRegistry';
+import { clearGenerationInterceptorsForExtId } from './generationInterceptorRegistry';
 
 export interface PanelConfig {
   id: string;
@@ -136,6 +137,7 @@ export function clearExtension(extId: string): void {
   }
 
   clearCardSourcesForExtId(extId);
+  clearGenerationInterceptorsForExtId(extId);
 }
 
 export function subscribeSlot(slotId: string, cb: () => void): () => void {

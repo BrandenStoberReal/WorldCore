@@ -18,6 +18,7 @@ import { InlineSection } from '@/components/drawers/InlineSection';
 import { apiFetch, apiGet, apiPost } from '@/lib/api';
 import { useDebouncedAutoSave } from '@/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import type { ReasoningSettings } from '@/shared/types/reasoning';
 
 interface PresetResponse {
   category: string;
@@ -135,17 +136,7 @@ interface TextOptionsState {
   stoppingStrings: string;
   tokenizer: string;
   tokenPadding: number;
-  reasoning: {
-    selectedPreset: string;
-    prefix: string;
-    suffix: string;
-    separator: string;
-    autoParse: boolean;
-    autoExpand: boolean;
-    showHidden: boolean;
-    addToPrompts: boolean;
-    maxAdditions: number;
-  };
+  reasoning: ReasoningSettings;
   bindModelTemplates: boolean;
   markdownEscapeStrings: string;
   startReplyWith: string;

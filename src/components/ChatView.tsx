@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquarePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
-import { useChatStore, useGenerationStore } from '@/lib/stores';
-import { apiGet, apiPost, streamChat } from '@/lib/api';
+import { useAppStore, useChatStore, useGenerationStore } from '@/lib/stores';
+import { apiGet, apiPost, streamChat, runGenerationInterceptors } from '@/lib/api';
+import type { StreamChatRequest } from '@/lib/api';
 import { cn, frostedGlass } from '@/lib/utils';
 import { emit } from '@/lib/extensionEventBus';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -15,6 +16,8 @@ import { PersonaSelector } from '@/components/PersonaSelector';
 
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import type { Character } from '@/shared/types/character';
+import { parseThinkingChunks } from '@/lib/parseThinking';
+import type { ReasoningSettings } from '@/shared/types/reasoning';
 
 type CharacterWithId = Character & { id: number };
 
@@ -36,10 +39,15 @@ export function ChatView({ characterId }: ChatViewProps) {
     messages,
     isGenerating,
     streamingContent,
+    streamingThinking,
+    isThinkingStream,
     setActiveChat,
     setMessages,
     addMessage,
+    removeMessage,
     setStreamingContent,
+    setStreamingThinking,
+    setIsThinkingStream,
     appendStreamingContent,
     commitStreaming,
     setIsGenerating,
@@ -50,6 +58,65 @@ export function ChatView({ characterId }: ChatViewProps) {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const fullContentRef = useRef('');
+
+  const { streamingEnabled, smoothStreaming } = useAppStore();
+
+  // Drip buffer state: pending chunks waiting to be released to the UI at a
+  // pace determined by `smoothStreaming`. 0 = no pacing (release immediately).
+  // Higher = slower drip rate (smoother reveal).
+  const dripRef = useRef<{
+    pending: string;
+    timer: ReturnType<typeof setTimeout> | null;
+    bodyDripEmitted: number;
+    thinkingSoFar: string | undefined;
+    inThinking: boolean;
+  }>({
+    pending: '',
+    timer: null,
+    bodyDripEmitted: 0,
+    thinkingSoFar: undefined,
+    inThinking: false,
+  });
+
+  const flushDrip = useCallback(() => {
+    if (dripRef.current.timer) {
+      clearTimeout(dripRef.current.timer);
+      dripRef.current.timer = null;
+    }
+    if (dripRef.current.pending) {
+      appendStreamingContent(dripRef.current.pending);
+      dripRef.current.pending = '';
+    }
+  }, [appendStreamingContent]);
+
+  const scheduleDrip = useCallback(() => {
+    const { smoothStreaming } = useAppStore.getState();
+    if (smoothStreaming <= 0) {
+      flushDrip();
+      return;
+    }
+    const delayMs = Math.round(smoothStreaming);
+    dripRef.current.timer = setTimeout(() => {
+      const pending = dripRef.current.pending;
+      if (!pending) {
+        dripRef.current.timer = null;
+        return;
+      }
+      const SLICE = 3;
+      const slice = pending.slice(0, SLICE);
+      dripRef.current.pending = pending.slice(SLICE);
+      appendStreamingContent(slice);
+      if (dripRef.current.pending) {
+        scheduleDripRef.current?.();
+      } else {
+        dripRef.current.timer = null;
+      }
+    }, delayMs);
+  }, [appendStreamingContent]);
+
+  const scheduleDripRef = useRef(scheduleDrip);
+  scheduleDripRef.current = scheduleDrip;
 
   const { data: character, isLoading: charLoading } = useQuery<CharacterWithId>({
     queryKey: ['/api/v1/characters/get', characterId],
@@ -64,6 +131,20 @@ export function ChatView({ characterId }: ChatViewProps) {
       return await apiGet<SettingsData>('/settings/get');
     },
   });
+
+  const reasoningSettings = useMemo(() => {
+    const r = (settings as { textOptions?: { reasoning?: Partial<ReasoningSettings> } } | undefined)
+      ?.textOptions?.reasoning;
+    return r
+      ? {
+          prefix: r.prefix ?? '',
+          suffix: r.suffix ?? '',
+          separator: r.separator ?? '\n',
+          autoParse: r.autoParse ?? false,
+          autoExpand: r.autoExpand ?? false,
+        }
+      : { prefix: '', suffix: '', separator: '\n', autoParse: false, autoExpand: false };
+  }, [settings]);
 
   const { data: chatData } = useQuery({
     queryKey: ['/api/v1/chats/get', activeChatId],
@@ -165,12 +246,31 @@ export function ChatView({ characterId }: ChatViewProps) {
       abortRef.current.abort();
       abortRef.current = null;
     }
+    flushDrip(); // ensure no orphaned pending tokens after stop
     setIsGenerating(false);
     emit('generation_stopped', { characterId });
-    if (streamingContent) {
-      commitStreaming(character?.name ?? 'Assistant');
+    if (streamingContent || fullContentRef.current) {
+      let parsed: { mes: string; thinking?: string } | undefined;
+      if (
+        reasoningSettings.autoParse &&
+        reasoningSettings.prefix &&
+        reasoningSettings.suffix &&
+        fullContentRef.current
+      ) {
+        const p = parseThinkingChunks(fullContentRef.current, reasoningSettings);
+        parsed = { mes: p.body, thinking: p.thinking };
+      }
+      commitStreaming(character?.name ?? 'Assistant', parsed);
     }
-  }, [abortRef, streamingContent, character, setIsGenerating, commitStreaming]);
+  }, [
+    abortRef,
+    streamingContent,
+    character,
+    setIsGenerating,
+    commitStreaming,
+    flushDrip,
+    reasoningSettings,
+  ]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -208,6 +308,11 @@ export function ChatView({ characterId }: ChatViewProps) {
       setIsGenerating(true);
       emit('generation_started', { characterId });
       setStreamingContent('');
+      setStreamingThinking(undefined);
+      setIsThinkingStream(false);
+      dripRef.current.bodyDripEmitted = 0;
+      dripRef.current.thinkingSoFar = undefined;
+      dripRef.current.inThinking = false;
 
       abortRef.current = new AbortController();
 
@@ -217,7 +322,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         top_k: genStore.top_k,
         max_tokens: genStore.max_tokens,
         seed: genStore.seed,
-        streaming: genStore.streaming,
+        streaming: streamingEnabled,
         stop: genStore.stop.length > 0 ? genStore.stop : undefined,
       };
 
@@ -245,30 +350,84 @@ export function ChatView({ characterId }: ChatViewProps) {
       }
 
       let fullContent = '';
+      fullContentRef.current = '';
       try {
-        const generator = streamChat({
+        const interceptorRequest: StreamChatRequest = {
           chat_completion_source: source,
           model: genStore.model || model,
           messages: promptMessages,
           ...genParams,
-        });
+        };
+
+        const interceptedRequest = await runGenerationInterceptors(
+          interceptorRequest,
+          abortRef.current!.signal,
+        );
+        if (!interceptedRequest) {
+          // An interceptor aborted this generation. Treat as user-cancelled.
+          return;
+        }
+
+        const generator = streamChat(interceptedRequest);
 
         for await (const chunk of generator) {
           if (abortRef.current?.signal.aborted) break;
           fullContent += chunk;
-          appendStreamingContent(chunk);
+          fullContentRef.current = fullContent;
+          emit('message_chunk_received', { chunk, index: messages.length + 1 });
+          const currentSmooth = useAppStore.getState().smoothStreaming;
+          if (reasoningSettings.autoParse && reasoningSettings.prefix && reasoningSettings.suffix) {
+            const parsed = parseThinkingChunks(fullContent, reasoningSettings);
+            const bodyChunk =
+              parsed.body.length > dripRef.current.bodyDripEmitted
+                ? parsed.body.slice(dripRef.current.bodyDripEmitted)
+                : '';
+            dripRef.current.bodyDripEmitted = parsed.body.length;
+            if (dripRef.current.thinkingSoFar !== parsed.thinking) {
+              dripRef.current.thinkingSoFar = parsed.thinking;
+              setStreamingThinking(parsed.thinking);
+            }
+            if (dripRef.current.inThinking !== parsed.inThinking) {
+              dripRef.current.inThinking = parsed.inThinking;
+              setIsThinkingStream(parsed.inThinking);
+            }
+            if (currentSmooth > 0) {
+              dripRef.current.pending += bodyChunk;
+              if (!dripRef.current.timer) scheduleDrip();
+            } else {
+              appendStreamingContent(bodyChunk);
+            }
+          } else {
+            if (currentSmooth > 0) {
+              dripRef.current.pending += chunk;
+              if (!dripRef.current.timer) scheduleDrip();
+            } else {
+              appendStreamingContent(chunk);
+            }
+          }
         }
+        flushDrip();
 
         if (fullContent) {
+          let finalMes = fullContent;
+          let finalThinking: string | undefined;
+          if (reasoningSettings.autoParse && reasoningSettings.prefix && reasoningSettings.suffix) {
+            const parsed = parseThinkingChunks(fullContent, reasoningSettings);
+            finalMes = parsed.body;
+            finalThinking = parsed.thinking;
+          }
           const assistantMsg: ChatMessageType = {
             name: character.name,
             is_user: false,
-            mes: fullContent,
+            mes: finalMes,
+            thinking: finalThinking,
             send_date: new Date().toISOString(),
             extra: {},
           };
           addMessage(assistantMsg);
           setStreamingContent('');
+          setStreamingThinking(undefined);
+          setIsThinkingStream(false);
           await appendMessageMutation.mutateAsync({ fileId: activeChatId, message: assistantMsg });
         }
       } catch (err) {
@@ -285,6 +444,8 @@ export function ChatView({ characterId }: ChatViewProps) {
             };
             addMessage(assistantMsg);
             setStreamingContent('');
+            setStreamingThinking(undefined);
+            setIsThinkingStream(false);
             await appendMessageMutation.mutateAsync({
               fileId: activeChatId,
               message: assistantMsg,
@@ -292,6 +453,7 @@ export function ChatView({ characterId }: ChatViewProps) {
           }
         }
       } finally {
+        flushDrip();
         setIsGenerating(false);
         emit('generation_stopped', { characterId });
         abortRef.current = null;
@@ -309,7 +471,15 @@ export function ChatView({ characterId }: ChatViewProps) {
       appendMessageMutation,
       setIsGenerating,
       setStreamingContent,
+      setStreamingThinking,
+      setIsThinkingStream,
       appendStreamingContent,
+      streamingEnabled,
+      smoothStreaming,
+      scheduleDrip,
+      flushDrip,
+      reasoningSettings,
+      fullContentRef,
     ],
   );
 
@@ -332,6 +502,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       if (!activeChatId || index >= messages.length) return;
       const msg = messages[index];
       if (!msg) return;
+      if (newText.trim().length === 0) return; // ignore empty edits — keep previous message text
 
       const updatedMsg = { ...msg, mes: newText };
       const newMessages = [...messages];
@@ -353,6 +524,27 @@ export function ChatView({ characterId }: ChatViewProps) {
     [activeChatId, messages, setMessages],
   );
 
+  const handleDeleteMessage = useCallback(
+    async (index: number) => {
+      if (!activeChatId || index < 0 || index >= messages.length) return;
+      if (index === 0) return; // never delete the greeting (first message)
+
+      removeMessage(index);
+      emit('message_removed', { index });
+
+      try {
+        await apiPost('/chats/message', {
+          fileId: activeChatId,
+          action: 'delete',
+          index,
+        });
+      } catch (err) {
+        console.error('Failed to delete message:', err);
+      }
+    },
+    [activeChatId, messages, removeMessage],
+  );
+
   const handleRegenerate = useCallback(
     async (index: number) => {
       if (!character || !activeChatId || isGenerating) return;
@@ -364,6 +556,11 @@ export function ChatView({ characterId }: ChatViewProps) {
       setIsGenerating(true);
       emit('generation_started', { characterId });
       setStreamingContent('');
+      setStreamingThinking(undefined);
+      setIsThinkingStream(false);
+      dripRef.current.bodyDripEmitted = 0;
+      dripRef.current.thinkingSoFar = undefined;
+      dripRef.current.inThinking = false;
       abortRef.current = new AbortController();
 
       const genParams: Record<string, unknown> = {
@@ -372,7 +569,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         top_k: genStore.top_k,
         max_tokens: genStore.max_tokens,
         seed: genStore.seed,
-        streaming: genStore.streaming,
+        streaming: streamingEnabled,
         stop: genStore.stop.length > 0 ? genStore.stop : undefined,
       };
 
@@ -400,8 +597,9 @@ export function ChatView({ characterId }: ChatViewProps) {
       }
 
       let fullContent = '';
+      fullContentRef.current = '';
       try {
-        const generator = streamChat({
+        const interceptorRequest: StreamChatRequest = {
           chat_completion_source: (settings?.chat_completion_source as string) || 'openai',
           model: genStore.model || (settings?.chat_completion_model as string) || 'gpt-3.5-turbo',
           messages: truncatedMessages.map((m) => ({
@@ -410,25 +608,78 @@ export function ChatView({ characterId }: ChatViewProps) {
             name: m.name,
           })),
           ...genParams,
-        });
+        };
+
+        const interceptedRequest = await runGenerationInterceptors(
+          interceptorRequest,
+          abortRef.current!.signal,
+        );
+        if (!interceptedRequest) {
+          // An interceptor aborted this generation. Treat as user-cancelled.
+          return;
+        }
+
+        const generator = streamChat(interceptedRequest);
 
         for await (const chunk of generator) {
           if (abortRef.current?.signal.aborted) break;
           fullContent += chunk;
-          appendStreamingContent(chunk);
+          fullContentRef.current = fullContent;
+          emit('message_chunk_received', { chunk, index: messages.length + 1 });
+          const currentSmooth = useAppStore.getState().smoothStreaming;
+          if (reasoningSettings.autoParse && reasoningSettings.prefix && reasoningSettings.suffix) {
+            const parsed = parseThinkingChunks(fullContent, reasoningSettings);
+            const bodyChunk =
+              parsed.body.length > dripRef.current.bodyDripEmitted
+                ? parsed.body.slice(dripRef.current.bodyDripEmitted)
+                : '';
+            dripRef.current.bodyDripEmitted = parsed.body.length;
+            if (dripRef.current.thinkingSoFar !== parsed.thinking) {
+              dripRef.current.thinkingSoFar = parsed.thinking;
+              setStreamingThinking(parsed.thinking);
+            }
+            if (dripRef.current.inThinking !== parsed.inThinking) {
+              dripRef.current.inThinking = parsed.inThinking;
+              setIsThinkingStream(parsed.inThinking);
+            }
+            if (currentSmooth > 0) {
+              dripRef.current.pending += bodyChunk;
+              if (!dripRef.current.timer) scheduleDrip();
+            } else {
+              appendStreamingContent(bodyChunk);
+            }
+          } else {
+            if (currentSmooth > 0) {
+              dripRef.current.pending += chunk;
+              if (!dripRef.current.timer) scheduleDrip();
+            } else {
+              appendStreamingContent(chunk);
+            }
+          }
         }
+        flushDrip();
 
         if (fullContent) {
+          let finalMes = fullContent;
+          let finalThinking: string | undefined;
+          if (reasoningSettings.autoParse && reasoningSettings.prefix && reasoningSettings.suffix) {
+            const parsed = parseThinkingChunks(fullContent, reasoningSettings);
+            finalMes = parsed.body;
+            finalThinking = parsed.thinking;
+          }
           const assistantMsg: ChatMessageType = {
             name: character.name,
             is_user: false,
-            mes: fullContent,
+            mes: finalMes,
+            thinking: finalThinking,
             send_date: new Date().toISOString(),
             extra: {},
           };
           const newMessages = [...truncatedMessages, assistantMsg];
           setMessages(newMessages);
           setStreamingContent('');
+          setStreamingThinking(undefined);
+          setIsThinkingStream(false);
           await apiPost('/chats/message', {
             fileId: activeChatId,
             action: 'append',
@@ -441,6 +692,7 @@ export function ChatView({ characterId }: ChatViewProps) {
           console.error('Regeneration error:', error);
         }
       } finally {
+        flushDrip();
         setIsGenerating(false);
         emit('generation_stopped', { characterId });
         abortRef.current = null;
@@ -456,8 +708,16 @@ export function ChatView({ characterId }: ChatViewProps) {
       resolvedPersona,
       setIsGenerating,
       setStreamingContent,
+      setStreamingThinking,
+      setIsThinkingStream,
       appendStreamingContent,
       setMessages,
+      streamingEnabled,
+      smoothStreaming,
+      scheduleDrip,
+      flushDrip,
+      reasoningSettings,
+      fullContentRef,
     ],
   );
 
@@ -475,12 +735,13 @@ export function ChatView({ characterId }: ChatViewProps) {
 
   const displayMessages = [
     ...messages,
-    ...(streamingContent
+    ...(streamingContent || isThinkingStream
       ? [
           {
             name: character.name,
             is_user: false,
             mes: streamingContent,
+            thinking: streamingThinking,
             send_date: new Date().toISOString(),
             extra: {},
           } as ChatMessageType,
@@ -571,8 +832,22 @@ export function ChatView({ characterId }: ChatViewProps) {
               onCopy={handleCopyMessage}
               onEdit={handleEditMessage}
               onRegenerate={handleRegenerate}
+              onDelete={handleDeleteMessage}
+              canDelete={i !== 0}
             />
           ))}
+          {isGenerating && (streamingContent || isThinkingStream) && smoothStreaming > 0 && (
+            <div className="flex justify-start">
+              {isThinkingStream ? (
+                <span className="mono-tag text-muted-foreground/65">Thinking…</span>
+              ) : (
+                <span
+                  aria-hidden
+                  className="mes_text-cursor animate-in fade-in slide-in-from-top-1 bg-ember/80 fill-mode-forwards ml-1 inline-block h-3.5 w-1 rounded-sm align-text-bottom"
+                />
+              )}
+            </div>
+          )}
           {isGenerating && !streamingContent && (
             <div className="flex justify-start gap-2.5">
               <div className="border-border bg-muted/40 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border">

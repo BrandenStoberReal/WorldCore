@@ -113,6 +113,7 @@ export const ShallowCharacterSchema = z.object({
   data_size: z.number().default(0),
   name: z.string(),
   description: z.string().default(''),
+  creator_notes: z.string().default(''),
   tags: z.array(z.string()).default([]),
   creator: z.string().default(''),
   character_version: z.string().default(''),

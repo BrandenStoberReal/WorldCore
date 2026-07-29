@@ -3,7 +3,7 @@ import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import { cn } from '@/lib/utils';
 import { substituteMacros, type MacroContext } from '@/lib/macros';
 import { renderMarkdown } from '@/lib/markdown';
-import { Copy, Pencil, RotateCcw, Check } from 'lucide-react';
+import { ChevronDown, Copy, Pencil, RotateCcw, Check, Trash2 } from 'lucide-react';
 
 interface ChatMessageProps {
   msg: ChatMessageType;
@@ -23,6 +23,9 @@ interface ChatMessageProps {
   onCopy?: (text: string) => void;
   onEdit?: (index: number, newText: string) => void;
   onRegenerate?: (index: number) => void;
+  onDelete?: (index: number) => void;
+  canDelete?: boolean;
+  autoExpandThinking?: boolean;
 }
 
 export function ChatMessage({
@@ -43,6 +46,9 @@ export function ChatMessage({
   onCopy,
   onEdit,
   onRegenerate,
+  onDelete,
+  canDelete = true,
+  autoExpandThinking = false,
 }: ChatMessageProps) {
   const isUser = msg.is_user;
   const [copied, setCopied] = useState(false);
@@ -61,7 +67,7 @@ export function ChatMessage({
 
   const initial = msg.name && msg.name.length > 0 ? msg.name[0]!.toUpperCase() : '?';
 
-  const processedText = substituteMacros(msg.mes, {
+  const macroContext = {
     userName,
     characterName,
     description,
@@ -72,8 +78,16 @@ export function ChatMessage({
     creator_notes,
     system_prompt,
     post_history_instructions,
-  });
+  } satisfies MacroContext;
+
+  const processedText = substituteMacros(msg.mes, macroContext);
   const renderedContent = renderMarkdown(processedText);
+
+  const thinkingContent =
+    !isUser && typeof msg.thinking === 'string' && msg.thinking.length > 0 ? msg.thinking : null;
+  const renderedThinking = thinkingContent
+    ? renderMarkdown(substituteMacros(thinkingContent, macroContext))
+    : null;
 
   return (
     <div className="group relative flex flex-col">
@@ -142,6 +156,24 @@ export function ChatMessage({
         </div>
       </div>
 
+      {/* Thinking aside — collapsible, AI-only */}
+      {renderedThinking && (
+        <details
+          open={autoExpandThinking}
+          className="group/thinking border-border/40 bg-muted/20 mx-3 mt-1 mb-0.5 rounded-md border text-[12px]"
+        >
+          <summary className="text-muted-foreground/70 hover:text-muted-foreground flex cursor-pointer items-center gap-1.5 px-3 py-1.5 transition-colors select-none">
+            <span className="mono-tag">Thinking...</span>
+            <span className="ml-auto opacity-0 transition-all group-open/thinking:rotate-180 group-hover/thinking:opacity-100">
+              <ChevronDown className="h-2.5 w-2.5" />
+            </span>
+          </summary>
+          <div className="mes_text border-border/30 text-foreground/70 border-t px-3 py-2">
+            {renderedThinking}
+          </div>
+        </details>
+      )}
+
       {/* Message body — mes_text class for ST styling */}
       <div className="group/message relative">
         <div
@@ -164,7 +196,7 @@ export function ChatMessage({
         </div>
 
         {/* Action buttons — appear on hover */}
-        <div className="absolute -top-2 right-2 flex items-center gap-1 opacity-0 transition-opacity group-hover/message:opacity-100">
+        <div className="absolute -top-2 right-2 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/message:opacity-100">
           <button
             type="button"
             onClick={() => {
@@ -172,7 +204,7 @@ export function ChatMessage({
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
-            className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 items-center gap-1 rounded-md border px-1.5 text-[10px] backdrop-blur-sm transition-colors"
+            className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded-md border p-0 backdrop-blur-sm transition-colors"
             title="Copy message"
           >
             {copied ? (
@@ -180,10 +212,9 @@ export function ChatMessage({
             ) : (
               <Copy className="h-2.5 w-2.5" />
             )}
-            <span className="mono-tag">{copied ? 'Copied' : 'Copy'}</span>
           </button>
 
-          {isUser && onEdit && (
+          {onEdit && (
             <button
               type="button"
               onClick={() => {
@@ -194,11 +225,10 @@ export function ChatMessage({
                   setIsEditing(true);
                 }
               }}
-              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 items-center gap-1 rounded-md border px-1.5 text-[10px] backdrop-blur-sm transition-colors"
+              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded-md border p-0 backdrop-blur-sm transition-colors"
               title={isEditing ? 'Save edit' : 'Edit message'}
             >
               <Pencil className="h-2.5 w-2.5" />
-              <span className="mono-tag">{isEditing ? 'Save' : 'Edit'}</span>
             </button>
           )}
 
@@ -206,11 +236,21 @@ export function ChatMessage({
             <button
               type="button"
               onClick={() => onRegenerate(index)}
-              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 items-center gap-1 rounded-md border px-1.5 text-[10px] backdrop-blur-sm transition-colors"
+              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded-md border p-0 backdrop-blur-sm transition-colors"
               title="Regenerate response"
             >
               <RotateCcw className="h-2.5 w-2.5" />
-              <span className="mono-tag">Regen</span>
+            </button>
+          )}
+
+          {canDelete && onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(index)}
+              className="bg-background/80 hover:bg-destructive/10 hover:text-destructive border-border/60 flex h-6 w-6 items-center justify-center rounded-md border p-0 backdrop-blur-sm transition-colors"
+              title="Delete message"
+            >
+              <Trash2 className="h-2.5 w-2.5" />
             </button>
           )}
         </div>

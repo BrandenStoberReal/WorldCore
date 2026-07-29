@@ -794,25 +794,124 @@ if (me) api.toast.info(`Logged in as ${me.name}`);
 
 ---
 
+## Generation Interceptors
+
+Extensions can intercept and rewrite the in-flight LLM prompt + generation
+parameters for a single generation, in transit. Register an interceptor with
+`api.registerGenerationInterceptor(id, handler)`. The handler receives a mutable
+context object — mutate `ctx.request` in place to rewrite what's sent to the
+LLM. Mutations are **transit-time only**: never persisted to chat state,
+settings, or the database.
+
+This is the only sync-interceptor surface in the WorldCore API. The existing
+event bus (`api.events.on/emit`) is read-only; interceptors are the only way
+to modify in-flight data.
+
+### Handler Signature
+
+```js
+api.registerGenerationInterceptor('my-ext.interceptor', (ctx) => {
+  // ctx.id        — stable opaque string for this generation, useful for
+  //                  correlating events across the chunk_received lifecycle
+  // ctx.request   — mutable StreamChatRequest (see below)
+  // ctx.abort()   — call to short-circuit this generation entirely
+  //
+  // returns void. mutations to ctx.request are seen by downstream
+  // interceptors + the final LLM fetch.
+
+  // Example: append a system reminder to every generation
+  ctx.request.messages = [{ role: 'system', content: 'You are concise.' }, ...ctx.request.messages];
+
+  // Example: one-off lower temperature for this generation
+  ctx.request.temperature = 0.3;
+});
+```
+
+### `ctx.request` — Full `StreamChatRequest`
+
+Interceptors have access to the entire assembled request, not just `messages`.
+
+| Field                                                                   | Type                                                      | Notes                                              |
+| ----------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------- |
+| `chat_completion_source`                                                | `string`                                                  | Provider id: `openai`, `anthropic`, `ollama`, etc. |
+| `model`                                                                 | `string`                                                  | Model name passed upstream.                        |
+| `messages`                                                              | `Array<{ role: string; content: string; name?: string }>` | The full assembled prompt array.                   |
+| `temperature` / `top_p` / `top_k` / `max_tokens` / `seed` / `streaming` | `number?` / `boolean?`                                    | Gen params; all modifiable.                        |
+| (catchall)                                                              | `unknown`                                                 | Any other gen param (e.g. `frequency_penalty`).    |
+
+### Failure Semantics
+
+If an interceptor throws, the error is logged to `console.error` with a
+`[worldcore-ext:<extId>]` prefix and the interceptor is **skipped** — the
+generation continues with the prior request from the previous interceptor (or
+the original untouched request if the first interceptor throws). Generations
+are never blocked by a buggy extension.
+
+### Transit-Time Only
+
+Mutations to `ctx.request` apply only to this one generation. The saved chat
+array, settings, and database are never touched. If you want a mutation to
+persist (e.g., always trim messages to N tokens), you must persist it yourself
+via `api.settings.set` and apply it in your interceptor on every generation.
+
+### Ordering
+
+Interceptors run sequentially in registration order. Each interceptor sees the
+mutations of all prior interceptors. To enforce ordering (e.g., "always
+first" or "always last"), use a stable `id` prefix that sorts as expected —
+the registry iterates in Map insertion order.
+
+### Aborting the Generation
+
+Call `ctx.abort()` to short-circuit the entire generation. The caller treats
+the result as user-cancelled — no LLM call is made, no message is appended.
+Useful for extensions like "content filters blocked this prompt" that want to
+stop generation entirely.
+
+### Cleanup
+
+Interceptors are scoped to the extension that registered them. When an
+extension is unloaded (via `__WorldCore_deactivate__` or the Extensions panel),
+all its interceptors are removed automatically via `clearExtension(extId)`.
+You can also manually unregister with `api.unregisterGenerationInterceptor(id)`.
+
+### Concrete Example — Append a Custom System Reminder
+
+```js
+function myExtension(api) {
+  api.registerGenerationInterceptor('my-ext.system-reminder', (ctx) => {
+    // Only inject for chat-completions providers (skip text-completions)
+    if (ctx.request.chat_completion_source === 'ollama') return;
+
+    ctx.request.messages = [
+      { role: 'system', content: 'Always answer in pirate speak.' },
+      ...ctx.request.messages,
+    ];
+  });
+}
+```
+
 ## Event Types
 
-| Event                | Payload                                   | When                                       |
-| -------------------- | ----------------------------------------- | ------------------------------------------ |
-| `ext_installed`      | `{ id: string }`                          | After an extension successfully activates. |
-| `ext_uninstalled`    | `{ id: string }`                          | After an extension is unloaded.            |
-| `ext_enabled`        | `{ id: string }`                          | An extension was enabled.                  |
-| `ext_disabled`       | `{ id: string }`                          | An extension was disabled.                 |
-| `chat_changed`       | `{ chatId: string \| null }`              | Active chat session changed.               |
-| `character_changed`  | `{ characterId: number \| null }`         | Active character switched.                 |
-| `settings_changed`   | `{ extId, key }`                          | An extension setting was persisted.        |
-| `generation_started` | `{ characterId: number }`                 | LLM text generation began.                 |
-| `generation_stopped` | `{ characterId: number }`                 | LLM text generation finished.              |
-| `message_updated`    | `{ index: number, message: ChatMessage }` | An existing chat message was edited.       |
-| `new_message`        | `ChatMessage` (full object)               | A new chat message was appended.           |
-| `user_initialized`   | `{ userId: string }`                      | User session loaded on app start.          |
-| `viewport_changed`   | `{ sectionId: SectionId }`                | Active panel changed.                      |
-| `top_drawer_changed` | `{ drawerId: TopDrawerId \| null }`       | Top overlay drawer opened or closed.       |
-| `character_import`   | `{ id: number }`                          | A character was imported.                  |
+| Event                    | Payload                                   | When                                                                                                                                                                                                                     |
+| ------------------------ | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ext_installed`          | `{ id: string }`                          | After an extension successfully activates.                                                                                                                                                                               |
+| `ext_uninstalled`        | `{ id: string }`                          | After an extension is unloaded.                                                                                                                                                                                          |
+| `ext_enabled`            | `{ id: string }`                          | An extension was enabled.                                                                                                                                                                                                |
+| `ext_disabled`           | `{ id: string }`                          | An extension was disabled.                                                                                                                                                                                               |
+| `chat_changed`           | `{ chatId: string \| null }`              | Active chat session changed.                                                                                                                                                                                             |
+| `character_changed`      | `{ characterId: number \| null }`         | Active character switched.                                                                                                                                                                                               |
+| `settings_changed`       | `{ extId, key }`                          | An extension setting was persisted.                                                                                                                                                                                      |
+| `generation_started`     | `{ characterId: number }`                 | LLM text generation began.                                                                                                                                                                                               |
+| `generation_stopped`     | `{ characterId: number }`                 | LLM text generation finished.                                                                                                                                                                                            |
+| `message_chunk_received` | `{ chunk: string, index: number }`        | A streamed token chunk arrived from the LLM. Fires once per chunk during generation, before drip-buffer pacing. Does not fire when token streaming is disabled (the whole message arrives as one `new_message` instead). |
+| `message_updated`        | `{ index: number, message: ChatMessage }` | An existing chat message was edited.                                                                                                                                                                                     |
+| `message_removed`        | `{ index: number }`                       | A chat message was deleted.                                                                                                                                                                                              |
+| `new_message`            | `ChatMessage` (full object)               | A new chat message was appended.                                                                                                                                                                                         |
+| `user_initialized`       | `{ userId: string }`                      | User session loaded on app start.                                                                                                                                                                                        |
+| `viewport_changed`       | `{ sectionId: SectionId }`                | Active panel changed.                                                                                                                                                                                                    |
+| `top_drawer_changed`     | `{ drawerId: TopDrawerId \| null }`       | Top overlay drawer opened or closed.                                                                                                                                                                                     |
+| `character_import`       | `{ id: number }`                          | A character was imported.                                                                                                                                                                                                |
 
 ---
 

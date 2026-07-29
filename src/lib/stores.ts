@@ -1,7 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ChatMessage } from '@/shared/types/chat';
-import { apiGet, getPreset, getSettings, listPresets, savePreset, saveSettings } from '@/lib/api';
+import {
+  apiGet,
+  getPreset,
+  getSettings,
+  listPresets,
+  savePreset,
+  saveSettings,
+  saveSettingsPatch,
+} from '@/lib/api';
 import { emit } from '@/lib/extensionEventBus';
 
 export type Theme = 'light' | 'dark' | 'system';
@@ -25,10 +33,14 @@ interface MeResponse {
 export interface AppStore {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  streamingEnabled: boolean; // user preference: SSE vs whole-response transport
+  smoothStreaming: number; // 0-100 slider; 0=instant, 100=slowest with fade-in
+  setStreamingEnabled: (enabled: boolean) => void;
+  setSmoothStreaming: (value: number) => void;
   user: User | null;
   setUser: (user: User | null) => void;
   initUser: () => Promise<void>;
-  initTheme: () => Promise<void>;
+  initSettings: () => Promise<void>;
 }
 
 function isTheme(value: unknown): value is Theme {
@@ -39,7 +51,19 @@ export const useAppStore = create<AppStore>((set) => ({
   theme: 'system',
   setTheme: (theme) => {
     set({ theme });
-    void saveSettings({ theme }).catch(() => {});
+    void saveSettingsPatch({ theme }).catch(() => {});
+  },
+  streamingEnabled: true,
+  smoothStreaming: 50,
+  setStreamingEnabled: (enabled) => {
+    set({ streamingEnabled: enabled });
+    void saveSettingsPatch({ streamingEnabled: enabled }).catch(() => {});
+  },
+  setSmoothStreaming: (value) => {
+    // clamp to 0-100
+    const clamped = Math.max(0, Math.min(100, Math.round(value)));
+    set({ smoothStreaming: clamped });
+    void saveSettingsPatch({ smoothStreaming: clamped }).catch(() => {});
   },
   user: null,
   setUser: (user) => set({ user }),
@@ -58,14 +82,24 @@ export const useAppStore = create<AppStore>((set) => ({
       /* leave user null if backend unreachable */
     }
   },
-  initTheme: async () => {
+  initSettings: async () => {
     try {
       const settings = await getSettings<Record<string, unknown>>();
-      if (typeof settings === 'object' && settings !== null && isTheme(settings.theme)) {
-        set({ theme: settings.theme });
+      if (typeof settings === 'object' && settings !== null) {
+        if (isTheme(settings.theme)) {
+          set({ theme: settings.theme });
+        }
+        if (typeof settings.streamingEnabled === 'boolean') {
+          set({ streamingEnabled: settings.streamingEnabled });
+        }
+        if (typeof settings.smoothStreaming === 'number') {
+          set({
+            smoothStreaming: Math.max(0, Math.min(100, Math.round(settings.smoothStreaming))),
+          });
+        }
       }
     } catch {
-      /* leave default 'system' theme if backend unreachable */
+      /* leave defaults if backend unreachable */
     }
   },
 }));
@@ -78,7 +112,6 @@ const SHARED_DEFAULTS = {
   top_k: 50,
   max_tokens: 4096,
   seed: -1,
-  streaming: true,
   stop: [] as string[],
 } as const;
 
@@ -118,7 +151,6 @@ export interface GenerationState {
   top_k: number;
   max_tokens: number;
   seed: number;
-  streaming: boolean;
   stop: string[];
 
   frequency_penalty: number;
@@ -162,7 +194,6 @@ type GenerationParams = Pick<
   | 'top_k'
   | 'max_tokens'
   | 'seed'
-  | 'streaming'
   | 'stop'
   | 'frequency_penalty'
   | 'presence_penalty'
@@ -194,7 +225,6 @@ const PARAM_KEYS = [
   'top_k',
   'max_tokens',
   'seed',
-  'streaming',
   'stop',
   'frequency_penalty',
   'presence_penalty',
@@ -348,13 +378,18 @@ export interface ChatStore {
   messages: ChatMessage[];
   isGenerating: boolean;
   streamingContent: string;
+  streamingThinking: string | undefined;
+  isThinkingStream: boolean;
   setActiveChat: (id: string | null) => void;
   setActiveCharacter: (id: number | null) => void;
   setMessages: (messages: ChatMessage[]) => void;
   addMessage: (message: ChatMessage) => void;
+  removeMessage: (index: number) => void;
   setStreamingContent: (content: string) => void;
+  setStreamingThinking: (thinking: string | undefined) => void;
+  setIsThinkingStream: (inThinking: boolean) => void;
   appendStreamingContent: (content: string) => void;
-  commitStreaming: (name: string) => void;
+  commitStreaming: (name: string, parsed?: { mes: string; thinking?: string }) => void;
   setIsGenerating: (generating: boolean) => void;
   clearChat: () => void;
 }
@@ -365,6 +400,8 @@ export const useChatStore = create<ChatStore>((set) => ({
   messages: [],
   isGenerating: false,
   streamingContent: '',
+  streamingThinking: undefined,
+  isThinkingStream: false,
   setActiveChat: (id) => {
     set({ activeChatId: id });
     emit('chat_changed', { chatId: id });
@@ -378,21 +415,41 @@ export const useChatStore = create<ChatStore>((set) => ({
     set((state) => ({ messages: [...state.messages, message] }));
     emit('new_message', message);
   },
+  removeMessage: (index) => {
+    set((state) => ({ messages: state.messages.filter((_, i) => i !== index) }));
+    emit('message_removed', { index });
+  },
   setStreamingContent: (content) => set({ streamingContent: content }),
+  setStreamingThinking: (thinking) => set({ streamingThinking: thinking }),
+  setIsThinkingStream: (inThinking) => set({ isThinkingStream: inThinking }),
   appendStreamingContent: (content) =>
     set((state) => ({ streamingContent: state.streamingContent + content })),
-  commitStreaming: (name) =>
+  commitStreaming: (name, parsed) =>
     set((state) => {
-      if (!state.streamingContent) return {};
+      const source = parsed?.mes ?? state.streamingContent;
+      if (!source) return {};
       const msg: ChatMessage = {
         name,
         is_user: false,
-        mes: state.streamingContent,
+        mes: source,
+        thinking: parsed?.thinking,
         send_date: new Date().toISOString(),
         extra: {},
       };
-      return { messages: [...state.messages, msg], streamingContent: '' };
+      return {
+        messages: [...state.messages, msg],
+        streamingContent: '',
+        streamingThinking: undefined,
+        isThinkingStream: false,
+      };
     }),
   setIsGenerating: (generating) => set({ isGenerating: generating }),
-  clearChat: () => set({ activeChatId: null, messages: [], streamingContent: '' }),
+  clearChat: () =>
+    set({
+      activeChatId: null,
+      messages: [],
+      streamingContent: '',
+      streamingThinking: undefined,
+      isThinkingStream: false,
+    }),
 }));

@@ -13,6 +13,10 @@ import {
   registerCardSource as registerCardSourceImpl,
   unregisterCardSource as unregisterCardSourceImpl,
 } from '@/lib/cardSourceRegistry';
+import {
+  registerGenerationInterceptor as registerGenerationInterceptorImpl,
+  unregisterGenerationInterceptor as unregisterGenerationInterceptorImpl,
+} from '@/lib/generationInterceptorRegistry';
 import { apiFetch, apiGet, apiPost } from '@/lib/api';
 import type { Character, ShallowCharacter } from '@/shared/types/character';
 import type { ChatMessage } from '@/shared/types/chat';
@@ -265,6 +269,12 @@ export function createWorldCoreApi(opts: CreateWorldCoreApiOptions): WorldCoreAP
     },
     unregisterCardSource: (sourceId) => {
       unregisterCardSourceImpl(sourceId);
+    },
+    registerGenerationInterceptor: (id, handler) => {
+      registerGenerationInterceptorImpl(id, handler, extId);
+    },
+    unregisterGenerationInterceptor: (id) => {
+      unregisterGenerationInterceptorImpl(id);
     },
     helpers: {
       characters: {

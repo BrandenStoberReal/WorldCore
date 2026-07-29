@@ -45,6 +45,8 @@ export const types: Record<WorldCoreEventTypes, WorldCoreEventTypes> = {
   generation_started: 'generation_started',
   generation_stopped: 'generation_stopped',
   message_updated: 'message_updated',
+  message_removed: 'message_removed',
+  message_chunk_received: 'message_chunk_received',
   new_message: 'new_message',
   user_initialized: 'user_initialized',
   viewport_changed: 'viewport_changed',
