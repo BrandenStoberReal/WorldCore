@@ -107,9 +107,9 @@ export const useAppStore = create<AppStore>((set) => ({
 export type GenerationMode = 'chat' | 'text';
 
 const SHARED_DEFAULTS = {
-  temperature: 1,
-  top_p: 1,
-  top_k: 50,
+  temperature: 0.7,
+  top_p: 0.5,
+  top_k: 40,
   max_tokens: 4096,
   seed: -1,
   stop: [] as string[],
@@ -126,12 +126,12 @@ const TEXT_DEFAULTS = {
   typical_p: 1,
   top_a: 0,
   tfs: 1,
-  rep_pen: 1,
+  rep_pen: 1.2,
   rep_pen_range: 0,
   rep_pen_slope: 0,
   dry_multiplier: 0,
   dry_base: 1.75,
-  dry_allowed_length: 0,
+  dry_allowed_length: 2,
   mirostat_mode: 0,
   mirostat_tau: 5,
   mirostat_eta: 0.1,
