@@ -142,8 +142,20 @@ export function ChatView({ characterId }: ChatViewProps) {
           separator: r.separator ?? '\n',
           autoParse: r.autoParse ?? false,
           autoExpand: r.autoExpand ?? false,
+          showHidden: r.showHidden ?? false,
+          addToPrompts: r.addToPrompts ?? false,
+          maxAdditions: r.maxAdditions ?? 1,
         }
-      : { prefix: '', suffix: '', separator: '\n', autoParse: false, autoExpand: false };
+      : {
+          prefix: '',
+          suffix: '',
+          separator: '\n',
+          autoParse: false,
+          autoExpand: false,
+          showHidden: false,
+          addToPrompts: false,
+          maxAdditions: 1,
+        };
   }, [settings]);
 
   const { data: chatData } = useQuery({
@@ -298,6 +310,13 @@ export function ChatView({ characterId }: ChatViewProps) {
         messages: allMessages,
         userName: userName,
         includeExamples: true,
+        reasoning: {
+          addToPrompts: reasoningSettings.addToPrompts,
+          maxAdditions: reasoningSettings.maxAdditions,
+          prefix: reasoningSettings.prefix,
+          suffix: reasoningSettings.suffix,
+          separator: reasoningSettings.separator,
+        },
       });
 
       const promptMessages = promptBuildResult.messages;
@@ -834,6 +853,8 @@ export function ChatView({ characterId }: ChatViewProps) {
               onRegenerate={handleRegenerate}
               onDelete={handleDeleteMessage}
               canDelete={i !== 0}
+              autoExpandThinking={reasoningSettings.autoExpand}
+              showHidden={reasoningSettings.showHidden}
             />
           ))}
           {isGenerating && (streamingContent || isThinkingStream) && smoothStreaming > 0 && (

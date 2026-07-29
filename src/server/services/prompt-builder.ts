@@ -38,6 +38,13 @@ export interface PromptBuilderParams {
     scenario?: string;
     systemPrompt?: string;
   } | null;
+  reasoning?: {
+    addToPrompts: boolean;
+    maxAdditions: number;
+    prefix: string;
+    suffix: string;
+    separator: string;
+  };
 }
 
 export interface PromptBuilderResult {
@@ -205,6 +212,23 @@ export class PromptBuilder {
     // 9. Add chat history
     const historyMessages = this.formatChatHistory(messages, charName, userName, macroCtx);
     messagesArray.push(...historyMessages);
+
+    // 9.5 Inject previous thinking content into prompts (when addToPrompts enabled)
+    if (params.reasoning?.addToPrompts && params.reasoning.prefix && params.reasoning.suffix) {
+      const thinkingContent = this.extractThinkingFromMessages(
+        messages,
+        params.reasoning.prefix,
+        params.reasoning.suffix,
+        params.reasoning.separator,
+        params.reasoning.maxAdditions,
+      );
+      if (thinkingContent) {
+        messagesArray.push({
+          role: 'system',
+          content: `[Previous thinking]\n${thinkingContent}`,
+        });
+      }
+    }
 
     // 10. Add post-history instructions (jailbreak)
     const jailbreakPrompt = jailbreakPromptOverride || character.post_history_instructions;
@@ -383,6 +407,31 @@ export class PromptBuilder {
       content: substituteMacros(msg.mes, macroCtx),
       name: msg.name,
     }));
+  }
+
+  private extractThinkingFromMessages(
+    messages: ChatMessage[],
+    prefix: string,
+    suffix: string,
+    separator: string,
+    maxAdditions: number,
+  ): string | null {
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`${escapeRegex(prefix)}(.*?)${escapeRegex(suffix)}`, 'gs');
+
+    const thinkingChunks: string[] = [];
+    const assistantMessages = messages.filter((m) => !m.is_user && m.thinking);
+
+    for (const msg of assistantMessages) {
+      if (thinkingChunks.length >= maxAdditions) break;
+      const thinking = msg.thinking!;
+      if (thinking.trim()) {
+        thinkingChunks.push(thinking.trim());
+      }
+    }
+
+    if (thinkingChunks.length === 0) return null;
+    return thinkingChunks.join(separator);
   }
 
   private countTokens(messages: ChatCompletionMessage[]): number {

@@ -26,6 +26,7 @@ interface ChatMessageProps {
   onDelete?: (index: number) => void;
   canDelete?: boolean;
   autoExpandThinking?: boolean;
+  showHidden?: boolean;
 }
 
 export function ChatMessage({
@@ -49,6 +50,7 @@ export function ChatMessage({
   onDelete,
   canDelete = true,
   autoExpandThinking = false,
+  showHidden = true,
 }: ChatMessageProps) {
   const isUser = msg.is_user;
   const [copied, setCopied] = useState(false);
@@ -157,7 +159,7 @@ export function ChatMessage({
       </div>
 
       {/* Thinking aside — collapsible, AI-only */}
-      {renderedThinking && (
+      {renderedThinking && showHidden && (
         <details
           open={autoExpandThinking}
           className="group/thinking border-border/40 bg-muted/20 mx-3 mt-1 mb-0.5 rounded-md border text-[12px]"

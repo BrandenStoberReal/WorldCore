@@ -23,6 +23,15 @@ const PromptBuildRequestSchema = z.object({
   includeExamples: z.boolean().default(true),
   maxTokens: z.number().optional(),
   personaId: z.number().nullable().optional(),
+  reasoning: z
+    .object({
+      addToPrompts: z.boolean(),
+      maxAdditions: z.number(),
+      prefix: z.string(),
+      suffix: z.string(),
+      separator: z.string(),
+    })
+    .optional(),
 });
 
 export const promptBuilderRoutes = {
@@ -68,6 +77,7 @@ export const promptBuilderRoutes = {
         includeExamples: parsed.includeExamples,
         maxTokens: parsed.maxTokens,
         persona,
+        reasoning: parsed.reasoning,
       });
 
       return new Response(JSON.stringify(result), {
