@@ -39,7 +39,13 @@ function ConnectionIcon() {
 }
 
 const SECTION_ITEMS: NavItem[] = [
-  { id: 'chats', icon: <MessageSquare size={16} />, label: 'Chats', behavior: 'section', requiresCharacter: true },
+  {
+    id: 'chats',
+    icon: <MessageSquare size={16} />,
+    label: 'Chats',
+    behavior: 'section',
+    requiresCharacter: true,
+  },
   {
     id: 'character-editor',
     icon: <Pencil size={16} />,
@@ -125,18 +131,18 @@ export function NavRail() {
               : 'group-hover/nav:border-border/60 h-0 overflow-hidden border-transparent opacity-0 group-hover/nav:h-9 group-hover/nav:py-1 group-hover/nav:opacity-100',
         )}
       >
-          {SECTION_ITEMS.filter((item) => !item.requiresCharacter || activeCharacterId !== null).map(
-            (item) => (
-              <DrawerIcon
-                key={item.id}
-                icon={item.icon}
-                label={item.label}
-                sectionId={item.id}
-                behavior={item.behavior}
-                requiresCharacter={item.requiresCharacter}
-              />
-            ),
-          )}
+        {SECTION_ITEMS.filter((item) => !item.requiresCharacter || activeCharacterId !== null).map(
+          (item) => (
+            <DrawerIcon
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              sectionId={item.id}
+              behavior={item.behavior}
+              requiresCharacter={item.requiresCharacter}
+            />
+          ),
+        )}
       </nav>
     </header>
   );

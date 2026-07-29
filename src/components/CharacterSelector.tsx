@@ -461,7 +461,8 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
                           {char.name}
                         </p>
                         <p className="mono-tag text-foreground/45 mt-px truncate">
-                          {char.creator_notes?.split('\n').find((l) => l.trim()) || 'No creator notes found'}
+                          {char.creator_notes?.split('\n').find((l) => l.trim()) ||
+                            'No creator notes found'}
                         </p>
                       </div>
                       <span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">

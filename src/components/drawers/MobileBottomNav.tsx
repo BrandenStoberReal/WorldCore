@@ -50,28 +50,30 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBo
   return (
     <nav className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/80 safe-area-bottom border-t backdrop-blur-md">
       <div className="flex items-center justify-around px-2 py-1">
-        {NAV_ITEMS.filter((item) => !item.requiresCharacter || activeCharacterId !== null).map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => handleItemClick(item)}
-            className={cn(
-              'relative touch-target flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-2 transition-colors',
-              isActive(item) ? 'text-ember' : 'text-muted-foreground hover:text-foreground',
-            )}
-            aria-label={item.label}
-            aria-current={isActive(item) ? 'page' : undefined}
-          >
-            {item.icon}
-            {item.requiresCharacter && (
-              <span
-                aria-hidden
-                className="bg-ember pointer-events-none absolute top-1 right-2 h-1.5 w-1.5 rounded-full ring-2 ring-background"
-              />
-            )}
-            <span className="text-[10px] font-medium">{item.label}</span>
-          </button>
-        ))}
+        {NAV_ITEMS.filter((item) => !item.requiresCharacter || activeCharacterId !== null).map(
+          (item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleItemClick(item)}
+              className={cn(
+                'touch-target relative flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-2 transition-colors',
+                isActive(item) ? 'text-ember' : 'text-muted-foreground hover:text-foreground',
+              )}
+              aria-label={item.label}
+              aria-current={isActive(item) ? 'page' : undefined}
+            >
+              {item.icon}
+              {item.requiresCharacter && (
+                <span
+                  aria-hidden
+                  className="bg-ember ring-background pointer-events-none absolute top-1 right-2 h-1.5 w-1.5 rounded-full ring-2"
+                />
+              )}
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </button>
+          ),
+        )}
       </div>
     </nav>
   );

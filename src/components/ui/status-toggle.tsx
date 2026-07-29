@@ -45,11 +45,7 @@ export function StatusToggle({
             className={cn(
               'bg-background pointer-events-none inline-block transform rounded-full shadow ring-0 transition-transform',
               size === 'sm' ? 'h-2.5 w-2.5' : 'h-3 w-3',
-              enabled
-                ? size === 'sm'
-                  ? 'translate-x-3'
-                  : 'translate-x-3.5'
-                : 'translate-x-0',
+              enabled ? (size === 'sm' ? 'translate-x-3' : 'translate-x-3.5') : 'translate-x-0',
             )}
           />
         </button>

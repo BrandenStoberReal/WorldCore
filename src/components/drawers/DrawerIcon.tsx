@@ -17,7 +17,13 @@ interface DrawerIconProps {
   requiresCharacter?: boolean;
 }
 
-export function DrawerIcon({ icon, label, sectionId, behavior, requiresCharacter }: DrawerIconProps) {
+export function DrawerIcon({
+  icon,
+  label,
+  sectionId,
+  behavior,
+  requiresCharacter,
+}: DrawerIconProps) {
   const activeSection = useNavStore((s) => s.sectionId);
   const topDrawer = useNavStore((s) => s.topDrawer);
   const charactersOpen = useNavStore((s) => s.charactersOpen);
@@ -60,7 +66,7 @@ export function DrawerIcon({ icon, label, sectionId, behavior, requiresCharacter
       {requiresCharacter && (
         <span
           aria-hidden
-          className="bg-ember pointer-events-none absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-background"
+          className="bg-ember ring-background pointer-events-none absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full ring-2"
         />
       )}
     </button>
