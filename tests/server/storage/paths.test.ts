@@ -70,9 +70,7 @@ describe('getGlobalExtensionRoot', () => {
 
 describe('getGlobalExtensionPath', () => {
   it('returns DATA_ROOT/extensions/<slug>', () => {
-    expect(getGlobalExtensionPath('demo-ext')).toBe(
-      path.join(DATA_ROOT, 'extensions', 'demo-ext'),
-    );
+    expect(getGlobalExtensionPath('demo-ext')).toBe(path.join(DATA_ROOT, 'extensions', 'demo-ext'));
   });
 
   it('throws ValidationError for uppercase slug', () => {

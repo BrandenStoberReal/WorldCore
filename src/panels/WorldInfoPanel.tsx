@@ -270,9 +270,7 @@ export function WorldInfoPanel() {
                 <StatusToggle enabled={!entry.disable} showSwitch={false} />
               </div>
               {entry.comment && (
-                <span className="mono-tag text-muted-foreground/55 truncate">
-                  {entry.comment}
-                </span>
+                <span className="mono-tag text-muted-foreground/55 truncate">{entry.comment}</span>
               )}
             </div>
 

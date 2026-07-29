@@ -37,9 +37,7 @@ export type CardListing = z.infer<typeof CardListingSchema>;
 // Result shape a CardSource.search() may return. The framework auto-detects
 // which variant and normalizes to an array.
 export type CardSearchResult =
-  | CardListing[]
-  | { items: CardListing[]; nextCursor?: string }
-  | AsyncIterable<CardListing>;
+  CardListing[] | { items: CardListing[]; nextCursor?: string } | AsyncIterable<CardListing>;
 
 /* eslint-disable-next-line @typescript-eslint/no-empty-interface --
    CardSource is a plain TS interface (not Zod-derived) because it carries

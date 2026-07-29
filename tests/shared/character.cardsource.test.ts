@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import {
-  CardListingSchema,
-  CardSearchOptionsSchema,
-} from '../../src/shared/schemas/character';
+import { CardListingSchema, CardSearchOptionsSchema } from '../../src/shared/schemas/character';
 
 /* ------------------------------------------------------------------ */
 /*  CardListingSchema                                                 */

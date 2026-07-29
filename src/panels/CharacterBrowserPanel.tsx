@@ -7,11 +7,7 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import {
-  getAllCardSources,
-  getCardSource,
-  subscribeCardSources,
-} from '@/lib/cardSourceRegistry';
+import { getAllCardSources, getCardSource, subscribeCardSources } from '@/lib/cardSourceRegistry';
 import type {
   CardSource,
   CardListing,
@@ -197,11 +193,9 @@ export function CharacterBrowserPanel() {
       const source = getCardSource(listing.sourceId);
       if (!source) throw new Error('Source not found');
       const bytes = await source.fetchCard(listing);
-      const file = new File(
-        [bytes],
-        `${listing.name.replace(/[^a-zA-Z0-9]/g, '_')}.png`,
-        { type: 'image/png' },
-      );
+      const file = new File([bytes], `${listing.name.replace(/[^a-zA-Z0-9]/g, '_')}.png`, {
+        type: 'image/png',
+      });
       const fd = new FormData();
       fd.append('file', file);
       const res = await fetch('/api/v1/characters/import', { method: 'POST', body: fd });
@@ -238,8 +232,7 @@ export function CharacterBrowserPanel() {
   const hasQuery = debouncedQuery.trim().length > 0;
   const noSources = sources.length === 0;
   const allInLibrary =
-    results.length > 0 &&
-    results.every((r) => dedupKeys.has(dedupKey(r.name, r.creator)));
+    results.length > 0 && results.every((r) => dedupKeys.has(dedupKey(r.name, r.creator)));
 
   function cardState(listing: CardListing): 'idle' | 'downloading' | 'done' | 'error' {
     const key = `${listing.sourceId}::${listing.cardId}`;
@@ -259,15 +252,11 @@ export function CharacterBrowserPanel() {
       className="bg-background flex h-full w-full flex-1 flex-col overflow-hidden"
     >
       {/* ── Top bar ── */}
-      <header
-        className={cn(
-          'flex items-center gap-3 border-b border-border/40 px-4 py-2',
-        )}
-      >
+      <header className={cn('border-border/40 flex items-center gap-3 border-b px-4 py-2')}>
         <span className="mono-tag text-ember">[BROWSE] · FORGE</span>
-        <span className="h-px w-6 bg-border/50" />
+        <span className="bg-border/50 h-px w-6" />
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/55" />
+          <Search className="text-muted-foreground/55 pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -279,10 +268,9 @@ export function CharacterBrowserPanel() {
 
       {/* ── Source filter chips ── */}
       {sources.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 border-b border-border/40 px-4 py-2">
+        <div className="border-border/40 flex flex-wrap gap-1.5 border-b px-4 py-2">
           {sources.map((source, i) => {
-            const isActive =
-              activeSourceIds.size === 0 || activeSourceIds.has(source.id);
+            const isActive = activeSourceIds.size === 0 || activeSourceIds.has(source.id);
             return (
               <button
                 key={source.id}
@@ -290,9 +278,7 @@ export function CharacterBrowserPanel() {
                 onClick={() => toggleSource(source.id)}
                 className={cn(
                   'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors',
-                  isActive
-                    ? chipColor(i)
-                    : 'border-border/40 bg-muted/30 text-muted-foreground/50',
+                  isActive ? chipColor(i) : 'border-border/40 bg-muted/30 text-muted-foreground/50',
                 )}
                 title={source.description || source.label}
               >
@@ -311,7 +297,7 @@ export function CharacterBrowserPanel() {
         {/* Empty state 1 — no sources registered */}
         {noSources && (
           <EmptyState
-            icon={<Compass className="h-4 w-4 text-muted-foreground/55" />}
+            icon={<Compass className="text-muted-foreground/55 h-4 w-4" />}
             title="No card sources registered"
             description="Install an extension that provides card sources to browse characters from external libraries."
           />
@@ -320,7 +306,7 @@ export function CharacterBrowserPanel() {
         {/* Prompt to type */}
         {!noSources && !hasQuery && !isSearching && (
           <EmptyState
-            icon={<Search className="h-4 w-4 text-muted-foreground/55" />}
+            icon={<Search className="text-muted-foreground/55 h-4 w-4" />}
             title="Type to search"
             description="Search across registered card sources to find new characters."
           />
@@ -329,7 +315,7 @@ export function CharacterBrowserPanel() {
         {/* Empty state 2 — no results for query */}
         {!noSources && hasQuery && !isSearching && results.length === 0 && (
           <EmptyState
-            icon={<Search className="h-4 w-4 text-muted-foreground/55" />}
+            icon={<Search className="text-muted-foreground/55 h-4 w-4" />}
             title={`No results for "${debouncedQuery.trim()}"`}
             description="Try a different search term or check your active source filters."
             action={
@@ -352,7 +338,7 @@ export function CharacterBrowserPanel() {
         {/* Empty state 3 — all results already in library */}
         {!noSources && hasQuery && !isSearching && allInLibrary && (
           <EmptyState
-            icon={<Check className="h-4 w-4 text-muted-foreground/55" />}
+            icon={<Check className="text-muted-foreground/55 h-4 w-4" />}
             title="All cards in this view are already in your library"
             description="Switch sources or search for something new."
           />
@@ -364,11 +350,11 @@ export function CharacterBrowserPanel() {
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
-                className="animate-pulse rounded-lg border border-border/30 bg-muted/20 p-3"
+                className="border-border/30 bg-muted/20 animate-pulse rounded-lg border p-3"
               >
-                <div className="mb-2 aspect-square rounded bg-muted/40" />
-                <div className="mb-1 h-3 w-3/4 rounded bg-muted/40" />
-                <div className="h-2.5 w-1/2 rounded bg-muted/40" />
+                <div className="bg-muted/40 mb-2 aspect-square rounded" />
+                <div className="bg-muted/40 mb-1 h-3 w-3/4 rounded" />
+                <div className="bg-muted/40 h-2.5 w-1/2 rounded" />
               </div>
             ))}
           </div>
@@ -382,7 +368,7 @@ export function CharacterBrowserPanel() {
               return (
                 <div
                   key={`${listing.sourceId}::${listing.cardId}`}
-                  className="group relative flex flex-col rounded-lg border border-border/40 bg-card/50 p-3 transition-colors hover:bg-card/80"
+                  className="group border-border/40 bg-card/50 hover:bg-card/80 relative flex flex-col rounded-lg border p-3 transition-colors"
                 >
                   {/* Avatar */}
                   {listing.avatarUrl ? (
@@ -393,7 +379,7 @@ export function CharacterBrowserPanel() {
                       className="mb-2 aspect-square w-full rounded object-cover"
                     />
                   ) : (
-                    <div className="mb-2 flex aspect-square w-full items-center justify-center rounded bg-muted/40 text-lg font-bold uppercase text-muted-foreground/60">
+                    <div className="bg-muted/40 text-muted-foreground/60 mb-2 flex aspect-square w-full items-center justify-center rounded text-lg font-bold uppercase">
                       {listing.name.charAt(0)}
                     </div>
                   )}
@@ -403,9 +389,7 @@ export function CharacterBrowserPanel() {
 
                   {/* Creator */}
                   {listing.creator && (
-                    <p className="truncate text-[11px] text-muted-foreground">
-                      {listing.creator}
-                    </p>
+                    <p className="text-muted-foreground truncate text-[11px]">{listing.creator}</p>
                   )}
 
                   {/* Tags */}
@@ -414,13 +398,13 @@ export function CharacterBrowserPanel() {
                       {listing.tags.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
-                          className="rounded bg-muted/50 px-1.5 py-0.5 text-[9px] text-muted-foreground"
+                          className="bg-muted/50 text-muted-foreground rounded px-1.5 py-0.5 text-[9px]"
                         >
                           {tag}
                         </span>
                       ))}
                       {listing.tags.length > 3 && (
-                        <span className="text-[9px] text-muted-foreground/50">
+                        <span className="text-muted-foreground/50 text-[9px]">
                           +{listing.tags.length - 3}
                         </span>
                       )}
@@ -430,9 +414,7 @@ export function CharacterBrowserPanel() {
                   {/* Download button */}
                   <button
                     type="button"
-                    disabled={
-                      state === 'downloading' || state === 'done'
-                    }
+                    disabled={state === 'downloading' || state === 'done'}
                     onClick={() => handleDownload(listing)}
                     className={cn(
                       'absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-md border transition-colors',
@@ -463,9 +445,7 @@ export function CharacterBrowserPanel() {
                     }
                   >
                     {state === 'idle' && <Download className="h-3.5 w-3.5" />}
-                    {state === 'downloading' && (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    )}
+                    {state === 'downloading' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                     {state === 'done' && <Check className="h-3.5 w-3.5" />}
                     {state === 'error' && <AlertCircle className="h-3.5 w-3.5" />}
                   </button>

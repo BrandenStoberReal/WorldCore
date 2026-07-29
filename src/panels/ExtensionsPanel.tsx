@@ -126,7 +126,7 @@ export function ExtensionsPanel() {
             <Button
               variant="outline"
               onClick={() => updateAllMutation.mutate()}
-              disabled={updateAllMutation.isPending || !extensions?.some(e => e.gitUrl)}
+              disabled={updateAllMutation.isPending || !extensions?.some((e) => e.gitUrl)}
               className="h-8"
             >
               <RefreshCw
