@@ -6,6 +6,7 @@ import { eq, and } from 'drizzle-orm';
 import { paths } from '@/server/storage/paths';
 import { listFiles, removeFile, writeFileAtomic, mkdir } from '@/server/storage/fs';
 import type { Preset, PresetCategory } from '@/shared/types/preset';
+import { log } from '@/server/logger';
 
 const SEED_DATA_DIR = path.join(import.meta.dir, 'preset', 'seed-data');
 
@@ -99,7 +100,7 @@ export class PresetService {
       const isDefault = dbRow[0]?.isDefault ?? false;
       return { category, data, isDefault } as Preset;
     } catch (err) {
-      console.warn('[preset] load failed', { category, name, err });
+      log.warn('preset', `Load failed for ${category}/${name}:`, err);
       return null;
     }
   }
@@ -180,7 +181,7 @@ export class PresetService {
             const content = await Bun.file(seedPath).text();
             await writeFileAtomic(targetPath, content);
           } catch (err) {
-            console.warn('[preset] seed copy failed', { file, err });
+            log.warn('preset', `Seed copy failed for ${file}:`, err);
           }
         }
 
@@ -192,7 +193,7 @@ export class PresetService {
             await writeFileAtomic(targetPath, JSON.stringify(data, null, 2));
           }
         } catch (err) {
-          console.warn('[preset] seed patch failed', { file, err });
+          log.warn('preset', `Seed patch failed for ${file}:`, err);
         }
 
         const existing = await db
