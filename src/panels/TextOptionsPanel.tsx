@@ -1,5 +1,5 @@
 import { useCallback, useRef, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RotateCcw, Check } from 'lucide-react';
+import { RotateCcw, Check, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { InlineSection } from '@/components/drawers/InlineSection';
@@ -223,6 +224,191 @@ function mergeDefaults(partial?: Partial<TextOptionsState>): TextOptionsState {
   return { ...defaultState, ...partial };
 }
 
+function parseSillyTavernOptions(json: Record<string, unknown>): Partial<TextOptionsState> {
+  const result: Partial<TextOptionsState> = {};
+
+  // Handle both full settings.json (has power_user) and individual preset files
+  const powerUser = (json.power_user as Record<string, unknown> | undefined) ?? null;
+  const source = powerUser ?? json;
+
+  const getObj = (key: string): Record<string, unknown> | null => {
+    const val = source[key];
+    return val && typeof val === 'object' ? (val as Record<string, unknown>) : null;
+  };
+
+  const context = getObj('context');
+  if (context) {
+    result.context = { ...defaultState.context };
+    if (typeof context.story_string === 'string') result.context.storyString = context.story_string as string;
+    if (typeof context.chat_start === 'string') result.context.chatStart = context.chat_start as string;
+    if (typeof context.example_separator === 'string') result.context.exampleSeparator = context.example_separator as string;
+    if (typeof context.use_stop_strings === 'boolean') result.context.separatorsAsStopStrings = context.use_stop_strings as boolean;
+    if (typeof context.names_as_stop_strings === 'boolean') result.context.namesAsStopStrings = context.names_as_stop_strings as boolean;
+    if (typeof context.story_string_position === 'number')
+      result.context.storyStringPosition = context.story_string_position === 1 ? 'inchat' : 'default';
+    if (typeof context.story_string_depth === 'number') result.context.storyStringDepth = context.story_string_depth as number;
+    if (typeof context.story_string_role === 'number') {
+      const roles = ['system', 'user', 'assistant'] as const;
+      result.context.storyStringRole = roles[context.story_string_role as number] ?? 'system';
+    }
+    if (typeof context.force_name2 === 'boolean') result.context.forceName2 = context.force_name2 as boolean;
+    if (typeof context.trim_sentences === 'boolean') result.context.trimSentences = context.trim_sentences as boolean;
+    if (typeof context.trim_spaces === 'boolean') result.context.trimSpaces = context.trim_spaces as boolean;
+    if (typeof context.single_line === 'boolean') result.context.singleLine = context.single_line as boolean;
+    if (typeof context.collapse_newlines === 'boolean') result.context.collapseNewlines = context.collapse_newlines as boolean;
+  }
+
+  const instruct = getObj('instruct');
+  if (instruct) {
+    result.instruct = { ...defaultState.instruct };
+    if (typeof instruct.enabled === 'boolean') result.instruct.enabled = instruct.enabled as boolean;
+    if (typeof instruct.input_sequence === 'string') result.instruct.inputSequence = instruct.input_sequence as string;
+    if (typeof instruct.input_suffix === 'string') result.instruct.inputSuffix = instruct.input_suffix as string;
+    if (typeof instruct.output_sequence === 'string') result.instruct.outputSequence = instruct.output_sequence as string;
+    if (typeof instruct.output_suffix === 'string') result.instruct.outputSuffix = instruct.output_suffix as string;
+    if (typeof instruct.system_sequence === 'string') result.instruct.systemSequence = instruct.system_sequence as string;
+    if (typeof instruct.system_suffix === 'string') result.instruct.systemSuffix = instruct.system_suffix as string;
+    if (typeof instruct.last_system_sequence === 'string') result.instruct.lastSystemSequence = instruct.last_system_sequence as string;
+    if (typeof instruct.first_input_sequence === 'string') result.instruct.firstInputSequence = instruct.first_input_sequence as string;
+    if (typeof instruct.first_output_sequence === 'string') result.instruct.firstOutputSequence = instruct.first_output_sequence as string;
+    if (typeof instruct.last_input_sequence === 'string') result.instruct.lastInputSequence = instruct.last_input_sequence as string;
+    if (typeof instruct.last_output_sequence === 'string') result.instruct.lastOutputSequence = instruct.last_output_sequence as string;
+    if (typeof instruct.story_string_prefix === 'string') result.instruct.storyStringPrefix = instruct.story_string_prefix as string;
+    if (typeof instruct.story_string_suffix === 'string') result.instruct.storyStringSuffix = instruct.story_string_suffix as string;
+    if (typeof instruct.stop_sequence === 'string') result.instruct.stopSequence = instruct.stop_sequence as string;
+    if (typeof instruct.wrap === 'boolean') result.instruct.wrap = instruct.wrap as boolean;
+    if (typeof instruct.macro === 'boolean') result.instruct.macro = instruct.macro as boolean;
+    if (typeof instruct.names_behavior === 'number') {
+      const behaviors = ['none', 'force', 'always'] as const;
+      result.instruct.namesBehavior = behaviors[instruct.names_behavior as number] ?? 'none';
+    }
+    if (typeof instruct.activation_regex === 'string') result.instruct.activationRegex = instruct.activation_regex as string;
+    if (typeof instruct.bind_to_context === 'boolean') result.instruct.bindToContext = instruct.bind_to_context as boolean;
+    if (typeof instruct.user_alignment_message === 'string') result.instruct.userAlignmentMessage = instruct.user_alignment_message as string;
+    if (typeof instruct.system_same_as_user === 'boolean') result.instruct.systemSameAsUser = instruct.system_same_as_user as boolean;
+    if (typeof instruct.sequences_as_stop_strings === 'boolean')
+      result.instruct.sequencesAsStopStrings = instruct.sequences_as_stop_strings as boolean;
+  }
+
+  const sysprompt = getObj('sysprompt');
+  if (sysprompt) {
+    result.sysprompt = { ...defaultState.sysprompt };
+    if (typeof sysprompt.enabled === 'boolean') result.sysprompt.enabled = sysprompt.enabled as boolean;
+    if (typeof sysprompt.content === 'string') result.sysprompt.content = sysprompt.content as string;
+    if (typeof sysprompt.post_history === 'string') result.sysprompt.postHistoryInstructions = sysprompt.post_history as string;
+  }
+
+  const reasoning = getObj('reasoning');
+  if (reasoning) {
+    result.reasoning = { ...defaultState.reasoning };
+    if (typeof reasoning.prefix === 'string') result.reasoning.prefix = reasoning.prefix as string;
+    if (typeof reasoning.suffix === 'string') result.reasoning.suffix = reasoning.suffix as string;
+    if (typeof reasoning.separator === 'string') result.reasoning.separator = reasoning.separator as string;
+    if (typeof reasoning.auto_parse === 'boolean') result.reasoning.autoParse = reasoning.auto_parse as boolean;
+    if (typeof reasoning.add_to_prompts === 'boolean') result.reasoning.addToPrompts = reasoning.add_to_prompts as boolean;
+    if (typeof reasoning.auto_expand === 'boolean') result.reasoning.autoExpand = reasoning.auto_expand as boolean;
+    if (typeof reasoning.show_hidden === 'boolean') result.reasoning.showHidden = reasoning.show_hidden as boolean;
+    if (typeof reasoning.max_additions === 'number') result.reasoning.maxAdditions = reasoning.max_additions as number;
+  }
+
+  if (typeof source.tokenizer === 'number') {
+    const tokenizerMap: Record<number, string> = {
+      0: 'best', 1: 'none', 2: 'gpt2', 3: 'llama12', 4: 'llama3',
+      5: 'gemma', 6: 'jamba', 7: 'qwen2', 8: 'commandr',
+      9: 'nerdstash', 10: 'nerdstashv2', 11: 'mistralv1',
+      12: 'mistralnemo', 13: 'yi', 14: 'claude', 15: 'deepseekv3',
+    };
+    result.tokenizer = tokenizerMap[source.tokenizer as number] ?? 'best';
+  }
+  if (typeof source.token_padding === 'number') result.tokenPadding = source.token_padding as number;
+  if (typeof source.user_prompt_bias === 'string') result.startReplyWith = source.user_prompt_bias as string;
+  if (typeof source.show_user_prompt_bias === 'boolean') result.showReplyPrefix = source.show_user_prompt_bias as boolean;
+
+  // Custom stopping strings - can be array or string
+  if (source.custom_stopping_strings !== undefined) {
+    if (Array.isArray(source.custom_stopping_strings)) {
+      result.stoppingStrings = JSON.stringify(source.custom_stopping_strings);
+    } else if (typeof source.custom_stopping_strings === 'string') {
+      result.stoppingStrings = source.custom_stopping_strings as string;
+    }
+  }
+
+  // Markdown escape strings - can be array or string
+  if (source.markdown_escape_strings !== undefined) {
+    if (Array.isArray(source.markdown_escape_strings)) {
+      result.markdownEscapeStrings = (source.markdown_escape_strings as string[]).join(',');
+    } else if (typeof source.markdown_escape_strings === 'string') {
+      result.markdownEscapeStrings = source.markdown_escape_strings as string;
+    }
+  }
+
+  return result;
+}
+
+interface PresetToSave {
+  category: 'context' | 'instruct' | 'sysprompt' | 'reasoning';
+  data: Record<string, unknown>;
+}
+
+function extractPresetsToSave(
+  json: Record<string, unknown>,
+  fileName: string,
+): PresetToSave[] {
+  const powerUser = (json.power_user as Record<string, unknown> | undefined) ?? null;
+  const source = powerUser ?? json;
+  const presets: PresetToSave[] = [];
+  const baseName = fileName.replace(/\.json$/i, '') || 'Imported';
+
+  const getObj = (key: string): Record<string, unknown> | null => {
+    const val = source[key];
+    return val && typeof val === 'object' ? (val as Record<string, unknown>) : null;
+  };
+
+  const ctx = getObj('context');
+  if (ctx) {
+    presets.push({
+      category: 'context',
+      data: { name: baseName, ...ctx },
+    });
+  }
+
+  const inst = getObj('instruct');
+  if (inst) {
+    presets.push({
+      category: 'instruct',
+      data: { name: baseName, ...inst },
+    });
+  }
+
+  const sys = getObj('sysprompt');
+  if (sys) {
+    presets.push({
+      category: 'sysprompt',
+      data: { name: baseName, ...sys },
+    });
+  }
+
+  const reason = getObj('reasoning');
+  if (reason) {
+    presets.push({
+      category: 'reasoning',
+      data: { name: baseName, ...reason },
+    });
+  }
+
+  return presets;
+}
+
+function deduplicatePresetName(
+  baseName: string,
+  existingNames: string[],
+): string {
+  if (!existingNames.includes(baseName)) return baseName;
+  let i = 1;
+  while (existingNames.includes(`${baseName} (${i})`)) i++;
+  return `${baseName} (${i})`;
+}
+
 const CONTEXT_CHECKBOXS = [
   ['forceName2', "Always add character's name to prompt"],
   ['singleLine', 'Generate only one line per request'],
@@ -322,7 +508,92 @@ export function TextOptionsPanel() {
     },
   });
 
+  const queryClient = useQueryClient();
+
   const handleReset = () => setForm(defaultState);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileSelected = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const text = event.target?.result;
+          if (typeof text !== 'string') {
+            toast.error('Failed to read file contents');
+            return;
+          }
+          const json = JSON.parse(text) as Record<string, unknown>;
+
+          const parsed = parseSillyTavernOptions(json);
+          setForm((prev) => ({
+            ...prev,
+            ...parsed,
+            context: parsed.context ? { ...prev.context, ...parsed.context } : prev.context,
+            instruct: parsed.instruct ? { ...prev.instruct, ...parsed.instruct } : prev.instruct,
+            sysprompt: parsed.sysprompt ? { ...prev.sysprompt, ...parsed.sysprompt } : prev.sysprompt,
+            reasoning: parsed.reasoning ? { ...prev.reasoning, ...parsed.reasoning } : prev.reasoning,
+          }));
+
+          const presetsToSave = extractPresetsToSave(json, file.name);
+          const savedNames: string[] = [];
+
+          for (const { category, data } of presetsToSave) {
+            const existingPresets =
+              category === 'context'
+                ? contextPresets
+                : category === 'instruct'
+                  ? instructPresets
+                  : category === 'sysprompt'
+                    ? syspromptPresets
+                    : reasoningPresets;
+            const existingNames = [
+              ...(existingPresets?.map((p) => p.name) ?? []),
+              ...savedNames,
+            ];
+
+            const uniqueName = deduplicatePresetName(
+              (data.name as string) || 'Imported',
+              existingNames,
+            );
+            data.name = uniqueName;
+            savedNames.push(uniqueName);
+
+            await apiPost('/presets/import', {
+              preset: { category, data },
+            });
+          }
+
+          await queryClient.invalidateQueries({ queryKey: ['/api/v1/presets/all'] });
+
+          if (presetsToSave.length > 0) {
+            toast.success(
+              `Settings imported and ${presetsToSave.length} preset${presetsToSave.length > 1 ? 's' : ''} saved`,
+            );
+          } else {
+            toast.success('Settings imported successfully');
+          }
+        } catch {
+          toast.error('Failed to parse JSON file');
+        }
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read file');
+      };
+      reader.readAsText(file);
+
+      // Reset so same file can be re-imported
+      e.target.value = '';
+    },
+    [setForm, queryClient, contextPresets, instructPresets, syspromptPresets, reasoningPresets],
+  );
 
   const loadPreset = (category: string, presetName: string) => {
     const presets =
@@ -441,12 +712,23 @@ export function TextOptionsPanel() {
                 </span>
               </span>
             )}
+            <Button variant="outline" onClick={handleImportClick} className="h-8">
+              <Upload className="h-3.5 w-3.5" />
+              <span className="mono-tag">IMPORT</span>
+            </Button>
             <Button variant="outline" onClick={handleReset} className="h-8">
               <RotateCcw className="h-3.5 w-3.5" />
               <span className="mono-tag">RESET</span>
             </Button>
           </div>
         }
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleFileSelected}
+        className="hidden"
       />
 
       {/* 3-column responsive grid */}
