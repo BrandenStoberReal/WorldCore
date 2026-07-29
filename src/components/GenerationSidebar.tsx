@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Save, RotateCcw, Zap, Copy, PanelLeftClose } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Save, RotateCcw, Zap, Copy, PanelLeftClose, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAppStore, useGenerationStore } from '@/lib/stores';
 import { GenerationSlider } from '@/components/GenerationSlider';
@@ -24,6 +25,57 @@ interface GenerationSidebarProps {
 
 type PresetStatus = 'idle' | 'saving' | 'loading' | 'ok' | 'err';
 
+function parseSillyTavernGenerationPreset(
+  json: Record<string, unknown>,
+): Partial<ReturnType<typeof useGenerationStore.getState>> | null {
+  const tgSettings = json.textgenerationwebui_settings as Record<string, unknown> | undefined;
+  const source = tgSettings ?? json;
+
+  if (typeof source !== 'object' || source === null) return null;
+
+  const params: Record<string, unknown> = {};
+
+  const fieldMap: Record<string, string> = {
+    temp: 'temperature',
+    freq_pen: 'frequency_penalty',
+    presence_pen: 'presence_penalty',
+  };
+
+  const numericKeys = [
+    'temperature', 'top_p', 'top_k', 'max_tokens', 'seed',
+    'frequency_penalty', 'presence_penalty', 'min_tokens',
+    'min_p', 'typical_p', 'top_a', 'tfs',
+    'rep_pen', 'rep_pen_range', 'rep_pen_slope',
+    'dry_multiplier', 'dry_base', 'dry_allowed_length',
+    'mirostat_mode', 'mirostat_tau', 'mirostat_eta',
+    'smoothing_factor', 'epsilon_cutoff', 'eta_cutoff',
+  ];
+
+  for (const key of numericKeys) {
+    if (key in source) {
+      const val = source[key];
+      if (typeof val === 'number') params[key] = val;
+    }
+  }
+
+  for (const [alias, canonical] of Object.entries(fieldMap)) {
+    if (alias in source && !(canonical in params)) {
+      const val = source[alias];
+      if (typeof val === 'number') params[canonical] = val;
+    }
+  }
+
+  if ('stop' in source && Array.isArray(source.stop)) {
+    params.stop = source.stop;
+  } else if ('stopping_strings' in source && Array.isArray(source.stopping_strings)) {
+    params.stop = source.stopping_strings;
+  }
+
+  if (Object.keys(params).length === 0) return null;
+
+  return params as Partial<ReturnType<typeof useGenerationStore.getState>>;
+}
+
 export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: GenerationSidebarProps) {
   const store = useGenerationStore();
   const { mode } = store;
@@ -32,6 +84,8 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
   const [presetMessage, setPresetMessage] = useState<string>('');
   const [saveName, setSaveName] = useState('');
   const [showSaveInput, setShowSaveInput] = useState(false);
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: presetNames = [] } = useQuery<string[]>({
     queryKey: ['/api/v1/presets/all', 'generation+textgenerationwebui'],
@@ -81,6 +135,66 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
       setPresetMessage('');
     }, 2000);
   };
+
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileSelected = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const text = event.target?.result;
+          if (typeof text !== 'string') {
+            toast.error('Failed to read file contents');
+            return;
+          }
+          const json = JSON.parse(text) as Record<string, unknown>;
+
+          const parsed = parseSillyTavernGenerationPreset(json);
+          if (!parsed) {
+            toast.error('No generation parameters found in file');
+            return;
+          }
+
+          store.loadPreset(parsed);
+
+          const baseName = file.name.replace(/\.json$/i, '') || 'Imported';
+          const existingNames = new Set(presetNames);
+          let uniqueName = baseName;
+          let counter = 1;
+          while (existingNames.has(uniqueName)) {
+            uniqueName = `${baseName} (${counter})`;
+            counter++;
+          }
+
+          await apiPost('/presets/import', {
+            preset: {
+              category: 'generation',
+              data: { name: uniqueName, ...parsed },
+            },
+          });
+
+          await queryClient.invalidateQueries({ queryKey: ['/api/v1/presets/all'] });
+
+          toast.success(`Preset "${uniqueName}" imported`);
+        } catch {
+          toast.error('Failed to parse JSON file');
+        }
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read file');
+      };
+      reader.readAsText(file);
+
+      e.target.value = '';
+    },
+    [store, presetNames, queryClient],
+  );
 
   const isCurrentPresetDefault = defaultPresets.has(store.preset);
 
@@ -183,6 +297,19 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 <>
                   <button
                     type="button"
+                    onClick={handleImportClick}
+                    disabled={presetStatus === 'saving' || presetStatus === 'loading'}
+                    className={cn(
+                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors',
+                      'disabled:cursor-not-allowed disabled:opacity-40',
+                    )}
+                    title="Import SillyTavern preset"
+                    aria-label="Import SillyTavern preset"
+                  >
+                    <Upload className="h-2.5 w-2.5" strokeWidth={2} />
+                  </button>
+                  <button
+                    type="button"
                     onClick={handleClonePreset}
                     disabled={presetStatus === 'saving' || presetStatus === 'loading'}
                     className={cn(
@@ -252,6 +379,13 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               {(presetStatus === 'ok' || presetStatus === 'err') && presetMessage}
             </div>
           )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleFileSelected}
+            className="hidden"
+          />
           <div className="mt-2">
             <Select value={store.preset} onValueChange={handleLoadPreset}>
               <SelectTrigger className="h-6 text-[11px]">
