@@ -2,6 +2,7 @@ import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { db } from './client';
 import type { createDb } from './client';
 import { resolve } from 'node:path';
+import { log } from '@/server/logger';
 
 type DrizzleDb = ReturnType<typeof createDb>;
 
@@ -36,11 +37,14 @@ const SEED_SQL = [
 
 export function runMigrations(dbInstance?: DrizzleDb) {
   const instance = dbInstance ?? db;
+  log.info('db', 'Running Drizzle migrations...');
   try {
     migrate(instance, { migrationsFolder: MIGRATIONS_FOLDER });
+    log.info('db', 'Drizzle migrations completed');
   } catch {
-    // falls through to SEED_SQL
+    log.debug('db', 'Drizzle migrations skipped (already applied)');
   }
+  log.info('db', 'Running seed SQL...');
   for (const sql of SEED_SQL) {
     try {
       instance.$client.exec(sql);
@@ -48,4 +52,5 @@ export function runMigrations(dbInstance?: DrizzleDb) {
       // table/column already exists — ignore
     }
   }
+  log.info('db', 'Seed SQL completed');
 }

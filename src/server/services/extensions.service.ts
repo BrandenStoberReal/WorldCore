@@ -17,6 +17,7 @@ import { NotFoundError, ValidationError, ConflictError } from '@/server/errors';
 import type { Manifest } from '@/shared/types/extensions';
 import type { ExtensionRow, InstallExtensionInput } from '@/shared/types/extensions';
 import { ZodError } from 'zod';
+import { log } from '@/server/logger';
 
 function extractSlug(url: string): string {
   let raw = url;
@@ -438,8 +439,9 @@ export async function seedPreinstalledGlobalExtensions(): Promise<void> {
       const text = await Bun.file(manifestPath).text();
       manifestObj = JSON.parse(text);
     } catch (err) {
-      console.warn(
-        `[worldcore-ext] preinstalled seed: skipping "${extId}" (failed to read manifest):`,
+      log.warn(
+        'ext',
+        `Preinstalled seed: skipping "${extId}" (failed to read manifest):`,
         err instanceof Error ? err.message : err,
       );
       continue;
@@ -449,16 +451,18 @@ export async function seedPreinstalledGlobalExtensions(): Promise<void> {
     try {
       parsed = validateManifest(manifestObj);
     } catch (err) {
-      console.warn(
-        `[worldcore-ext] preinstalled seed: skipping "${extId}" (invalid manifest):`,
+      log.warn(
+        'ext',
+        `Preinstalled seed: skipping "${extId}" (invalid manifest):`,
         err instanceof Error ? err.message : err,
       );
       continue;
     }
 
     if (parsed.id !== extId) {
-      console.warn(
-        `[worldcore-ext] preinstalled seed: skipping "${extId}" (manifest.id "${parsed.id}" does not match folder name)`,
+      log.warn(
+        'ext',
+        `Preinstalled seed: skipping "${extId}" (manifest.id "${parsed.id}" does not match folder name)`,
       );
       continue;
     }

@@ -8,6 +8,7 @@ import { characterService } from '@/server/services/character.service';
 import { db } from '@/server/db/client';
 import { characters } from '@/server/db/schema';
 import { eq } from 'drizzle-orm';
+import { log } from '@/server/logger';
 
 const DEBOUNCE_MS = 500;
 const DEFAULT_USER = 'default-user';
@@ -34,8 +35,9 @@ function deriveUserId(absPath: string): string {
     const userId = parts[charsIdx - 1];
     if (userId && userId.length > 0) return userId;
   }
-  console.warn(
-    `[character-watcher] could not derive userId from path, falling back to "${DEFAULT_USER}": ${absPath}`,
+  log.warn(
+    'watcher',
+    `Could not derive userId from path, falling back to "${DEFAULT_USER}": ${absPath}`,
   );
   return DEFAULT_USER;
 }
@@ -64,7 +66,7 @@ async function processFile(absPath: string): Promise<void> {
   try {
     pngBuffer = await readFile(absPath);
   } catch (err) {
-    console.error(`[character-watcher] failed to read file ${absPath}:`, err);
+    log.error('watcher', `Failed to read file ${absPath}:`, err);
     return;
   }
 
@@ -73,11 +75,11 @@ async function processFile(absPath: string): Promise<void> {
   try {
     jsonStr = await readCharacterCard(absPath);
   } catch (err) {
-    console.error(`[character-watcher] failed to read card metadata ${absPath}:`, err);
+    log.error('watcher', `Failed to read card metadata ${absPath}:`, err);
     return;
   }
   if (!jsonStr) {
-    console.warn(`[character-watcher] no character data embedded, skipping: ${absPath}`);
+    log.warn('watcher', `No character data embedded, skipping: ${absPath}`);
     return;
   }
 
@@ -86,7 +88,7 @@ async function processFile(absPath: string): Promise<void> {
   try {
     parsed = JSON.parse(jsonStr) as Record<string, unknown>;
   } catch (err) {
-    console.error(`[character-watcher] failed to parse card JSON ${absPath}:`, err);
+    log.error('watcher', `Failed to parse card JSON ${absPath}:`, err);
     return;
   }
 
@@ -106,7 +108,7 @@ async function processFile(absPath: string): Promise<void> {
 
   // (i) import — fresh PNG write + DB insert.
   const id = await characterService.importCharacter(pngBuffer, JSON.stringify(normalized), userId);
-  console.log(`[character-watcher] imported "${name}" (user=${userId}) -> id=${id}`);
+  log.info('watcher', `Imported "${name}" (user=${userId}) -> id=${id}`);
 }
 
 /**
@@ -123,13 +125,11 @@ async function handleDeletion(absPath: string): Promise<void> {
   try {
     deleted = await characterService.deleteByFileNameIfExists(fileName, userId);
   } catch (err) {
-    console.error(`[character-watcher] failed to clean up deleted file ${absPath}:`, err);
+    log.error('watcher', `Failed to clean up deleted file ${absPath}:`, err);
     return;
   }
   if (deleted) {
-    console.log(
-      `[character-watcher] cleaned up DB row for removed file "${fileName}" (user=${userId})`,
-    );
+    log.info('watcher', `Cleaned up DB row for removed file "${fileName}" (user=${userId})`);
   }
   // If `deleted` is false, the file had no DB row (plain PNG ante-import temp,
   // or an orphan the user just removed via the Settings panel). Silent skip.
@@ -153,7 +153,7 @@ function scheduleProcessing(absPath: string): void {
     inFlight.add(absPath);
     void processFile(absPath)
       .catch((err) => {
-        console.error(`[character-watcher] failed to import ${absPath}:`, err);
+        log.error('watcher', `Failed to import ${absPath}:`, err);
       })
       .finally(() => {
         inFlight.delete(absPath);
@@ -172,7 +172,7 @@ async function discoverCharacterPngs(): Promise<string[]> {
   try {
     userDirs = await readdir(DATA_ROOT, { withFileTypes: true });
   } catch (err) {
-    console.error('[character-watcher] failed to read DATA_ROOT for initial scan:', err);
+    log.error('watcher', 'Failed to read DATA_ROOT for initial scan:', err);
     return results;
   }
 
@@ -208,7 +208,7 @@ async function cleanupReverseOrphans(): Promise<void> {
   try {
     userDirs = await readdir(DATA_ROOT, { withFileTypes: true });
   } catch (err) {
-    console.error('[character-watcher] reverse-orphans: failed to read DATA_ROOT:', err);
+    log.error('watcher', 'Reverse-orphans: failed to read DATA_ROOT:', err);
     return;
   }
 
@@ -225,10 +225,7 @@ async function cleanupReverseOrphans(): Promise<void> {
         .from(characters)
         .where(eq(characters.userId, userId));
     } catch (err) {
-      console.error(
-        `[character-watcher] reverse-orphans: failed to query rows for ${userId}:`,
-        err,
-      );
+      log.error('watcher', `Reverse-orphans: failed to query rows for ${userId}:`, err);
       continue;
     }
 
@@ -241,13 +238,15 @@ async function cleanupReverseOrphans(): Promise<void> {
         try {
           const deleted = await characterService.deleteByFileNameIfExists(row.fileName, userId);
           if (deleted) {
-            console.log(
-              `[character-watcher] cleaned up DB row for missing file "${row.fileName}" (user=${userId})`,
+            log.info(
+              'watcher',
+              `Cleaned up DB row for missing file "${row.fileName}" (user=${userId})`,
             );
           }
         } catch (err) {
-          console.error(
-            `[character-watcher] reverse-orphans: failed to clean up ${row.fileName} for ${userId}:`,
+          log.error(
+            'watcher',
+            `Reverse-orphans: failed to clean up ${row.fileName} for ${userId}:`,
             err,
           );
         }
@@ -271,7 +270,7 @@ async function runInitialScan(): Promise<void> {
       try {
         await processFile(absPath);
       } catch (err) {
-        console.error(`[character-watcher] failed to import ${absPath}:`, err);
+        log.error('watcher', `Failed to import ${absPath}:`, err);
       } finally {
         inFlight.delete(absPath);
       }
@@ -311,12 +310,10 @@ function armWatcher(): void {
   });
 
   w.on('error', (err) => {
-    console.error('[character-watcher] fs.watch error:', err);
+    log.error('watcher', 'fs.watch error:', err);
     consecutiveErrors += 1;
     if (consecutiveErrors >= 2) {
-      console.error(
-        '[character-watcher] giving up after repeated fs.watch errors; live watching disabled',
-      );
+      log.error('watcher', 'Giving up after repeated fs.watch errors; live watching disabled');
       try {
         w.close();
       } catch {
@@ -361,10 +358,10 @@ export function startCharacterWatcher(): void {
   void runInitialScan()
     .then(() => {
       armWatcher();
-      console.log(`[character-watcher] watching ${DATA_ROOT} for new character PNGs`);
+      log.info('watcher', `Watching ${DATA_ROOT} for new character PNGs`);
     })
     .catch((err) => {
-      console.error('[character-watcher] initial scan failed:', err);
+      log.error('watcher', 'Initial scan failed:', err);
       // Still try to arm the live watcher — existing files will be picked up
       // by future writes, which is a degraded but functional mode.
       armWatcher();
@@ -376,7 +373,7 @@ export function startCharacterWatcher(): void {
  * started. Resolves once the FSWatcher has been closed.
  */
 export function stopCharacterWatcher(): Promise<void> {
-  console.log('[character-watcher] shutting down...');
+  log.info('watcher', 'Shutting down...');
   for (const timer of debounceTimers.values()) {
     clearTimeout(timer);
   }
@@ -394,7 +391,7 @@ export function stopCharacterWatcher(): Promise<void> {
     try {
       w.close();
     } catch (err) {
-      console.error('[character-watcher] error closing watcher:', err);
+      log.error('watcher', 'Error closing watcher:', err);
     }
     resolve();
   });
