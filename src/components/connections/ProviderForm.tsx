@@ -31,44 +31,26 @@ export interface ProviderField {
 }
 
 export interface ProviderFormProps {
-  /** Provider source id — enables auto-lookup of config from providerConfigs. */
   subType?: string;
-  /** Active source id (used alongside subType). */
   activeSource?: string;
-  /** Provider display name shown in the header. */
   name?: string;
-  /** Dynamic field definitions for this provider. */
   fields?: ProviderField[];
-  /** Show a ModelSelector dropdown (fetches models from the backend). */
   showModelSelector?: boolean;
-  /** Model source id for the ModelSelector (defaults to the provider id). */
   modelSource?: string;
-  /** Show a URL input (for local/self-hosted providers). */
   showUrl?: boolean;
-  /** Placeholder for the URL input. */
   urlPlaceholder?: string;
-  /** Label for the connect button. */
   connectLabel?: string;
-  /** Called when the user clicks "Connect". Receives all form values. */
   onConnect?: (data: Record<string, string | boolean | number>) => void;
-  /** Called when the user clicks "Cancel". */
   onCancel?: () => void;
-  /** Whether the provider is currently connected (drives OnlineStatus + Cancel visibility). */
   connected?: boolean;
-  /** Additional class names. */
   className?: string;
-  /** Initial value for the URL field. */
   url?: string;
-  /** Called when the URL field changes. */
   onUrlChange?: (url: string) => void;
-  /** Initial value for the model field. */
   model?: string;
-  /** Called when the model changes. */
   onModelChange?: (model: string) => void;
-  /** Show reverse proxy section (caller should gate by source). */
   showReverseProxy?: boolean;
-  /** Children rendered between the fields and the action buttons. */
   children?: React.ReactNode;
+  onModelsLoaded?: (models: { id: string; label: string; context_length?: number }[]) => void;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -303,6 +285,7 @@ export function ProviderForm({
   model: modelProp,
   onModelChange,
   children,
+  onModelsLoaded,
 }: ProviderFormProps) {
   const resolved = useMemo(() => {
     if (!subType) return null;
@@ -395,6 +378,8 @@ export function ProviderForm({
             source={modelSource ?? effectiveSource}
             value={model}
             onChange={setModel}
+            url={showUrl ? url : undefined}
+            onModelsLoaded={onModelsLoaded}
           />
         </div>
       )}

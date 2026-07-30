@@ -16,6 +16,8 @@ export class HuggingFaceAdapter implements TextCompletionAdapter {
         temperature: req.temperature,
         top_p: req.top_p,
         top_k: req.top_k,
+        typical_p: req.typical_p,
+        do_sample: req.temperature !== undefined && req.temperature > 0,
         stop_sequences: req.stop,
       },
     };

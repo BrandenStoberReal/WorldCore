@@ -22,12 +22,6 @@ export const ChatCompletionRequestSchema = z
     model: z.string(),
     messages: z.array(ChatCompletionMessageSchema),
     stream: z.boolean().default(false),
-    /**
-     * User's preference on whether to use token streaming. Distinct from `stream`
-     * (the OpenAI wire flag sent upstream): `streaming` is the user's transport
-     * choice surfaced through the UI. When false, the server should return a single
-     * JSON response instead of an SSE stream.
-     */
     streaming: z.boolean().optional(),
     temperature: z.number().optional(),
     max_tokens: z.number().int().optional(),
@@ -38,10 +32,14 @@ export const ChatCompletionRequestSchema = z
     presence_penalty: z.number().optional(),
     stop: z.union([z.string(), z.array(z.string())]).optional(),
     seed: z.number().int().optional(),
+    max_context: z.number().int().optional(),
     logprobs: z.boolean().optional(),
     top_logprobs: z.number().int().optional(),
     response_format: z.unknown().optional(),
     tools: z.array(z.unknown()).optional(),
     tool_choice: z.unknown().optional(),
+    api_key: z.string().optional(),
+    reverse_proxy: z.string().optional(),
+    signal: z.unknown().optional(),
   })
-  .catchall(z.unknown());
+  .strict();

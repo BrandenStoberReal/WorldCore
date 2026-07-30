@@ -44,7 +44,7 @@ export interface WorldCoreGenerationContext {
   abort: () => void;
 }
 
-export type GenerationInterceptorHandler = (ctx: WorldCoreGenerationContext) => void;
+export type GenerationInterceptorHandler = (ctx: WorldCoreGenerationContext) => void | Promise<void>;
 
 export type WorldCoreSlotId =
   'chat-input-toolbar' | 'message-actions' | 'character-editor-sidebar' | 'generation-panel-bottom';

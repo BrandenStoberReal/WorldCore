@@ -1,5 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -10,11 +11,9 @@ import {
 } from '@/components/ui/select';
 import { ProviderForm } from './ProviderForm';
 import { TEXTGEN_PROVIDERS, sourcesForCategory } from './providerConfigs';
+import { useGenerationStore } from '@/lib/stores';
+import { apiFetch, fetchModelContextSize } from '@/lib/api';
 import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
-
-// ---------------------------------------------------------------------------
-// Sub-type definitions (mirrors SillyTavern #textgen_type select)
-// ---------------------------------------------------------------------------
 
 const TEXTGEN_SUBTYPES = sourcesForCategory('textgen').map((key) => ({
   value: key,
@@ -23,12 +22,7 @@ const TEXTGEN_SUBTYPES = sourcesForCategory('textgen').map((key) => ({
 
 type TextGenSubType = (typeof TEXTGEN_SUBTYPES)[number]['value'];
 
-/** Sub-types that expose a "Bypass status check" option. */
 const BYPASS_STATUS_TYPES: ReadonlySet<TextGenSubType> = new Set(['ooba', 'generic']);
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 interface TextGenPanelProps {
   onConnect?: (config: Record<string, unknown>) => void;
@@ -37,14 +31,6 @@ interface TextGenPanelProps {
   profile?: ConnectionProfile | null;
 }
 
-/**
- * Text Completion API panel.
- *
- * Mirrors the SillyTavern `#textgenerationwebui_api` section with a sub-type
- * selector that swaps between 15 different text-generation providers. Each
- * sub-type renders a `ProviderForm` with the appropriate field config from
- * `providerConfigs`.
- */
 export function TextGenPanel({ onConnect, connected = false, profile }: TextGenPanelProps) {
   const [subType, setSubType] = useState<TextGenSubType>('llamacpp');
   const [deriveContext, setDeriveContext] = useState(true);
@@ -61,23 +47,71 @@ export function TextGenPanel({ onConnect, connected = false, profile }: TextGenP
 
   const config = TEXTGEN_PROVIDERS[subType];
   const showBypass = BYPASS_STATUS_TYPES.has(subType);
+  const updateParam = useGenerationStore((s) => s.updateParam);
+
+  const fetchAndSetContext = useCallback(
+    async (modelId: string) => {
+      if (!deriveContext) return;
+      const resolvedUrl = url || 'http://localhost:8080';
+      const contextSize = await fetchModelContextSize(subType, resolvedUrl, modelId);
+      if (contextSize && contextSize > 0) {
+        updateParam('max_context', contextSize);
+        toast.success(`Context size set to ${contextSize.toLocaleString()} tokens`);
+      }
+    },
+    [deriveContext, subType, url, updateParam],
+  );
+
+  const handleModelsLoaded = useCallback(
+    (models: { id: string; label: string }[]) => {
+      if (models.length > 0 && (!model || !models.find((m) => m.id === model))) {
+        const first = models[0]!;
+        setModel(first.id);
+        updateParam('model', first.id);
+        void fetchAndSetContext(first.id);
+      }
+    },
+    [model, updateParam, fetchAndSetContext],
+  );
 
   const handleConnect = useCallback(
-    (data: Record<string, string | boolean | number>) => {
+    async (data: Record<string, string | boolean | number>) => {
+      const connectUrl =
+        (typeof data._url === 'string' && data._url) ||
+        url ||
+        'http://localhost:8080';
+      updateParam('model', model);
+      if (deriveContext) {
+        const contextSize = await fetchModelContextSize(subType, connectUrl, model);
+        if (contextSize && contextSize > 0) {
+          updateParam('max_context', contextSize);
+          toast.success(`Context size set to ${contextSize.toLocaleString()} tokens`);
+        }
+      }
+
       onConnect?.({
         ...data,
-        type: 'textgenerationwebui',
+        type: subType,
         subType,
+        model,
         deriveContextSizeFromBackend: deriveContext,
         bypassStatusCheck: showBypass ? bypassStatus : false,
       });
     },
-    [subType, deriveContext, showBypass, bypassStatus, onConnect],
+    [subType, deriveContext, showBypass, bypassStatus, onConnect, model, url, updateParam],
+  );
+
+  const handleModelChange = useCallback(
+    (m: string) => {
+      setModel(m);
+      updateParam('model', m);
+      void fetchAndSetContext(m);
+    },
+    [setModel, updateParam, fetchAndSetContext],
   );
 
   return (
     <div className="space-y-4">
-      {/* Sub-type selector */}
       <div className="space-y-2">
         <Label>API Type</Label>
         <Select value={subType} onValueChange={(v) => setSubType(v as TextGenSubType)}>
@@ -94,7 +128,6 @@ export function TextGenPanel({ onConnect, connected = false, profile }: TextGenP
         </Select>
       </div>
 
-      {/* TabbyAPI experimental warning */}
       {subType === 'tabby' && (
         <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-amber-600 dark:text-amber-400">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -102,7 +135,6 @@ export function TextGenPanel({ onConnect, connected = false, profile }: TextGenP
         </div>
       )}
 
-      {/* Provider-specific form via ProviderForm */}
       {config && (
         <ProviderForm
           name={config.name}
@@ -117,13 +149,12 @@ export function TextGenPanel({ onConnect, connected = false, profile }: TextGenP
           url={url}
           onUrlChange={setUrl}
           model={model}
-          onModelChange={setModel}
+          onModelChange={handleModelChange}
+          onModelsLoaded={handleModelsLoaded}
         />
       )}
 
-      {/* Options */}
       <div className="border-border/60 bg-muted/20 space-y-3 rounded-md border px-3 py-3">
-        {/* Derive context size */}
         <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
           <input
             type="checkbox"
@@ -134,7 +165,6 @@ export function TextGenPanel({ onConnect, connected = false, profile }: TextGenP
           <span className="text-foreground/80">Derive context size from backend</span>
         </label>
 
-        {/* Bypass status check (conditional) */}
         {showBypass && (
           <label className="flex cursor-pointer items-center gap-2.5 text-sm select-none">
             <input

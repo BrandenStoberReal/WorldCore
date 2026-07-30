@@ -21,6 +21,7 @@ export class OllamaAdapter implements TextCompletionAdapter {
           temperature: req.temperature,
           top_p: req.top_p,
           num_predict: req.max_length,
+          num_ctx: req.max_context,
         },
       }),
       signal: req.signal as AbortSignal | undefined,

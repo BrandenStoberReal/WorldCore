@@ -37,6 +37,7 @@ import { datamaidsRoutes } from './datamaids.routes';
 import { contentRoutes } from './content.routes';
 import { extensionsRoutes } from './extensions.routes';
 import { connectionProfilesRoutes } from './connection-profiles.routes';
+import { modelsRoutes } from './models.routes';
 import { vectorsRoutes } from './vectors.routes';
 import { ssoRoutes } from './sso.routes';
 import { promptBuilderRoutes } from './prompt-builder.routes';
@@ -211,6 +212,7 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
 
   // === Streaming (T17) ===
   routes[`${PREFIX}/ai/1.1/api/openai/chat/stream`] = streamingRoutes.chatStream;
+  routes[`${PREFIX}/ai/1.1/api/openai/text/stream`] = streamingRoutes.textStream;
 
   // === Vectors (T21) ===
   routes[`${PREFIX}/vectors/search`] = vectorsRoutes.search;
@@ -288,6 +290,11 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/connection-profiles/get`] = connectionProfilesRoutes.get;
   routes[`${PREFIX}/connection-profiles/update`] = connectionProfilesRoutes.update;
   routes[`${PREFIX}/connection-profiles/delete`] = connectionProfilesRoutes.delete;
+
+  // === Models (proxy to upstream providers) ===
+  // Dispatched via prefix-match in app.ts for /api/v1/models/{source}.
+  routes[`${PREFIX}/models`] = modelsRoutes.list;
+  routes[`${PREFIX}/models/context`] = modelsRoutes.context;
 
   return routes;
 }

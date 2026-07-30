@@ -76,6 +76,16 @@ function parseSillyTavernGenerationPreset(
   return params as Partial<ReturnType<typeof useGenerationStore.getState>>;
 }
 
+const MASTER_SECTION_KEYS = ['instruct', 'context', 'sysprompt', 'preset', 'reasoning'] as const;
+
+const MASTER_SECTION_CATEGORY: Record<string, string> = {
+  preset: 'generation',
+  instruct: 'instruct',
+  context: 'context',
+  sysprompt: 'sysprompt',
+  reasoning: 'reasoning',
+};
+
 export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: GenerationSidebarProps) {
   const store = useGenerationStore();
   const { mode } = store;
@@ -105,22 +115,39 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
     },
   });
 
-  const { data: defaultPresets = new Set<string>() } = useQuery({
-    queryKey: ['/api/v1/presets/all', 'generation+textgenerationwebui', 'defaults'],
+  const { data: generationPresetNames = [] } = useQuery<string[]>({
+    queryKey: ['/api/v1/presets/all', 'generation-only'],
     queryFn: async () => {
-      const [genPresets, tgPresets] = await Promise.all([
-        apiPost<Array<{ data?: { name?: string }; isDefault?: boolean }>>('/presets/all', {
-          category: 'generation',
-        }),
-        apiPost<Array<{ data?: { name?: string }; isDefault?: boolean }>>('/presets/all', {
-          category: 'textgenerationwebui',
-        }),
-      ]);
+      const genPresets = await apiPost<Array<{ data?: { name?: string } }>>('/presets/all', {
+        category: 'generation',
+      });
+      const names = new Set<string>();
+      for (const p of genPresets) {
+        const name = (p.data?.name as string) ?? '';
+        if (name) names.add(name);
+      }
+      return [...names].sort();
+    },
+  });
+
+  const { data: defaultPresets = new Set<string>() } = useQuery({
+    queryKey: ['/api/v1/presets/all', 'defaults'],
+    queryFn: async () => {
+      const categories = ['generation', 'textgenerationwebui', 'instruct', 'context', 'sysprompt', 'reasoning'];
+      const results = await Promise.all(
+        categories.map((cat) =>
+          apiPost<Array<{ data?: { name?: string }; isDefault?: boolean }>>('/presets/all', {
+            category: cat,
+          }),
+        ),
+      );
       const defaults = new Set<string>();
-      for (const p of [...genPresets, ...tgPresets]) {
-        if (p.isDefault) {
-          const name = (p.data?.name as string) ?? '';
-          if (name) defaults.add(name);
+      for (const presets of results) {
+        for (const p of presets) {
+          if (p.isDefault) {
+            const name = (p.data?.name as string) ?? '';
+            if (name) defaults.add(name);
+          }
         }
       }
       return defaults;
@@ -155,6 +182,71 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
           }
           const json = JSON.parse(text) as Record<string, unknown>;
 
+          // Detect master preset: 2+ known section keys at top level
+          const detectedSections = MASTER_SECTION_KEYS.filter(
+            (key) => key in json && typeof json[key] === 'object' && json[key] !== null,
+          );
+
+          if (detectedSections.length >= 2) {
+            const baseName = file.name.replace(/\.json$/i, '') || 'Imported';
+            const imported: string[] = [];
+
+            for (const section of detectedSections) {
+              const sectionData = json[section] as Record<string, unknown>;
+              const category = MASTER_SECTION_CATEGORY[section];
+              if (!category) continue;
+
+              if (section === 'preset') {
+                const parsed = parseSillyTavernGenerationPreset(sectionData);
+                if (parsed) {
+                  store.loadPreset(parsed);
+
+                  const existingNames = new Set([...presetNames, ...defaultPresets]);
+                  let uniqueName = baseName;
+                  let counter = 1;
+                  while (existingNames.has(uniqueName)) {
+                    uniqueName = `${baseName} (${counter})`;
+                    counter++;
+                  }
+
+                  await apiPost('/presets/import', {
+                    preset: {
+                      category: 'generation',
+                      data: { name: uniqueName, ...parsed },
+                    },
+                  });
+
+                  imported.push(`generation preset "${uniqueName}"`);
+                }
+              } else {
+                const rawName = (sectionData.name as string) || `${baseName} ${section}`;
+                const existingNames = new Set([...defaultPresets]);
+                let uniqueName = rawName;
+                let counter = 1;
+                while (existingNames.has(uniqueName)) {
+                  uniqueName = `${rawName} (${counter})`;
+                  counter++;
+                }
+                await apiPost('/presets/import', {
+                  preset: {
+                    category,
+                    data: { ...sectionData, name: uniqueName },
+                  },
+                });
+                imported.push(`${section} template`);
+              }
+            }
+
+            await queryClient.invalidateQueries({ queryKey: ['/api/v1/presets/all'] });
+
+            if (imported.length > 0) {
+              toast.success(`Master preset imported: ${imported.join(', ')}`);
+            } else {
+              toast.error('No importable sections found in master preset');
+            }
+            return;
+          }
+
           const parsed = parseSillyTavernGenerationPreset(json);
           if (!parsed) {
             toast.error('No generation parameters found in file');
@@ -164,13 +256,15 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
           store.loadPreset(parsed);
 
           const baseName = file.name.replace(/\.json$/i, '') || 'Imported';
-          const existingNames = new Set(presetNames);
+          const existingNames = new Set([...generationPresetNames, ...defaultPresets]);
           let uniqueName = baseName;
           let counter = 1;
           while (existingNames.has(uniqueName)) {
             uniqueName = `${baseName} (${counter})`;
             counter++;
           }
+
+          useGenerationStore.getState().updateParam('preset', uniqueName);
 
           await apiPost('/presets/import', {
             preset: {
@@ -193,7 +287,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
 
       e.target.value = '';
     },
-    [store, presetNames, queryClient],
+    [store, generationPresetNames, defaultPresets, queryClient],
   );
 
   const isCurrentPresetDefault = defaultPresets.has(store.preset);
@@ -651,6 +745,15 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               step={1}
               onChange={(v) => update('max_tokens', v)}
               description="Maximum number of tokens to generate. Higher = longer possible response."
+            />
+            <GenerationSlider
+              label="Context Size"
+              value={store.max_context}
+              min={512}
+              max={131072}
+              step={512}
+              onChange={(v) => update('max_context', v)}
+              description="Maximum context window size in tokens. Higher = more conversation history retained. Set to match your model's context length."
             />
             {mode === 'text' && (
               <GenerationSlider

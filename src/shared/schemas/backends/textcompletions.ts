@@ -25,8 +25,18 @@ export const TextCompletionRequestSchema = z
     epsilon_cutoff: z.number().optional(),
     eta_cutoff: z.number().optional(),
     stop: z.union([z.string(), z.array(z.string())]).optional(),
+    api_key: z.string().optional(),
+    reverse_proxy: z.string().optional(),
+    signal: z.unknown().optional(),
+    streaming: z.boolean().optional(),
+    seed: z.number().int().optional(),
+    frequency_penalty: z.number().optional(),
+    presence_penalty: z.number().optional(),
+    mirostat_mode: z.number().int().optional(),
+    mirostat_tau: z.number().optional(),
+    mirostat_eta: z.number().optional(),
   })
-  .catchall(z.unknown());
+  .strict();
 
 export const TextCompletionResponseSchema = z.object({
   result: z.string(),

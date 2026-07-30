@@ -5,8 +5,15 @@ import { Button } from '@/components/ui/button';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
 import { useAppStore, useChatStore, useGenerationStore } from '@/lib/stores';
-import { apiGet, apiPost, streamChat, runGenerationInterceptors } from '@/lib/api';
-import type { StreamChatRequest } from '@/lib/api';
+import {
+  apiGet,
+  apiPost,
+  streamChat,
+  streamTextCompletion,
+  flattenMessagesToPrompt,
+  runGenerationInterceptors,
+} from '@/lib/api';
+import type { StreamChatRequest, InstructFlattenParams } from '@/lib/api';
 import { cn, frostedGlass } from '@/lib/utils';
 import { emit } from '@/lib/extensionEventBus';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -16,6 +23,7 @@ import { PersonaSelector } from '@/components/PersonaSelector';
 
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import type { Character } from '@/shared/types/character';
+import type { TextOptions } from '@/shared/types/text-options';
 import { parseThinkingChunks } from '@/lib/parseThinking';
 import type { ReasoningSettings } from '@/shared/types/reasoning';
 
@@ -156,6 +164,46 @@ export function ChatView({ characterId }: ChatViewProps) {
           addToPrompts: false,
           maxAdditions: 1,
         };
+  }, [settings]);
+
+  const textOptions = useMemo(() => {
+    const to = (settings as { textOptions?: TextOptions } | undefined)?.textOptions;
+    if (!to) return null;
+    const syspromptEnabled = to.sysprompt?.enabled ?? true;
+    const instructEnabled = to.instruct?.enabled ?? false;
+
+    const sysOpts = syspromptEnabled
+      ? {
+          systemPromptOverride: to.sysprompt?.content,
+          jailbreakPromptOverride: to.sysprompt?.postHistoryInstructions,
+        }
+      : { systemPromptOverride: undefined, jailbreakPromptOverride: undefined };
+
+    if (!instructEnabled || !to.instruct) {
+      return { ...sysOpts, instruct: undefined };
+    }
+
+    return {
+      ...sysOpts,
+      instruct: {
+        enabled: true,
+        systemPrompt: to.instruct.systemPrompt || undefined,
+        inputSequence: to.instruct.inputSequence || '',
+        inputSuffix: to.instruct.inputSuffix || '',
+        outputSequence: to.instruct.outputSequence || '',
+        outputSuffix: to.instruct.outputSuffix || '',
+        systemSequence: to.instruct.systemSequence || '',
+        systemSuffix: to.instruct.systemSuffix || '',
+        separatorSequence: to.instruct.separatorSequence || '',
+        firstOutputSequence: to.instruct.firstOutputSequence || '',
+        lastOutputSequence: to.instruct.lastOutputSequence || '',
+        firstInputSequence: to.instruct.firstInputSequence || '',
+        lastInputSequence: to.instruct.lastInputSequence || '',
+        lastSystemSequence: to.instruct.lastSystemSequence || '',
+        names: to.instruct.names ?? false,
+        wrap: to.instruct.wrap ?? false,
+      },
+    };
   }, [settings]);
 
   const { data: chatData } = useQuery({
@@ -310,6 +358,9 @@ export function ChatView({ characterId }: ChatViewProps) {
         messages: allMessages,
         userName: userName,
         includeExamples: true,
+        systemPromptOverride: textOptions?.systemPromptOverride,
+        jailbreakPromptOverride: textOptions?.jailbreakPromptOverride,
+        instruct: textOptions?.instruct,
         reasoning: {
           addToPrompts: reasoningSettings.addToPrompts,
           maxAdditions: reasoningSettings.maxAdditions,
@@ -323,6 +374,7 @@ export function ChatView({ characterId }: ChatViewProps) {
 
       const source = (settings?.chat_completion_source as string) || 'openai';
       const model = (settings?.chat_completion_model as string) || 'gpt-3.5-turbo';
+      const reverseProxy = (settings?.reverse_proxy as string) || undefined;
 
       setIsGenerating(true);
       emit('generation_started', { characterId });
@@ -365,6 +417,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         genParams.smoothing_factor = genStore.smoothing_factor;
         genParams.epsilon_cutoff = genStore.epsilon_cutoff;
         genParams.eta_cutoff = genStore.eta_cutoff;
+        genParams.max_context = genStore.max_context;
         genParams.min_tokens = genStore.min_tokens;
       }
 
@@ -375,6 +428,7 @@ export function ChatView({ characterId }: ChatViewProps) {
           chat_completion_source: source,
           model: genStore.model || model,
           messages: promptMessages,
+          reverse_proxy: reverseProxy,
           ...genParams,
         };
 
@@ -383,11 +437,22 @@ export function ChatView({ characterId }: ChatViewProps) {
           abortRef.current!.signal,
         );
         if (!interceptedRequest) {
-          // An interceptor aborted this generation. Treat as user-cancelled.
           return;
         }
 
-        const generator = streamChat(interceptedRequest);
+        let generator: AsyncGenerator<string>;
+        if (genStore.mode === 'text') {
+          generator = streamTextCompletion({
+            text_completion_source: source,
+            model: genStore.model || model,
+            prompt: flattenMessagesToPrompt(interceptedRequest.messages, textOptions?.instruct),
+            max_context: genStore.max_context,
+            reverse_proxy: reverseProxy,
+            ...genParams,
+          });
+        } else {
+          generator = streamChat(interceptedRequest);
+        }
 
         for await (const chunk of generator) {
           if (abortRef.current?.signal.aborted) break;
@@ -612,6 +677,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         genParams.smoothing_factor = genStore.smoothing_factor;
         genParams.epsilon_cutoff = genStore.epsilon_cutoff;
         genParams.eta_cutoff = genStore.eta_cutoff;
+        genParams.max_context = genStore.max_context;
         genParams.min_tokens = genStore.min_tokens;
       }
 
@@ -626,6 +692,7 @@ export function ChatView({ characterId }: ChatViewProps) {
             content: m.mes,
             name: m.name,
           })),
+          reverse_proxy: (settings?.reverse_proxy as string) || undefined,
           ...genParams,
         };
 
@@ -634,11 +701,24 @@ export function ChatView({ characterId }: ChatViewProps) {
           abortRef.current!.signal,
         );
         if (!interceptedRequest) {
-          // An interceptor aborted this generation. Treat as user-cancelled.
           return;
         }
 
-        const generator = streamChat(interceptedRequest);
+        const source =
+          (settings?.chat_completion_source as string) || 'openai';
+        let generator: AsyncGenerator<string>;
+        if (genStore.mode === 'text') {
+          generator = streamTextCompletion({
+            text_completion_source: source,
+            model: genStore.model || (settings?.chat_completion_model as string) || 'gpt-3.5-turbo',
+            prompt: flattenMessagesToPrompt(interceptedRequest.messages, textOptions?.instruct),
+            max_context: genStore.max_context,
+            reverse_proxy: (settings?.reverse_proxy as string) || undefined,
+            ...genParams,
+          });
+        } else {
+          generator = streamChat(interceptedRequest);
+        }
 
         for await (const chunk of generator) {
           if (abortRef.current?.signal.aborted) break;

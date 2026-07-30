@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RotateCcw, Check, Plug } from 'lucide-react';
+import { RotateCcw, Check, Plug, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConnectionProfileSelector } from '@/components/connections/ConnectionProfileSelector';
 import { TextGenPanel } from '@/components/connections/TextGenPanel';
@@ -35,7 +35,7 @@ function modeForApiType(api: ApiType): 'chat' | 'text' {
 export function ConnectionsPanel() {
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [apiType, setApiType] = useState<ApiType>('textgenerationwebui');
   const [autoConnect, setAutoConnect] = useState(false);
@@ -158,20 +158,34 @@ export function ConnectionsPanel() {
     async (config: Record<string, unknown>) => {
       const source = (typeof config.type === 'string' && config.type) || apiType;
       const model = (typeof config.model === 'string' && config.model) || '';
+      const url =
+        (typeof config._url === 'string' && config._url) || 'http://localhost:8080';
+      setConnectionError(null);
       try {
         await saveSettingsPatch({
           chat_completion_source: source,
           chat_completion_model: model,
+          reverse_proxy: url,
           api: apiType,
           autoConnect,
         });
+
+        try {
+          await apiFetch(`/models/${source}?url=${encodeURIComponent(url)}`);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Connection failed';
+          setConnected(false);
+          setConnectionError(msg);
+          return;
+        }
+
         setConnected(true);
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
-      } catch {
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Connection failed';
         setConnected(false);
-        setSaveError(true);
-        setTimeout(() => setSaveError(false), 2000);
+        setConnectionError(msg);
       }
     },
     [apiType, autoConnect],
@@ -268,11 +282,6 @@ export function ConnectionsPanel() {
                 <span className="mono-tag">SAVED</span>
               </span>
             )}
-            {error && (
-              <span className="text-destructive inline-flex items-center gap-2">
-                <span className="mono-tag">ERROR</span>
-              </span>
-            )}
             <Button variant="outline" onClick={handleReset} className="h-8">
               <RotateCcw className="h-3.5 w-3.5" />
               <span className="mono-tag">RESET</span>
@@ -284,6 +293,25 @@ export function ConnectionsPanel() {
           </div>
         }
       />
+
+      {/* Connection error banner */}
+      {connectionError && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="flex-1">
+            <span className="font-medium">Connection failed</span>
+            <span className="text-destructive/70 ml-1.5">{connectionError}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-[11px] text-destructive hover:text-destructive"
+            onClick={() => setConnectionError(null)}
+          >
+            Dismiss
+          </Button>
+        </div>
+      )}
 
       {/* Profile Selector */}
       <ConnectionProfileSelector

@@ -19,7 +19,8 @@ import { InlineSection } from '@/components/drawers/InlineSection';
 import { apiFetch, apiGet, apiPost } from '@/lib/api';
 import { useDebouncedAutoSave } from '@/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import type { ReasoningSettings } from '@/shared/types/reasoning';
+import type { TextOptions } from '@/shared/types/text-options';
+import { TextOptionsDefaults, mergeTextOptions } from '@/shared/schemas/text-options';
 
 interface PresetResponse {
   category: string;
@@ -78,150 +79,12 @@ interface ReasoningTemplate {
   separator: string;
 }
 
-interface TextOptionsState {
-  sysprompt: {
-    enabled: boolean;
-    selectedPreset: string;
-    content: string;
-    postHistoryInstructions: string;
-  };
-  context: {
-    selectedPreset: string;
-    storyString: string;
-    chatStart: string;
-    exampleSeparator: string;
-    storyStringPosition: 'default' | 'inchat';
-    storyStringDepth: number;
-    storyStringRole: 'system' | 'user' | 'assistant';
-    forceName2: boolean;
-    singleLine: boolean;
-    collapseNewlines: boolean;
-    trimSpaces: boolean;
-    trimSentences: boolean;
-    separatorsAsStopStrings: boolean;
-    namesAsStopStrings: boolean;
-  };
-  instruct: {
-    enabled: boolean;
-    selectedPreset: string;
-    storyStringPrefix: string;
-    storyStringSuffix: string;
-    inputSequence: string;
-    inputSuffix: string;
-    outputSequence: string;
-    outputSuffix: string;
-    systemSequence: string;
-    systemSuffix: string;
-    firstOutputSequence: string;
-    lastOutputSequence: string;
-    firstInputSequence: string;
-    lastInputSequence: string;
-    lastSystemSequence: string;
-    stopSequence: string;
-    userAlignmentMessage: string;
-    wrap: boolean;
-    macro: boolean;
-    sequencesAsStopStrings: boolean;
-    skipExamples: boolean;
-    namesBehavior: 'none' | 'force' | 'always';
-    activationRegex: string;
-    bindToContext: boolean;
-    systemPrompt: string;
-    separatorSequence: string;
-    systemSequencePrefix: string;
-    systemSequenceSuffix: string;
-    names: boolean;
-    namesForceGroups: boolean;
-    systemSameAsUser: boolean;
-  };
-  stoppingStrings: string;
-  tokenizer: string;
-  tokenPadding: number;
-  reasoning: ReasoningSettings;
-  bindModelTemplates: boolean;
-  markdownEscapeStrings: string;
-  startReplyWith: string;
-  showReplyPrefix: boolean;
-}
+type TextOptionsState = TextOptions;
 
-const defaultState: TextOptionsState = {
-  sysprompt: {
-    enabled: true,
-    selectedPreset: 'Neutral - Chat',
-    content: "Write {{char}}'s next reply in a fictional chat between {{char}} and {{user}}.",
-    postHistoryInstructions: '',
-  },
-  context: {
-    selectedPreset: 'Default',
-    storyString: "{{#if system}}{{system}}\n{{/if}}{{#if description}}{{description}}\n{{/if}}{{#if personality}}{{char}}'s personality: {{personality}}\n{{/if}}{{#if scenario}}Scenario: {{scenario}}\n{{/if}}{{#if persona}}{{persona}}\n{{/if}}",
-    chatStart: '***',
-    exampleSeparator: '***',
-    storyStringPosition: 'default',
-    storyStringDepth: 1,
-    storyStringRole: 'system',
-    forceName2: true,
-    singleLine: false,
-    collapseNewlines: false,
-    trimSpaces: true,
-    trimSentences: false,
-    separatorsAsStopStrings: true,
-    namesAsStopStrings: true,
-  },
-  instruct: {
-    enabled: false,
-    selectedPreset: 'Alpaca',
-    storyStringPrefix: '',
-    storyStringSuffix: '',
-    inputSequence: '### Instruction:',
-    inputSuffix: '',
-    outputSequence: '### Response:',
-    outputSuffix: '',
-    systemSequence: '',
-    systemSuffix: '',
-    firstOutputSequence: '',
-    lastOutputSequence: '',
-    firstInputSequence: '',
-    lastInputSequence: '',
-    lastSystemSequence: '',
-    stopSequence: '',
-    userAlignmentMessage: '',
-    wrap: true,
-    macro: true,
-    sequencesAsStopStrings: true,
-    skipExamples: false,
-    namesBehavior: 'force',
-    activationRegex: '',
-    bindToContext: false,
-    systemPrompt: '',
-    separatorSequence: '',
-    systemSequencePrefix: '',
-    systemSequenceSuffix: '',
-    names: false,
-    namesForceGroups: false,
-    systemSameAsUser: false,
-  },
-  stoppingStrings: '[]',
-  tokenizer: 'best',
-  tokenPadding: 64,
-  reasoning: {
-    selectedPreset: 'Default',
-    prefix: '<think>',
-    suffix: '</think>',
-    separator: '\n',
-    autoParse: false,
-    autoExpand: false,
-    showHidden: false,
-    addToPrompts: false,
-    maxAdditions: 1,
-  },
-  bindModelTemplates: false,
-  markdownEscapeStrings: '',
-  startReplyWith: '',
-  showReplyPrefix: true,
-};
+const defaultState: TextOptionsState = TextOptionsDefaults;
 
 function mergeDefaults(partial?: Partial<TextOptionsState>): TextOptionsState {
-  return { ...defaultState, ...partial };
+  return mergeTextOptions(partial);
 }
 
 function parseSillyTavernOptions(json: Record<string, unknown>): Partial<TextOptionsState> {

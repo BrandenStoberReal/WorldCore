@@ -216,7 +216,7 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
               <Label>
                 API Type <span className="text-destructive">*</span>
               </Label>
-              <Select value={form.api} onValueChange={(val) => updateField('api', val)}>
+              <Select value={form.api} onValueChange={(val) => updateField('api', val as typeof form.api)}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select API type" />
                 </SelectTrigger>

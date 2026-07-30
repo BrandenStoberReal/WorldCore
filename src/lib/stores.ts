@@ -111,6 +111,7 @@ const SHARED_DEFAULTS = {
   top_p: 0.5,
   top_k: 40,
   max_tokens: 4096,
+  max_context: 8192,
   seed: -1,
   stop: [] as string[],
 } as const;
@@ -173,6 +174,7 @@ export interface GenerationState {
   smoothing_factor: number;
   epsilon_cutoff: number;
   eta_cutoff: number;
+  max_context: number;
 
   model: string;
   preset: string;
@@ -214,6 +216,7 @@ type GenerationParams = Pick<
   | 'smoothing_factor'
   | 'epsilon_cutoff'
   | 'eta_cutoff'
+  | 'max_context'
   | 'model'
   | 'preset'
 >;
@@ -245,6 +248,7 @@ const PARAM_KEYS = [
   'smoothing_factor',
   'epsilon_cutoff',
   'eta_cutoff',
+  'max_context',
   'model',
   'preset',
 ] as const satisfies readonly (keyof GenerationParams)[];

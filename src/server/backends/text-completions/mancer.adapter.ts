@@ -21,6 +21,7 @@ export class MancerAdapter implements TextCompletionAdapter {
       top_a: req.top_a,
       epsilon_cutoff: req.epsilon_cutoff,
       eta_cutoff: req.eta_cutoff,
+      max_context_length: req.max_context,
       stop_sequences: req.stop,
     };
 

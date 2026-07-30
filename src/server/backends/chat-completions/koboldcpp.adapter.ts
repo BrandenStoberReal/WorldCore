@@ -13,7 +13,7 @@ export class KoboldCppAdapter implements ChatCompletionAdapter {
 
     const body: Record<string, unknown> = {
       prompt: buildPrompt(req.messages),
-      max_context_length: req.max_tokens,
+      max_context_length: req.max_context,
       max_length: req.max_tokens,
       temperature: req.temperature,
       top_p: req.top_p,

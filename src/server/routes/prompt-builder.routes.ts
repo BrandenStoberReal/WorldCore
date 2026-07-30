@@ -4,6 +4,8 @@ import { promptBuilder } from '@/server/services/prompt-builder';
 import { characterService } from '@/server/services/character.service';
 import { personaService } from '@/server/services/persona.service';
 import type { ChatMessage } from '@/shared/types/chat';
+import { InstructSettingsSchema } from '@/shared/schemas/text-options';
+import { ReasoningSettingsSchema } from '@/shared/schemas/reasoning';
 import { z } from 'zod';
 
 const PromptBuildRequestSchema = z.object({
@@ -23,15 +25,8 @@ const PromptBuildRequestSchema = z.object({
   includeExamples: z.boolean().default(true),
   maxTokens: z.number().optional(),
   personaId: z.number().nullable().optional(),
-  reasoning: z
-    .object({
-      addToPrompts: z.boolean(),
-      maxAdditions: z.number(),
-      prefix: z.string(),
-      suffix: z.string(),
-      separator: z.string(),
-    })
-    .optional(),
+  reasoning: ReasoningSettingsSchema.optional(),
+  instruct: InstructSettingsSchema.optional(),
 });
 
 export const promptBuilderRoutes = {
@@ -78,6 +73,7 @@ export const promptBuilderRoutes = {
         maxTokens: parsed.maxTokens,
         persona,
         reasoning: parsed.reasoning,
+        instruct: parsed.instruct,
       });
 
       return new Response(JSON.stringify(result), {

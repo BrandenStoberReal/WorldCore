@@ -13,22 +13,20 @@ import { apiFetch } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface ModelSelectorProps {
-  /** API source identifier (e.g. "openai", "llamacpp"). */
   source: string;
-  /** Currently selected model id. */
   value: string;
-  /** Called when the user picks a different model. */
   onChange: (model: string) => void;
   className?: string;
-  /** Placeholder shown when no model is selected. */
   placeholder?: string;
-  /** Optional extra query params appended to the fetch URL. */
   queryParams?: Record<string, string>;
+  url?: string;
+  onModelsLoaded?: (models: ModelEntry[]) => void;
 }
 
 interface ModelEntry {
   id: string;
   label: string;
+  context_length?: number;
 }
 
 /**
@@ -46,6 +44,8 @@ export function ModelSelector({
   className,
   placeholder = 'Select a model...',
   queryParams,
+  url,
+  onModelsLoaded,
 }: ModelSelectorProps) {
   const [models, setModels] = useState<ModelEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -59,17 +59,20 @@ export function ModelSelector({
     setLoading(true);
     setError(null);
     try {
-      const qs = queryParams ? `?${new URLSearchParams(queryParams).toString()}` : '';
+      const params: Record<string, string> = { ...queryParams };
+      if (url) params.url = url;
+      const qs = Object.keys(params).length > 0 ? `?${new URLSearchParams(params).toString()}` : '';
       const data = (await apiFetch(`/models/${source}${qs}`)) as unknown;
       const list = normalizeModels(data);
       setModels(list);
+      onModelsLoaded?.(list);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load models');
       setModels([]);
     } finally {
       setLoading(false);
     }
-  }, [source, queryParams]);
+  }, [source, queryParams, url, onModelsLoaded]);
 
   useEffect(() => {
     void fetchModels();
@@ -147,7 +150,9 @@ function normalizeModels(data: unknown): ModelEntry[] {
           (typeof rec.label === 'string' && rec.label) ||
           (typeof rec.name === 'string' && rec.name) ||
           id;
-        return { id, label };
+        const context_length =
+          typeof rec.context_length === 'number' ? rec.context_length : undefined;
+        return { id, label, context_length };
       }
       return null;
     })

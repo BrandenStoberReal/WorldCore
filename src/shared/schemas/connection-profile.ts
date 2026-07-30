@@ -1,44 +1,43 @@
 import { z } from 'zod';
+import { SHARED_CONST } from '@/shared/constants';
+
+const AllSources = [
+  ...SHARED_CONST.CHAT_COMPLETION_SOURCES,
+  ...SHARED_CONST.TEXT_COMPLETION_SOURCES,
+] as const;
 
 export const ConnectionProfileSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  id: z.string().uuid(),
+  name: z.string().trim().min(1).max(255),
 
-  // API Connection
-  api: z.string(), // API type: 'openai', 'text-completions', etc.
-  model: z.string(), // Model name
-  apiUrl: z.string().optional(), // Server URL endpoint
-  secretId: z.string().optional(), // API key reference ID
+  api: z.enum(AllSources),
+  model: z.string().trim().min(1).max(500),
+  apiUrl: z.string().url().optional(),
+  secretId: z.string().uuid().optional(),
 
-  // Presets & Templates
-  preset: z.string().optional(), // Settings preset name
-  instruct: z.string().optional(), // Instruct template name
-  context: z.string().optional(), // Context template name
-  sysprompt: z.string().optional(), // System prompt name
-  syspromptState: z.boolean().optional(), // System prompt enabled
-  instructState: z.boolean().optional(), // Instruct mode enabled
+  preset: z.string().trim().max(255).optional(),
+  instruct: z.string().trim().max(255).optional(),
+  context: z.string().trim().max(255).optional(),
+  sysprompt: z.string().trim().max(255).optional(),
+  syspromptState: z.boolean().optional(),
+  instructState: z.boolean().optional(),
 
-  // Generation Settings
-  stopStrings: z.string().optional(), // Custom stopping strings
-  startReplyWith: z.string().optional(), // Start reply with text
-  reasoningTemplate: z.string().optional(), // Reasoning formatting template
-  promptPostProcessing: z.string().optional(), // Prompt post-processing method
+  stopStrings: z.string().max(2000).optional(),
+  startReplyWith: z.string().max(500).optional(),
+  reasoningTemplate: z.string().trim().max(255).optional(),
+  promptPostProcessing: z.string().trim().max(255).optional(),
 
-  // Text Completion Specific
-  tokenizer: z.string().optional(), // Tokenizer selection
+  tokenizer: z.string().trim().max(255).optional(),
 
-  // Generation Mode
-  mode: z.enum(['chat', 'text']).optional(), // Chat or text completion mode
+  mode: z.enum(['chat', 'text']).optional(),
 
-  // Other
-  proxy: z.string().optional(), // Proxy preset name
-  regexPreset: z.string().optional(), // Regex preset ID
-  exclude: z.array(z.string()).optional(), // Commands to exclude from profile
+  proxy: z.string().trim().max(255).optional(),
+  regexPreset: z.string().trim().max(255).optional(),
+  exclude: z.array(z.string().trim().max(255)).optional(),
 
-  // Metadata
-  isDefault: z.boolean().optional(), // Built-in default profile (editable, autosaves, non-deletable)
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
+  isDefault: z.boolean().optional(),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
 });
 
 export type ConnectionProfile = z.infer<typeof ConnectionProfileSchema>;

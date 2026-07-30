@@ -2,14 +2,20 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '@/server/db/client';
 import { connectionProfiles } from '@/server/db/schema';
 import { NotFoundError } from '@/server/errors';
-import type {
-  ConnectionProfileCreateInput,
-  ConnectionProfileUpdateInput,
-  ConnectionProfile,
+import {
+  ConnectionProfileSchema,
+  type ConnectionProfileCreateInput,
+  type ConnectionProfileUpdateInput,
+  type ConnectionProfile,
 } from '@/shared/schemas/connection-profile';
 
 function generateId(): string {
   return crypto.randomUUID();
+}
+
+function parseProfile(data: string): ConnectionProfile {
+  const raw = JSON.parse(data) as Record<string, unknown>;
+  return ConnectionProfileSchema.parse(raw);
 }
 
 export const connectionProfileService = {
@@ -40,7 +46,7 @@ export const connectionProfileService = {
       .select()
       .from(connectionProfiles)
       .where(eq(connectionProfiles.userId, userId));
-    return rows.map((row) => JSON.parse(row.data) as ConnectionProfile);
+    return rows.map((row) => parseProfile(row.data));
   },
 
   async getOne(userId: string, id: string): Promise<ConnectionProfile | null> {
@@ -49,7 +55,7 @@ export const connectionProfileService = {
       .from(connectionProfiles)
       .where(and(eq(connectionProfiles.userId, userId), eq(connectionProfiles.id, id)));
     if (rows.length === 0) return null;
-    return JSON.parse(rows[0]!.data) as ConnectionProfile;
+    return parseProfile(rows[0]!.data);
   },
 
   async getOneOrThrow(userId: string, id: string): Promise<ConnectionProfile> {
@@ -70,7 +76,7 @@ export const connectionProfileService = {
     const updated: ConnectionProfile = {
       ...existing,
       ...input,
-      id, // Ensure ID doesn't change
+      id,
       updatedAt: new Date().toISOString(),
     };
 

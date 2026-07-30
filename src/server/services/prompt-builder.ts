@@ -1,6 +1,7 @@
 import type { CharacterData } from '@/shared/types/character';
 import type { ChatMessage } from '@/shared/types/chat';
 import type { ChatCompletionMessage } from '@/shared/types/backends/chatcompletions';
+import type { InstructSettings } from '@/shared/types/text-options';
 import { TiktokenTokenizer } from '@/server/tokenizers/tiktoken';
 import { substituteMacros, type MacroContext } from '@/lib/macros';
 
@@ -45,6 +46,7 @@ export interface PromptBuilderParams {
     suffix: string;
     separator: string;
   };
+  instruct?: InstructSettings;
 }
 
 export interface PromptBuilderResult {
@@ -103,13 +105,19 @@ export class PromptBuilder {
       });
     }
 
-    // 2. Add main system prompt (creator_notes or default)
-    const mainPrompt = this.getMainPrompt(character, charName, userName);
-    if (mainPrompt) {
+    if (params.instruct?.enabled && params.instruct.systemPrompt) {
       messagesArray.push({
         role: 'system',
-        content: substituteMacros(mainPrompt, macroCtx),
+        content: substituteMacros(params.instruct.systemPrompt, macroCtx),
       });
+    } else {
+      const mainPrompt = this.getMainPrompt(character, charName, userName);
+      if (mainPrompt) {
+        messagesArray.push({
+          role: 'system',
+          content: substituteMacros(mainPrompt, macroCtx),
+        });
+      }
     }
 
     // 3. Add World Info after character definitions
@@ -321,12 +329,6 @@ export class PromptBuilder {
    * Get the main system prompt (SillyTavern's default main prompt).
    */
   private getMainPrompt(character: CharacterData, charName: string, userName: string): string {
-    // Use creator_notes if available, otherwise use default
-    if (character.creator_notes) {
-      return character.creator_notes;
-    }
-
-    // SillyTavern's default main prompt
     return `Write ${charName}'s next reply in a fictional chat between ${charName} and ${userName}.`;
   }
 

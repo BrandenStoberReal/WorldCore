@@ -80,6 +80,18 @@ async function handleRequest(req: Request): Promise<Response> {
         return assetHandler(req);
       }
     }
+    if (pathname === `${SHARED_CONST.API_VERSION_PREFIX}/models/context`) {
+      const contextHandler = apiRoutes[`${SHARED_CONST.API_VERSION_PREFIX}/models/context`];
+      if (contextHandler) {
+        return contextHandler(req);
+      }
+    }
+    if (pathname.startsWith(`${SHARED_CONST.API_VERSION_PREFIX}/models/`)) {
+      const modelsHandler = apiRoutes[`${SHARED_CONST.API_VERSION_PREFIX}/models`];
+      if (modelsHandler) {
+        return modelsHandler(req);
+      }
+    }
     const handler = apiRoutes[pathname];
     if (handler) {
       return handler(req);

@@ -1,4 +1,5 @@
 import type { SettingsObject } from '@/shared/types/settings';
+import type { InstructSettings } from '@/shared/types/text-options';
 
 const BASE = '/api/v1';
 
@@ -25,6 +26,22 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   const options: RequestInit = { method: 'POST' };
   if (body !== undefined) options.body = JSON.stringify(body);
   return (await apiFetch(path, options)) as T;
+}
+
+export async function fetchModelContextSize(
+  source: string,
+  url: string,
+  model: string,
+): Promise<number | null> {
+  try {
+    const params = new URLSearchParams({ url, model });
+    const data = (await apiFetch(`/models/context?${params.toString()}`)) as {
+      context_length?: number | null;
+    };
+    return typeof data.context_length === 'number' ? data.context_length : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Read a secret by key; returns null when the secret is absent or not found. */
@@ -130,6 +147,213 @@ export interface StreamChatRequest {
   stop?: string[];
   streaming?: boolean;
   [key: string]: unknown;
+}
+
+export interface StreamTextCompletionRequest {
+  text_completion_source: string;
+  model: string;
+  prompt: string;
+  max_context?: number;
+  max_length?: number;
+  temperature?: number;
+  top_p?: number;
+  top_k?: number;
+  min_p?: number;
+  typical_p?: number;
+  top_a?: number;
+  tfs?: number;
+  rep_pen?: number;
+  rep_pen_range?: number;
+  rep_pen_slope?: number;
+  dry_multiplier?: number;
+  dry_base?: number;
+  dry_allowed_length?: number;
+  mirostat_mode?: number;
+  mirostat_tau?: number;
+  mirostat_eta?: number;
+  smoothing_factor?: number;
+  epsilon_cutoff?: number;
+  eta_cutoff?: number;
+  frequency_penalty?: number;
+  presence_penalty?: number;
+  seed?: number;
+  min_tokens?: number;
+  stop?: string[];
+  streaming?: boolean;
+  [key: string]: unknown;
+}
+
+/**
+ * Flatten a messages array into a single prompt string for text-completion mode.
+ * System messages get wrapped in [System: ...], others are "role: content".
+ */
+export type InstructFlattenParams = Pick<
+  InstructSettings,
+  | 'enabled'
+  | 'inputSequence'
+  | 'inputSuffix'
+  | 'outputSequence'
+  | 'outputSuffix'
+  | 'systemSequence'
+  | 'systemSuffix'
+  | 'separatorSequence'
+  | 'firstOutputSequence'
+  | 'lastOutputSequence'
+  | 'firstInputSequence'
+  | 'lastInputSequence'
+  | 'lastSystemSequence'
+  | 'names'
+  | 'wrap'
+> & { systemPrompt?: string };
+
+export function flattenMessagesToPrompt(
+  messages: Array<{ role: string; content: string; name?: string }>,
+  instruct?: InstructFlattenParams,
+): string {
+  if (!instruct?.enabled) {
+    return messages
+      .map((m) => {
+        if (m.role === 'system') return `[System: ${m.content}]`;
+        return `${m.role}: ${m.content}`;
+      })
+      .join('\n\n');
+  }
+
+  const parts: string[] = [];
+  let isFirstUser = true;
+  let isFirstAssistant = true;
+
+  for (const m of messages) {
+    if (m.role === 'system') {
+      const prefix = instruct.systemSequence || '';
+      const suffix = instruct.systemSuffix || '';
+      parts.push(`${prefix}${m.content}${suffix}`);
+    } else if (m.role === 'user') {
+      const namePrefix = instruct.names && m.name ? `${m.name}: ` : '';
+      let prefix = isFirstUser
+        ? (instruct.firstInputSequence || instruct.inputSequence)
+        : instruct.inputSequence;
+      const suffix = isFirstUser
+        ? (instruct.lastInputSequence || instruct.inputSuffix)
+        : instruct.inputSuffix;
+      prefix = instruct.wrap ? `${namePrefix}${prefix}` : `${namePrefix}${prefix}`;
+      parts.push(`${prefix}${m.content}${suffix}`);
+      isFirstUser = false;
+    } else if (m.role === 'assistant') {
+      const namePrefix = instruct.names && m.name ? `${m.name}: ` : '';
+      let prefix = isFirstAssistant
+        ? (instruct.firstOutputSequence || instruct.outputSequence)
+        : instruct.outputSequence;
+      const suffix = isFirstAssistant
+        ? (instruct.lastOutputSequence || instruct.outputSuffix)
+        : instruct.outputSuffix;
+      prefix = instruct.wrap ? `${namePrefix}${prefix}` : `${namePrefix}${prefix}`;
+      parts.push(`${prefix}${m.content}${suffix}`);
+      isFirstAssistant = false;
+    }
+  }
+
+  return parts.join(instruct.separatorSequence || '\n\n');
+}
+
+/**
+ * Stream a text-completion request. Text-completion upstreams (llama.cpp, ooba,
+ * etc.) return NDJSON lines, NOT SSE. Each line is a JSON object with a
+ * `content` or `text` field containing the token.
+ */
+export async function* streamTextCompletion(
+  request: StreamTextCompletionRequest,
+): AsyncGenerator<string> {
+  if (request.streaming === false) {
+    const res = await fetch(`${BASE}/ai/1.1/api/openai/text/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => res.statusText);
+      throw new Error(
+        `streamTextCompletion non-streaming request failed (${res.status}): ${errText}`,
+      );
+    }
+    const data = (await res.json()) as Record<string, unknown>;
+    const content =
+      (data.content as string) ||
+      (data.text as string) ||
+      (data.result as string) ||
+      '';
+    if (content) yield content;
+    return;
+  }
+
+  const res = await fetch(`${BASE}/ai/1.1/api/openai/text/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => res.statusText);
+    throw new Error(`streamTextCompletion SSE request failed (${res.status}): ${errText}`);
+  }
+
+  if (!res.body) {
+    throw new Error('No stream body');
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+
+  try {
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        let trimmed = line.trim();
+        if (!trimmed) continue;
+        if (trimmed.startsWith('data: ')) trimmed = trimmed.slice(6);
+        if (trimmed === '[DONE]') return;
+
+        try {
+          const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+          const content =
+            (parsed.content as string) ||
+            (parsed.text as string) ||
+            (parsed.result as string) ||
+            '';
+          if (content) yield content;
+        } catch {
+          // skip parse errors during streaming
+        }
+      }
+    }
+
+    if (buffer.trim()) {
+      let trimmed = buffer.trim();
+      if (trimmed.startsWith('data: ')) trimmed = trimmed.slice(6);
+      if (trimmed !== '[DONE]') {
+        try {
+          const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+          const content =
+            (parsed.content as string) ||
+            (parsed.text as string) ||
+            (parsed.result as string) ||
+            '';
+          if (content) yield content;
+        } catch {
+          // skip
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 export async function* streamChat(request: StreamChatRequest): AsyncGenerator<string> {
@@ -304,7 +528,7 @@ export async function runGenerationInterceptors(
     if (aborted) return null;
     if (signal.aborted) return null;
     try {
-      handler(ctx);
+      await handler(ctx);
     } catch (err) {
       console.error(`[worldcore-ext:${extId}] generation interceptor "${id}" threw:`, err);
     }

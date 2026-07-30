@@ -216,6 +216,7 @@ export const GenerationPresetSchema = z
     smoothing_factor: z.number().default(0),
     epsilon_cutoff: z.number().default(0),
     eta_cutoff: z.number().default(0),
+    max_context: z.number().int().default(8192),
     model: z.string().default(''),
     mode: z.enum(['chat', 'text']).default('chat'),
   })

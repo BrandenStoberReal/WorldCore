@@ -29,6 +29,7 @@ export class OllamaAdapter implements ChatCompletionAdapter {
           temperature: req.temperature,
           num_predict: req.max_tokens,
           top_p: req.top_p,
+          num_ctx: req.max_context,
         },
       }),
       signal: req.signal as AbortSignal | undefined,

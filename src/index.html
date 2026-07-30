@@ -5,21 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="WorldCore — character cards, chat, world info, extensions." />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#1a1818" />
+    <meta name="theme-color" content="#0f0e11" />
     <link rel="icon" type="image/svg+xml" href="./logo.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="preload"
       as="style"
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap"
     />
     <title>WorldCore</title>
     <style>
+      :root {
+        --boot-bg: oklch(0.15 0.006 260);
+        --boot-fg: oklch(0.93 0.003 260);
+        --boot-ember: oklch(0.65 0.18 265);
+        --boot-muted: oklch(0.58 0.01 260);
+      }
       html,
       body {
-        background-color: #1a1815;
-        color: #efe9e0;
+        background-color: var(--boot-bg);
+        color: var(--boot-fg);
         margin: 0;
       }
       #root {
@@ -29,34 +35,65 @@
         position: fixed;
         inset: 0;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 20px;
         z-index: 0;
         pointer-events: none;
         background:
-          radial-gradient(circle at 78% 18%, rgba(220, 90, 30, 0.18) 0%, transparent 42%),
-          radial-gradient(circle at 18% 84%, rgba(220, 90, 30, 0.12) 0%, transparent 56%);
+          radial-gradient(circle at 78% 18%, color-mix(in oklch, var(--boot-ember) 18%, transparent) 0%, transparent 42%),
+          radial-gradient(circle at 18% 84%, color-mix(in oklch, var(--boot-ember) 10%, transparent) 0%, transparent 56%);
         opacity: 1;
         transition: opacity 0.6s ease;
       }
       #boot-flare .flare-mark {
-        font-family: 'Times New Roman', serif;
-        font-size: 64px;
+        font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+        font-size: 56px;
         font-weight: 600;
         letter-spacing: -0.04em;
-        color: #efe9e0;
-        opacity: 0.85;
+        color: var(--boot-fg);
+        opacity: 0.9;
         animation: ember-glow 2.4s ease-in-out infinite;
+      }
+      .loading-dots {
+        display: flex;
+        gap: 6px;
+      }
+      .loading-dots span {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--boot-ember);
+        animation: dot-pulse 1.4s ease-in-out infinite;
+      }
+      .loading-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .loading-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+      @keyframes dot-pulse {
+        0%,
+        100% {
+          opacity: 0.3;
+          transform: scale(0.85);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1);
+        }
       }
       @keyframes ember-glow {
         0%,
         100% {
-          text-shadow: 0 0 12px rgba(220, 90, 30, 0.4);
+          text-shadow: 0 0 12px color-mix(in oklch, var(--boot-ember) 35%, transparent);
         }
         50% {
           text-shadow:
-            0 0 24px rgba(220, 90, 30, 0.7),
-            0 0 60px rgba(220, 90, 30, 0.25);
+            0 0 24px color-mix(in oklch, var(--boot-ember) 60%, transparent),
+            0 0 60px color-mix(in oklch, var(--boot-ember) 20%, transparent);
         }
       }
     </style>
@@ -65,6 +102,11 @@
   <body>
     <div id="boot-flare">
       <span class="flare-mark">WorldCore</span>
+      <div class="loading-dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
     </div>
     <div id="root"></div>
     <script type="module">

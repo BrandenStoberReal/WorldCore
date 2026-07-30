@@ -2,13 +2,7 @@ import { useState } from 'react';
 import { Info, Plus, Save, Pencil, RefreshCw, Trash2, HelpCircle, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-
-interface ConnectionProfile {
-  id: string;
-  name: string;
-  api: string;
-  model: string;
-}
+import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
 
 interface ConnectionProfileSelectorProps {
   profiles: ConnectionProfile[];
