@@ -5,7 +5,8 @@ import { DrawerShell } from '@/components/drawers/DrawerShell';
 import { Onboarding } from '@/components/Onboarding';
 import { Toaster } from '@/components/ui/sonner';
 import { useAppStore } from '@/lib/stores';
-import { checkOnboardingStatus } from '@/lib/api';
+import { apiFetch, checkOnboardingStatus, getSettings } from '@/lib/api';
+import { useNavStore } from '@/lib/navStore';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useExtensionBootloader } from '@/hooks/useExtensionBootloader';
 import '@/index.css';
@@ -14,6 +15,7 @@ export function App() {
   const [onboardingNeeded, setOnboardingNeeded] = useState<boolean | null>(null);
   const initUser = useAppStore((s) => s.initUser);
   const initSettings = useAppStore((s) => s.initSettings);
+  const setConnected = useNavStore((s) => s.setConnected);
   const bootloader = useExtensionBootloader();
   useKeyboardShortcuts();
 
@@ -22,10 +24,26 @@ export function App() {
       setOnboardingNeeded(needed);
       if (!needed) {
         void initUser();
-        void initSettings();
+        void initSettings().then(() => {
+          void (async () => {
+            try {
+              const settings = await getSettings<Record<string, unknown>>();
+              const source = typeof settings?.chat_completion_source === 'string'
+                ? settings.chat_completion_source
+                : null;
+              const url = typeof settings?.reverse_proxy === 'string' ? settings.reverse_proxy : '';
+              if (!source) return;
+              const qs = url ? `?url=${encodeURIComponent(url)}` : '';
+              await apiFetch(`/models/${source}${qs}`);
+              setConnected(true);
+            } catch {
+              setConnected(false);
+            }
+          })();
+        });
       }
     });
-  }, [initUser, initSettings]);
+  }, [initUser, initSettings, setConnected]);
 
   if (bootloader.error && typeof console !== 'undefined') {
     console.warn('[worldcore-ext] boot error:', bootloader.error.message);

@@ -38,6 +38,7 @@ export class GenericAdapter implements ChatCompletionAdapter {
         temperature: req.temperature,
         max_tokens: req.max_tokens,
         top_p: req.top_p,
+        ...(req.stop ? { stop: req.stop } : {}),
       }),
       signal: req.signal as AbortSignal | undefined,
     });

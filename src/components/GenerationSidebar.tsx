@@ -1,9 +1,19 @@
 import { useCallback, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Save, RotateCcw, Zap, Copy, PanelLeftClose, Upload } from 'lucide-react';
+import {
+  Save,
+  RotateCcw,
+  Zap,
+  Copy,
+  PanelLeftClose,
+  Upload,
+  ChevronUp,
+  ChevronDown,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useAppStore, useGenerationStore } from '@/lib/stores';
+import { useAppStore, useGenerationStore, PARAM_KEYS } from '@/lib/stores';
 import { GenerationSlider } from '@/components/GenerationSlider';
 import { InlineSection } from '@/components/drawers/InlineSection';
 import {
@@ -16,7 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { IconButton } from '@/components/ui/icon-button';
-import { apiPost } from '@/lib/api';
+import { apiPost, deletePreset } from '@/lib/api';
 
 interface GenerationSidebarProps {
   mode?: 'sidebar' | 'drawer';
@@ -29,7 +39,8 @@ function parseSillyTavernGenerationPreset(
   json: Record<string, unknown>,
 ): Partial<ReturnType<typeof useGenerationStore.getState>> | null {
   const tgSettings = json.textgenerationwebui_settings as Record<string, unknown> | undefined;
-  const source = tgSettings ?? json;
+  const nestedPreset = json.preset as Record<string, unknown> | undefined;
+  const source = tgSettings ?? nestedPreset ?? json;
 
   if (typeof source !== 'object' || source === null) return null;
 
@@ -42,19 +53,72 @@ function parseSillyTavernGenerationPreset(
   };
 
   const numericKeys = [
-    'temperature', 'top_p', 'top_k', 'max_tokens', 'seed',
-    'frequency_penalty', 'presence_penalty', 'min_tokens',
-    'min_p', 'typical_p', 'top_a', 'tfs',
-    'rep_pen', 'rep_pen_range', 'rep_pen_slope',
-    'dry_multiplier', 'dry_base', 'dry_allowed_length',
-    'mirostat_mode', 'mirostat_tau', 'mirostat_eta',
-    'smoothing_factor', 'epsilon_cutoff', 'eta_cutoff',
+    'temperature',
+    'top_p',
+    'top_k',
+    'max_tokens',
+    'seed',
+    'frequency_penalty',
+    'presence_penalty',
+    'min_tokens',
+    'min_p',
+    'typical_p',
+    'top_a',
+    'tfs',
+    'rep_pen',
+    'rep_pen_range',
+    'rep_pen_slope',
+    'dry_multiplier',
+    'dry_base',
+    'dry_allowed_length',
+    'mirostat_mode',
+    'mirostat_tau',
+    'mirostat_eta',
+    'smoothing_factor',
+    'epsilon_cutoff',
+    'eta_cutoff',
+    'smoothing_curve',
+    'rep_pen_decay',
+    'dry_penalty_last_n',
+    'min_temp',
+    'max_temp',
+    'dynatemp_exponent',
+    'penalty_alpha',
+    'num_beams',
+    'length_penalty',
+    'min_length',
+    'encoder_rep_pen',
+    'skew',
+    'xtc_threshold',
+    'xtc_probability',
+    'nsigma',
+    'min_keep',
+    'rep_pen_size',
+    'adaptive_target',
+    'adaptive_decay',
   ];
 
   for (const key of numericKeys) {
     if (key in source) {
       const val = source[key];
       if (typeof val === 'number') params[key] = val;
+    }
+  }
+
+  if ('dry_sequence_breakers' in source) {
+    const val = source.dry_sequence_breakers;
+    if (typeof val === 'string') {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(val);
+      } catch {
+        parsed = null;
+      }
+      if (Array.isArray(parsed) && parsed.every((s: unknown) => typeof s === 'string')) {
+        params.dry_sequence_breakers = val;
+      }
+    } else if (Array.isArray(val) && val.every((s: unknown) => typeof s === 'string')) {
+      params.dry_sequence_breakers = JSON.stringify(val);
     }
   }
 
@@ -71,6 +135,55 @@ function parseSillyTavernGenerationPreset(
     params.stop = source.stopping_strings;
   }
 
+  if ('samplers' in source && Array.isArray(source.samplers)) {
+    const samplers = source.samplers;
+    if (samplers.every((s: unknown) => typeof s === 'string')) {
+      params.samplers = samplers;
+    }
+  } else if ('sampler_order' in source && Array.isArray(source.sampler_order)) {
+    const order = source.sampler_order;
+    if (order.every((n: unknown) => typeof n === 'number')) {
+      const KOBOLD_TO_LLAMACPP: Record<number, string> = {
+        0: 'top_k',
+        1: 'top_p',
+        2: 'tfs',
+        3: 'typ_p',
+        4: 'temperature',
+        5: 'top_a',
+        6: 'penalties',
+      };
+      params.samplers = order.map((n: number) => KOBOLD_TO_LLAMACPP[n]).filter(Boolean);
+    }
+  } else if ('sampler_priority' in source && Array.isArray(source.sampler_priority)) {
+    const priority = source.sampler_priority;
+    if (priority.every((s: unknown) => typeof s === 'string')) {
+      const OOBA_TO_LLAMACPP: Record<string, string> = {
+        repetition_penalty: 'penalties',
+        frequency_penalty: 'penalties',
+        presence_penalty: 'penalties',
+        top_n_sigma: 'top_n_sigma',
+        typical_p: 'typ_p',
+        temperature: 'temperature',
+        min_p: 'min_p',
+        top_a: 'top_a',
+        top_k: 'top_k',
+        top_p: 'top_p',
+      };
+      const seen = new Set<string>();
+      params.samplers = priority
+        .map((s: string) => OOBA_TO_LLAMACPP[s])
+        .filter((s: string | undefined): s is string => !!s && !seen.has(s) && (seen.add(s), true));
+    }
+  }
+
+  const booleanKeys = ['skip_special_tokens', 'add_bos_token', 'ban_eos_token'] as const;
+  for (const key of booleanKeys) {
+    if (key in source) {
+      const val = source[key];
+      if (typeof val === 'boolean') params[key] = val;
+    }
+  }
+
   if (Object.keys(params).length === 0) return null;
 
   return params as Partial<ReturnType<typeof useGenerationStore.getState>>;
@@ -84,6 +197,56 @@ const MASTER_SECTION_CATEGORY: Record<string, string> = {
   context: 'context',
   sysprompt: 'sysprompt',
   reasoning: 'reasoning',
+};
+
+function stripName(data: Record<string, unknown>): Record<string, unknown> {
+  const { name: _name, ...rest } = data;
+  return rest;
+}
+
+async function findMatchingPresetName(
+  category: string,
+  data: Record<string, unknown>,
+): Promise<string | null> {
+  const existing = await apiPost<Array<{ data?: Record<string, unknown> }>>('/presets/all', {
+    category,
+  });
+  const target = JSON.stringify(stripName(data));
+  for (const p of existing) {
+    const pData = p.data;
+    if (!pData) continue;
+    if (JSON.stringify(stripName(pData)) === target) {
+      const matchName = (pData.name as string) ?? '';
+      if (matchName) return matchName;
+    }
+  }
+  return null;
+}
+
+const ALL_SAMPLERS = [
+  'penalties',
+  'dry',
+  'top_n_sigma',
+  'top_k',
+  'typ_p',
+  'top_p',
+  'min_p',
+  'xtc',
+  'temperature',
+  'adaptive_p',
+] as const;
+
+const SAMPLER_LABELS: Record<string, string> = {
+  penalties: 'Penalties',
+  dry: 'DRY',
+  top_n_sigma: 'Top N Sigma',
+  top_k: 'Top K',
+  typ_p: 'Typical P',
+  top_p: 'Top P',
+  min_p: 'Min P',
+  xtc: 'XTC',
+  temperature: 'Temperature',
+  adaptive_p: 'Adaptive P',
 };
 
 export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: GenerationSidebarProps) {
@@ -133,7 +296,14 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
   const { data: defaultPresets = new Set<string>() } = useQuery({
     queryKey: ['/api/v1/presets/all', 'defaults'],
     queryFn: async () => {
-      const categories = ['generation', 'textgenerationwebui', 'instruct', 'context', 'sysprompt', 'reasoning'];
+      const categories = [
+        'generation',
+        'textgenerationwebui',
+        'instruct',
+        'context',
+        'sysprompt',
+        'reasoning',
+      ];
       const results = await Promise.all(
         categories.map((cat) =>
           apiPost<Array<{ data?: { name?: string }; isDefault?: boolean }>>('/presets/all', {
@@ -201,6 +371,15 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 if (parsed) {
                   store.loadPreset(parsed);
 
+                  const importData = { name: baseName, ...parsed };
+                  const matchName = await findMatchingPresetName('generation', importData);
+                  if (matchName) {
+                    useGenerationStore.getState().updateParam('preset', matchName);
+                    toast.success(`Preset already exists as "${matchName}" — loaded instead`);
+                    imported.push(`generation preset "${matchName}"`);
+                    continue;
+                  }
+
                   const existingNames = new Set([...presetNames, ...defaultPresets]);
                   let uniqueName = baseName;
                   let counter = 1;
@@ -220,6 +399,13 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 }
               } else {
                 const rawName = (sectionData.name as string) || `${baseName} ${section}`;
+                const importData = { ...sectionData, name: rawName };
+                const matchName = await findMatchingPresetName(category, importData);
+                if (matchName) {
+                  toast.success(`Preset already exists as "${matchName}" — loaded instead`);
+                  imported.push(`${section} template "${matchName}"`);
+                  continue;
+                }
                 const existingNames = new Set([...defaultPresets]);
                 let uniqueName = rawName;
                 let counter = 1;
@@ -256,6 +442,15 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
           store.loadPreset(parsed);
 
           const baseName = file.name.replace(/\.json$/i, '') || 'Imported';
+          const importData = { name: baseName, ...parsed };
+          const matchName = await findMatchingPresetName('generation', importData);
+          if (matchName) {
+            useGenerationStore.getState().updateParam('preset', matchName);
+            await queryClient.invalidateQueries({ queryKey: ['/api/v1/presets/all'] });
+            toast.success(`Preset already exists as "${matchName}" — loaded instead`);
+            return;
+          }
+
           const existingNames = new Set([...generationPresetNames, ...defaultPresets]);
           let uniqueName = baseName;
           let counter = 1;
@@ -301,6 +496,19 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
     }
     setPresetStatus('saving');
     try {
+      const state = useGenerationStore.getState();
+      const saveData: Record<string, unknown> = { name };
+      for (const key of PARAM_KEYS) {
+        saveData[key] = state[key] as unknown;
+      }
+      const matchName = await findMatchingPresetName('generation', saveData);
+      if (matchName && matchName !== name) {
+        flashStatus('err', `Preset already exists as "${matchName}" — loaded instead`);
+        await store.loadPresetFromBackend(matchName);
+        setSaveName('');
+        setShowSaveInput(false);
+        return;
+      }
       await store.savePresetToBackend(name);
       flashStatus('ok', `Saved "${name}"`);
       setSaveName('');
@@ -337,6 +545,21 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
     [store],
   );
 
+  const handleDeletePreset = useCallback(async () => {
+    const name = store.preset;
+    if (!name || defaultPresets.has(name)) return;
+    if (!window.confirm(`Delete preset "${name}"? This cannot be undone.`)) return;
+    setPresetStatus('saving');
+    try {
+      await deletePreset('generation', name);
+      await queryClient.invalidateQueries({ queryKey: ['/api/v1/presets/all'] });
+      useGenerationStore.getState().updateParam('preset', 'Default');
+      flashStatus('ok', `Deleted "${name}"`);
+    } catch (err) {
+      flashStatus('err', err instanceof Error ? err.message : String(err));
+    }
+  }, [store.preset, defaultPresets, queryClient, flashStatus]);
+
   const update = useCallback(
     <K extends keyof ReturnType<typeof useGenerationStore.getState>>(
       key: K,
@@ -346,6 +569,41 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
     },
     [],
   );
+
+  const handleToggleSampler = (sampler: string) => {
+    const current = [...store.samplers];
+    const idx = current.indexOf(sampler);
+    if (idx >= 0) {
+      current.splice(idx, 1);
+    } else {
+      current.push(sampler);
+    }
+    update('samplers', current);
+  };
+
+  const handleMoveUp = (sampler: string) => {
+    const current = [...store.samplers];
+    const idx = current.indexOf(sampler);
+    if (idx > 0) {
+      const a = current[idx - 1] as string;
+      const b = current[idx] as string;
+      current[idx - 1] = b;
+      current[idx] = a;
+      update('samplers', current);
+    }
+  };
+
+  const handleMoveDown = (sampler: string) => {
+    const current = [...store.samplers];
+    const idx = current.indexOf(sampler);
+    if (idx >= 0 && idx < current.length - 1) {
+      const a = current[idx] as string;
+      const b = current[idx + 1] as string;
+      current[idx] = b;
+      current[idx + 1] = a;
+      update('samplers', current);
+    }
+  };
 
   return (
     <aside className="generation-sidebar" role="complementary" aria-label="Generation settings">
@@ -480,7 +738,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
             onChange={handleFileSelected}
             className="hidden"
           />
-          <div className="mt-2">
+          <div className="mt-2 flex items-center gap-1">
             <Select value={store.preset} onValueChange={handleLoadPreset}>
               <SelectTrigger className="h-6 text-[11px]">
                 <SelectValue placeholder="Load preset..." />
@@ -498,6 +756,21 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 ))}
               </SelectContent>
             </Select>
+            {store.preset && !defaultPresets.has(store.preset) && (
+              <button
+                type="button"
+                onClick={handleDeletePreset}
+                disabled={presetStatus === 'saving' || presetStatus === 'loading'}
+                className={cn(
+                  'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors',
+                  'disabled:cursor-not-allowed disabled:opacity-40',
+                )}
+                title="Delete preset"
+                aria-label="Delete preset"
+              >
+                <Trash2 className="h-2.5 w-2.5" strokeWidth={2} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -602,6 +875,33 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   onChange={(v) => update('rep_pen_slope', v)}
                   description="How quickly the repetition penalty fades for older tokens. Higher = penalty fades faster."
                 />
+                <GenerationSlider
+                  label="Rep Pen Decay"
+                  value={store.rep_pen_decay}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={(v) => update('rep_pen_decay', v)}
+                  description="How much the repetition penalty fades as tokens age. 0 = penalty applies evenly across the whole range. Higher = older tokens are penalized less."
+                />
+                <GenerationSlider
+                  label="Dry Penalty Last N"
+                  value={store.dry_penalty_last_n}
+                  min={-1}
+                  max={2048}
+                  step={1}
+                  onChange={(v) => update('dry_penalty_last_n', v)}
+                  description="How many recent tokens DRY scans for repeated phrases. -1 = entire context. 0 = disabled."
+                />
+                <GenerationSlider
+                  label="Encoder Rep Pen"
+                  value={store.encoder_rep_pen}
+                  min={0}
+                  max={10}
+                  step={0.01}
+                  onChange={(v) => update('encoder_rep_pen', v)}
+                  description="Repetition penalty applied to the prompt encoding separately. 1.0 = no penalty."
+                />
               </>
             ) : (
               <>
@@ -624,6 +924,198 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   description="Penalizes any word that has appeared at all. Positive = encourages new topics. Negative = sticks to what was said."
                 />
               </>
+            )}
+          </InlineSection>
+
+          <InlineSection panelId="generation" sectionId="advanced-sampling" title="Advanced Sampling">
+            {mode === 'text' && (
+              <>
+                <GenerationSlider
+                  label="Smoothing Curve"
+                  value={store.smoothing_curve}
+                  min={0}
+                  max={10}
+                  step={0.01}
+                  onChange={(v) => update('smoothing_curve', v)}
+                  description="Applies a smoothing curve to flatten the probability distribution. Higher = more even distribution across token choices."
+                />
+                <GenerationSlider
+                  label="Penalty Alpha"
+                  value={store.penalty_alpha}
+                  min={0}
+                  max={2}
+                  step={0.01}
+                  onChange={(v) => update('penalty_alpha', v)}
+                  description="Contrastive search penalty strength. Encourages diverse yet coherent output by penalizing repetition while rewarding similarity to the context. 0 = disabled."
+                />
+                <GenerationSlider
+                  label="Num Beams"
+                  value={store.num_beams}
+                  min={1}
+                  max={8}
+                  step={1}
+                  onChange={(v) => update('num_beams', v)}
+                  description="Number of beams used during beam search. 1 = greedy decoding. Higher = explores more candidate paths for more coherent output."
+                />
+                <GenerationSlider
+                  label="Length Penalty"
+                  value={store.length_penalty}
+                  min={0}
+                  max={4}
+                  step={0.01}
+                  onChange={(v) => update('length_penalty', v)}
+                  description="Length penalty during beam search. Above 1 = favors longer responses. Below 1 = favors shorter responses."
+                />
+                <GenerationSlider
+                  label="Min Length"
+                  value={store.min_length}
+                  min={0}
+                  max={2048}
+                  step={1}
+                  onChange={(v) => update('min_length', v)}
+                  description="Minimum number of tokens to generate before the model is allowed to stop."
+                />
+                <GenerationSlider
+                  label="Skew"
+                  value={store.skew}
+                  min={0}
+                  max={10}
+                  step={0.01}
+                  onChange={(v) => update('skew', v)}
+                  description="Skews the probability distribution toward the most likely tokens. Higher = more aggressive bias. 0 = disabled."
+                />
+              </>
+            )}
+            {mode === 'chat' && (
+              <p className="text-foreground/35 py-1.5 text-[10px]">
+                Advanced sampling settings are text-completion only.
+              </p>
+            )}
+          </InlineSection>
+
+          <InlineSection panelId="generation" sectionId="dynatemp-xtc" title="Dynatemp & XTC">
+            {mode === 'text' && (
+              <>
+                <GenerationSlider
+                  label="Min Temp"
+                  value={store.min_temp}
+                  min={0}
+                  max={2}
+                  step={0.01}
+                  onChange={(v) => update('min_temp', v)}
+                  description="Lower bound for dynamic temperature. Temperature never drops below this value."
+                />
+                <GenerationSlider
+                  label="Max Temp"
+                  value={store.max_temp}
+                  min={0}
+                  max={5}
+                  step={0.01}
+                  onChange={(v) => update('max_temp', v)}
+                  description="Upper bound for dynamic temperature. Higher = more variation in randomness between tokens."
+                />
+                <GenerationSlider
+                  label="Dynatemp Exponent"
+                  value={store.dynatemp_exponent}
+                  min={0}
+                  max={10}
+                  step={0.01}
+                  onChange={(v) => update('dynatemp_exponent', v)}
+                  description="Controls how dynamically temperature swings between the min and max values. Higher = more dramatic swings."
+                />
+                <GenerationSlider
+                  label="XTC Threshold"
+                  value={store.xtc_threshold}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={(v) => update('xtc_threshold', v)}
+                  description="Drops tokens whose probability exceeds this threshold, forcing the model to pick from surprising alternatives. 0 = disabled."
+                />
+                <GenerationSlider
+                  label="XTC Probability"
+                  value={store.xtc_probability}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={(v) => update('xtc_probability', v)}
+                  description="Chance that XTC filtering is applied at each step. 0 = never applied. 1 = always applied."
+                />
+              </>
+            )}
+            {mode === 'chat' && (
+              <p className="text-foreground/35 py-1.5 text-[10px]">
+                Dynatemp & XTC settings are text-completion only.
+              </p>
+            )}
+          </InlineSection>
+
+          <InlineSection panelId="generation" sectionId="penalty-filtering" title="Penalty & Filtering">
+            {mode === 'text' && (
+              <>
+                <GenerationSlider
+                  label="NSigma"
+                  value={store.nsigma}
+                  min={0}
+                  max={10}
+                  step={0.01}
+                  onChange={(v) => update('nsigma', v)}
+                  description="Top N Sigma. Keeps only tokens within N standard deviations of the mean probability. 0 = disabled."
+                />
+                <GenerationSlider
+                  label="Min Keep"
+                  value={store.min_keep}
+                  min={0}
+                  max={100}
+                  step={1}
+                  onChange={(v) => update('min_keep', v)}
+                  description="Minimum number of tokens that always survive filtering, even when a sampler would cut more."
+                />
+                <GenerationSlider
+                  label="Rep Pen Size"
+                  value={store.rep_pen_size}
+                  min={0}
+                  max={2048}
+                  step={1}
+                  onChange={(v) => update('rep_pen_size', v)}
+                  description="How many recent tokens the repetition penalty considers. 0 = entire context."
+                />
+              </>
+            )}
+            {mode === 'chat' && (
+              <p className="text-foreground/35 py-1.5 text-[10px]">
+                Penalty & filtering settings are text-completion only.
+              </p>
+            )}
+          </InlineSection>
+
+          <InlineSection panelId="generation" sectionId="adaptive" title="Adaptive">
+            {mode === 'text' && (
+              <>
+                <GenerationSlider
+                  label="Adaptive Target"
+                  value={store.adaptive_target}
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  onChange={(v) => update('adaptive_target', v)}
+                  description="Target perplexity for adaptive sampling. Negative = disabled. Values closer to 0 = more deterministic output."
+                />
+                <GenerationSlider
+                  label="Adaptive Decay"
+                  value={store.adaptive_decay}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={(v) => update('adaptive_decay', v)}
+                  description="How quickly adaptive sampling adjusts toward the target perplexity. Higher = faster adjustment."
+                />
+              </>
+            )}
+            {mode === 'chat' && (
+              <p className="text-foreground/35 py-1.5 text-[10px]">
+                Adaptive sampling settings are text-completion only.
+              </p>
             )}
           </InlineSection>
 
@@ -735,6 +1227,75 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               </p>
             )}
           </InlineSection>
+
+          {mode === 'text' && (
+            <InlineSection
+              panelId="generation"
+              sectionId="sampler-priority"
+              title="Sampler Priority"
+            >
+              <div className="space-y-0.5">
+                {ALL_SAMPLERS.map((sampler) => {
+                  const active = store.samplers.includes(sampler);
+                  const idx = store.samplers.indexOf(sampler);
+                  return (
+                    <div
+                      key={sampler}
+                      className={cn(
+                        'flex items-center gap-1 rounded px-1 py-0.5',
+                        active && 'bg-ember/[0.03]',
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleMoveUp(sampler)}
+                        disabled={!active || idx === 0}
+                        className={cn(
+                          'text-foreground/30 hover:text-foreground/60 rounded p-0 transition-colors',
+                          'disabled:cursor-not-allowed disabled:opacity-20',
+                        )}
+                        aria-label={'Move ' + sampler + ' up'}
+                      >
+                        <ChevronUp className="h-2.5 w-2.5" strokeWidth={2} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveDown(sampler)}
+                        disabled={!active || idx === store.samplers.length - 1}
+                        className={cn(
+                          'text-foreground/30 hover:text-foreground/60 rounded p-0 transition-colors',
+                          'disabled:cursor-not-allowed disabled:opacity-20',
+                        )}
+                        aria-label={'Move ' + sampler + ' down'}
+                      >
+                        <ChevronDown className="h-2.5 w-2.5" strokeWidth={2} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSampler(sampler)}
+                        className={cn(
+                          'rounded-md border px-1.5 py-0.5 font-mono text-[10px] transition-all',
+                          active
+                            ? 'bg-ember/15 text-ember border-ember/25'
+                            : 'border-border text-foreground/40 hover:text-foreground/60',
+                        )}
+                      >
+                        {active ? 'on' : 'off'}
+                      </button>
+                      <span
+                        className={cn(
+                          'mono-tag text-[10px]',
+                          active ? 'text-foreground/80' : 'text-foreground/40',
+                        )}
+                      >
+                        {SAMPLER_LABELS[sampler] ?? sampler}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </InlineSection>
+          )}
 
           <InlineSection panelId="generation" sectionId="output" title="Output">
             <GenerationSlider

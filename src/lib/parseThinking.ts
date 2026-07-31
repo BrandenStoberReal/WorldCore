@@ -1,11 +1,8 @@
 import type { ReasoningSettings } from '@/shared/types/reasoning';
 
 export interface ParsedThinking {
-  /** Extracted thinking content joined via separator. Undefined when no blocks matched or content is empty. */
   thinking: string | undefined;
-  /** Body with every thinking block stripped out. */
   body: string;
-  /** True when accumulated has an open prefix with no matching suffix yet (mid-stream). */
   inThinking: boolean;
 }
 
@@ -36,11 +33,15 @@ export function parseThinkingChunks(
     lastEnd = re.lastIndex;
   }
 
-  const tail = accumulated.slice(lastEnd);
+  let tail = accumulated.slice(lastEnd);
+
+  if (body && suffix) {
+    body = body.replace(new RegExp(escapeRegex(suffix), 'g'), '');
+  }
+
   const openIdx = tail.indexOf(prefix);
 
   if (openIdx !== -1) {
-    // Unclosed prefix — we're in an open block
     body += tail.slice(0, openIdx);
     const openContent = tail.slice(openIdx + prefix.length);
     const joined = captures.join(separator);
@@ -49,7 +50,44 @@ export function parseThinkingChunks(
     return { thinking, body, inThinking: true };
   }
 
-  // No open block — the rest is all body
+  // Check if tail ends with a partial prefix start (any length)
+  // Buffer the partial so it doesn't leak into body during streaming.
+  // Only buffer if we're already inside a thinking block (captures > 0)
+  // or the partial is more than 1 char — single-char false positives
+  // (like a lone "<") would hide real body content permanently if the
+  // stream ended right there.
+  let partialLen = 0;
+  for (let len = Math.min(prefix.length - 1, tail.length); len >= (captures.length > 0 ? 1 : 2); len--) {
+    if (tail.endsWith(prefix.slice(0, len))) {
+      partialLen = len;
+      break;
+    }
+  }
+
+  if (partialLen > 0) {
+    body += tail.slice(0, tail.length - partialLen);
+    const joined = captures.join(separator);
+    const thinking = joined.length === 0 ? undefined : joined;
+    return { thinking, body, inThinking: true };
+  }
+
+  // Check if tail contains a partial suffix while we have captures (mid-stream suffix)
+  if (captures.length > 0) {
+    let partialSuffixLen = 0;
+    for (let len = Math.min(suffix.length - 1, tail.length); len >= 1; len--) {
+      if (tail.endsWith(suffix.slice(0, len))) {
+        partialSuffixLen = len;
+        break;
+      }
+    }
+    if (partialSuffixLen > 0) {
+      const openContent = tail.slice(0, tail.length - partialSuffixLen);
+      const joined = captures.join(separator);
+      const thinking = joined + openContent;
+      return { thinking, body, inThinking: true };
+    }
+  }
+
   body += tail;
 
   if (captures.length === 0) {

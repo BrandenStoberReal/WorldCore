@@ -42,4 +42,4 @@ export const ChatCompletionRequestSchema = z
     reverse_proxy: z.string().optional(),
     signal: z.unknown().optional(),
   })
-  .strict();
+  .passthrough();

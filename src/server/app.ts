@@ -128,6 +128,7 @@ async function handleRequest(req: Request): Promise<Response> {
 const server = serve({
   port: PORT,
   hostname: HOST,
+  idleTimeout: 0,
   fetch: reqLogMiddleware(handleRequest),
 });
 

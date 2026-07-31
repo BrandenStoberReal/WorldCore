@@ -4,7 +4,11 @@ import { promptBuilder } from '@/server/services/prompt-builder';
 import { characterService } from '@/server/services/character.service';
 import { personaService } from '@/server/services/persona.service';
 import type { ChatMessage } from '@/shared/types/chat';
-import { InstructSettingsSchema } from '@/shared/schemas/text-options';
+import {
+  ContextSettingsSchema,
+  InstructSettingsSchema,
+  TextOptionsDefaults,
+} from '@/shared/schemas/text-options';
 import { ReasoningSettingsSchema } from '@/shared/schemas/reasoning';
 import { z } from 'zod';
 
@@ -25,8 +29,9 @@ const PromptBuildRequestSchema = z.object({
   includeExamples: z.boolean().default(true),
   maxTokens: z.number().optional(),
   personaId: z.number().nullable().optional(),
-  reasoning: ReasoningSettingsSchema.optional(),
-  instruct: InstructSettingsSchema.optional(),
+  reasoning: ReasoningSettingsSchema.partial().optional(),
+  instruct: InstructSettingsSchema.partial().optional(),
+  context: ContextSettingsSchema.partial().optional(),
 });
 
 export const promptBuilderRoutes = {
@@ -72,9 +77,30 @@ export const promptBuilderRoutes = {
         includeExamples: parsed.includeExamples,
         maxTokens: parsed.maxTokens,
         persona,
-        reasoning: parsed.reasoning,
-        instruct: parsed.instruct,
+        reasoning: parsed.reasoning
+          ? { ...TextOptionsDefaults.reasoning, ...parsed.reasoning }
+          : undefined,
+        instruct: parsed.instruct
+          ? { ...TextOptionsDefaults.instruct, ...parsed.instruct }
+          : undefined,
+        context: parsed.context
+          ? { ...TextOptionsDefaults.context, ...parsed.context }
+          : undefined,
       });
+
+      console.log('=== PROMPT BUILDER RESULT ===');
+      console.log('INSTRUCT (merged):', JSON.stringify(
+        parsed.instruct ? { ...TextOptionsDefaults.instruct, ...parsed.instruct } : undefined,
+        null, 2
+      ));
+      console.log('CONTEXT (merged):', JSON.stringify(
+        parsed.context ? { ...TextOptionsDefaults.context, ...parsed.context } : undefined,
+        null, 2
+      ));
+      console.log('MESSAGES COUNT:', result.messages.length);
+      console.log('MESSAGES:', JSON.stringify(result.messages, null, 2));
+      console.log('STOP STRINGS:', result.stopStrings);
+      console.log('=== END PROMPT BUILDER ===');
 
       return new Response(JSON.stringify(result), {
         headers: { 'Content-Type': 'application/json' },

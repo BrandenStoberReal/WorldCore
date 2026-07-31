@@ -11,13 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RotateCcw, Check, Upload } from 'lucide-react';
+import { RotateCcw, Check, Upload, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { InlineSection } from '@/components/drawers/InlineSection';
-import { apiFetch, apiGet, apiPost } from '@/lib/api';
+import { apiFetch, apiGet, apiPost, deletePreset } from '@/lib/api';
 import { useDebouncedAutoSave } from '@/hooks';
+import { parseSillyTavernOptions } from '@/lib/parseSillyTavernOptions';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { TextOptions } from '@/shared/types/text-options';
 import { TextOptionsDefaults, mergeTextOptions } from '@/shared/schemas/text-options';
@@ -87,182 +88,6 @@ function mergeDefaults(partial?: Partial<TextOptionsState>): TextOptionsState {
   return mergeTextOptions(partial);
 }
 
-function parseSillyTavernOptions(json: Record<string, unknown>): Partial<TextOptionsState> {
-  const result: Partial<TextOptionsState> = {};
-
-  // Handle both full settings.json (has power_user) and individual preset files
-  const powerUser = (json.power_user as Record<string, unknown> | undefined) ?? null;
-  const source = powerUser ?? json;
-
-  const getObj = (key: string): Record<string, unknown> | null => {
-    const val = source[key];
-    return val && typeof val === 'object' ? (val as Record<string, unknown>) : null;
-  };
-
-  const context = getObj('context');
-  if (context) {
-    result.context = { ...defaultState.context };
-    if (typeof context.story_string === 'string')
-      result.context.storyString = context.story_string as string;
-    if (typeof context.chat_start === 'string')
-      result.context.chatStart = context.chat_start as string;
-    if (typeof context.example_separator === 'string')
-      result.context.exampleSeparator = context.example_separator as string;
-    if (typeof context.use_stop_strings === 'boolean')
-      result.context.separatorsAsStopStrings = context.use_stop_strings as boolean;
-    if (typeof context.names_as_stop_strings === 'boolean')
-      result.context.namesAsStopStrings = context.names_as_stop_strings as boolean;
-    if (typeof context.story_string_position === 'number')
-      result.context.storyStringPosition =
-        context.story_string_position === 1 ? 'inchat' : 'default';
-    if (typeof context.story_string_depth === 'number')
-      result.context.storyStringDepth = context.story_string_depth as number;
-    if (typeof context.story_string_role === 'number') {
-      const roles = ['system', 'user', 'assistant'] as const;
-      result.context.storyStringRole = roles[context.story_string_role as number] ?? 'system';
-    }
-    if (typeof context.force_name2 === 'boolean')
-      result.context.forceName2 = context.force_name2 as boolean;
-    if (typeof context.trim_sentences === 'boolean')
-      result.context.trimSentences = context.trim_sentences as boolean;
-    if (typeof context.trim_spaces === 'boolean')
-      result.context.trimSpaces = context.trim_spaces as boolean;
-    if (typeof context.single_line === 'boolean')
-      result.context.singleLine = context.single_line as boolean;
-    if (typeof context.collapse_newlines === 'boolean')
-      result.context.collapseNewlines = context.collapse_newlines as boolean;
-  }
-
-  const instruct = getObj('instruct');
-  if (instruct) {
-    result.instruct = { ...defaultState.instruct };
-    if (typeof instruct.enabled === 'boolean')
-      result.instruct.enabled = instruct.enabled as boolean;
-    if (typeof instruct.input_sequence === 'string')
-      result.instruct.inputSequence = instruct.input_sequence as string;
-    if (typeof instruct.input_suffix === 'string')
-      result.instruct.inputSuffix = instruct.input_suffix as string;
-    if (typeof instruct.output_sequence === 'string')
-      result.instruct.outputSequence = instruct.output_sequence as string;
-    if (typeof instruct.output_suffix === 'string')
-      result.instruct.outputSuffix = instruct.output_suffix as string;
-    if (typeof instruct.system_sequence === 'string')
-      result.instruct.systemSequence = instruct.system_sequence as string;
-    if (typeof instruct.system_suffix === 'string')
-      result.instruct.systemSuffix = instruct.system_suffix as string;
-    if (typeof instruct.last_system_sequence === 'string')
-      result.instruct.lastSystemSequence = instruct.last_system_sequence as string;
-    if (typeof instruct.first_input_sequence === 'string')
-      result.instruct.firstInputSequence = instruct.first_input_sequence as string;
-    if (typeof instruct.first_output_sequence === 'string')
-      result.instruct.firstOutputSequence = instruct.first_output_sequence as string;
-    if (typeof instruct.last_input_sequence === 'string')
-      result.instruct.lastInputSequence = instruct.last_input_sequence as string;
-    if (typeof instruct.last_output_sequence === 'string')
-      result.instruct.lastOutputSequence = instruct.last_output_sequence as string;
-    if (typeof instruct.story_string_prefix === 'string')
-      result.instruct.storyStringPrefix = instruct.story_string_prefix as string;
-    if (typeof instruct.story_string_suffix === 'string')
-      result.instruct.storyStringSuffix = instruct.story_string_suffix as string;
-    if (typeof instruct.stop_sequence === 'string')
-      result.instruct.stopSequence = instruct.stop_sequence as string;
-    if (typeof instruct.wrap === 'boolean') result.instruct.wrap = instruct.wrap as boolean;
-    if (typeof instruct.macro === 'boolean') result.instruct.macro = instruct.macro as boolean;
-    if (typeof instruct.names_behavior === 'number') {
-      const behaviors = ['none', 'force', 'always'] as const;
-      result.instruct.namesBehavior = behaviors[instruct.names_behavior as number] ?? 'none';
-    }
-    if (typeof instruct.activation_regex === 'string')
-      result.instruct.activationRegex = instruct.activation_regex as string;
-    if (typeof instruct.bind_to_context === 'boolean')
-      result.instruct.bindToContext = instruct.bind_to_context as boolean;
-    if (typeof instruct.user_alignment_message === 'string')
-      result.instruct.userAlignmentMessage = instruct.user_alignment_message as string;
-    if (typeof instruct.system_same_as_user === 'boolean')
-      result.instruct.systemSameAsUser = instruct.system_same_as_user as boolean;
-    if (typeof instruct.sequences_as_stop_strings === 'boolean')
-      result.instruct.sequencesAsStopStrings = instruct.sequences_as_stop_strings as boolean;
-  }
-
-  const sysprompt = getObj('sysprompt');
-  if (sysprompt) {
-    result.sysprompt = { ...defaultState.sysprompt };
-    if (typeof sysprompt.enabled === 'boolean')
-      result.sysprompt.enabled = sysprompt.enabled as boolean;
-    if (typeof sysprompt.content === 'string')
-      result.sysprompt.content = sysprompt.content as string;
-    if (typeof sysprompt.post_history === 'string')
-      result.sysprompt.postHistoryInstructions = sysprompt.post_history as string;
-  }
-
-  const reasoning = getObj('reasoning');
-  if (reasoning) {
-    result.reasoning = { ...defaultState.reasoning };
-    if (typeof reasoning.prefix === 'string') result.reasoning.prefix = reasoning.prefix as string;
-    if (typeof reasoning.suffix === 'string') result.reasoning.suffix = reasoning.suffix as string;
-    if (typeof reasoning.separator === 'string')
-      result.reasoning.separator = reasoning.separator as string;
-    if (typeof reasoning.auto_parse === 'boolean')
-      result.reasoning.autoParse = reasoning.auto_parse as boolean;
-    if (typeof reasoning.add_to_prompts === 'boolean')
-      result.reasoning.addToPrompts = reasoning.add_to_prompts as boolean;
-    if (typeof reasoning.auto_expand === 'boolean')
-      result.reasoning.autoExpand = reasoning.auto_expand as boolean;
-    if (typeof reasoning.show_hidden === 'boolean')
-      result.reasoning.showHidden = reasoning.show_hidden as boolean;
-    if (typeof reasoning.max_additions === 'number')
-      result.reasoning.maxAdditions = reasoning.max_additions as number;
-  }
-
-  if (typeof source.tokenizer === 'number') {
-    const tokenizerMap: Record<number, string> = {
-      0: 'best',
-      1: 'none',
-      2: 'gpt2',
-      3: 'llama12',
-      4: 'llama3',
-      5: 'gemma',
-      6: 'jamba',
-      7: 'qwen2',
-      8: 'commandr',
-      9: 'nerdstash',
-      10: 'nerdstashv2',
-      11: 'mistralv1',
-      12: 'mistralnemo',
-      13: 'yi',
-      14: 'claude',
-      15: 'deepseekv3',
-    };
-    result.tokenizer = tokenizerMap[source.tokenizer as number] ?? 'best';
-  }
-  if (typeof source.token_padding === 'number')
-    result.tokenPadding = source.token_padding as number;
-  if (typeof source.user_prompt_bias === 'string')
-    result.startReplyWith = source.user_prompt_bias as string;
-  if (typeof source.show_user_prompt_bias === 'boolean')
-    result.showReplyPrefix = source.show_user_prompt_bias as boolean;
-
-  // Custom stopping strings - can be array or string
-  if (source.custom_stopping_strings !== undefined) {
-    if (Array.isArray(source.custom_stopping_strings)) {
-      result.stoppingStrings = JSON.stringify(source.custom_stopping_strings);
-    } else if (typeof source.custom_stopping_strings === 'string') {
-      result.stoppingStrings = source.custom_stopping_strings as string;
-    }
-  }
-
-  // Markdown escape strings - can be array or string
-  if (source.markdown_escape_strings !== undefined) {
-    if (Array.isArray(source.markdown_escape_strings)) {
-      result.markdownEscapeStrings = (source.markdown_escape_strings as string[]).join(',');
-    } else if (typeof source.markdown_escape_strings === 'string') {
-      result.markdownEscapeStrings = source.markdown_escape_strings as string;
-    }
-  }
-
-  return result;
-}
-
 interface PresetToSave {
   category: 'context' | 'instruct' | 'sysprompt' | 'reasoning';
   data: Record<string, unknown>;
@@ -319,6 +144,31 @@ function deduplicatePresetName(baseName: string, existingNames: string[]): strin
   let i = 1;
   while (existingNames.includes(`${baseName} (${i})`)) i++;
   return `${baseName} (${i})`;
+}
+
+function stripName(data: Record<string, unknown>): Record<string, unknown> {
+  const { name: _name, ...rest } = data;
+  return rest;
+}
+
+async function findMatchingPresetName(
+  category: string,
+  data: Record<string, unknown>,
+): Promise<string | null> {
+  const existing = (await apiFetch('/presets/all', {
+    method: 'POST',
+    body: JSON.stringify({ category }),
+  })) as PresetResponse[];
+  const target = JSON.stringify(stripName(data));
+  for (const p of existing) {
+    const pData = p.data;
+    if (!pData) continue;
+    if (JSON.stringify(stripName(pData)) === target) {
+      const matchName = (pData.name as string) ?? '';
+      if (matchName) return matchName;
+    }
+  }
+  return null;
 }
 
 const CONTEXT_CHECKBOXS = [
@@ -420,6 +270,30 @@ export function TextOptionsPanel() {
     },
   });
 
+  const { data: defaultPresets = new Set<string>() } = useQuery({
+    queryKey: ['/api/v1/presets/all', 'textoptions-defaults'],
+    queryFn: async () => {
+      const categories = ['context', 'instruct', 'sysprompt', 'reasoning'];
+      const results = await Promise.all(
+        categories.map((cat) =>
+          apiPost<Array<{ data?: { name?: string }; isDefault?: boolean }>>('/presets/all', {
+            category: cat,
+          }),
+        ),
+      );
+      const defaults = new Set<string>();
+      for (const presets of results) {
+        for (const p of presets) {
+          if (p.isDefault) {
+            const name = (p.data?.name as string) ?? '';
+            if (name) defaults.add(name);
+          }
+        }
+      }
+      return defaults;
+    },
+  });
+
   const queryClient = useQueryClient();
 
   const handleReset = () => setForm(defaultState);
@@ -462,6 +336,12 @@ export function TextOptionsPanel() {
           const savedNames: string[] = [];
 
           for (const { category, data } of presetsToSave) {
+            const matchName = await findMatchingPresetName(category, data);
+            if (matchName) {
+              toast.success(`Preset already exists as "${matchName}" — loaded instead`);
+              loadPreset(category, matchName);
+              continue;
+            }
             const existingPresets =
               category === 'context'
                 ? contextPresets
@@ -593,6 +473,30 @@ export function TextOptionsPanel() {
     }
   };
 
+  const handleDeletePreset = useCallback(
+    async (category: string, name: string) => {
+      if (!name || defaultPresets.has(name)) return;
+      if (!window.confirm(`Delete preset "${name}"? This cannot be undone.`)) return;
+      try {
+        await deletePreset(category, name);
+        await queryClient.invalidateQueries({ queryKey: ['/api/v1/presets/all'] });
+        if (category === 'context') {
+          setForm((f) => ({ ...f, context: { ...f.context, selectedPreset: '' } }));
+        } else if (category === 'instruct') {
+          setForm((f) => ({ ...f, instruct: { ...f.instruct, selectedPreset: '' } }));
+        } else if (category === 'sysprompt') {
+          setForm((f) => ({ ...f, sysprompt: { ...f.sysprompt, selectedPreset: '' } }));
+        } else if (category === 'reasoning') {
+          setForm((f) => ({ ...f, reasoning: { ...f.reasoning, selectedPreset: '' } }));
+        }
+        toast.success(`Deleted "${name}"`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [defaultPresets, queryClient, setForm],
+  );
+
   if (isLoading) {
     return <LoadingSpinner size="lg" label="loading text options" className="h-64" />;
   }
@@ -657,21 +561,35 @@ export function TextOptionsPanel() {
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-[13px] font-medium">Preset</Label>
-                <Select
-                  value={form.context.selectedPreset}
-                  onValueChange={(v) => loadPreset('context', v)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select preset" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(contextPresets ?? []).map((p) => (
-                      <SelectItem key={p.name} value={p.name}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-1">
+                  <Select
+                    value={form.context.selectedPreset}
+                    onValueChange={(v) => loadPreset('context', v)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select preset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(contextPresets ?? []).map((p) => (
+                        <SelectItem key={p.name} value={p.name}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.context.selectedPreset &&
+                    !defaultPresets.has(form.context.selectedPreset) && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePreset('context', form.context.selectedPreset)}
+                        className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                        title="Delete preset"
+                        aria-label="Delete preset"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                      </button>
+                    )}
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -859,21 +777,35 @@ export function TextOptionsPanel() {
 
               <div className="space-y-1.5">
                 <Label className="text-[13px] font-medium">Preset</Label>
-                <Select
-                  value={form.instruct.selectedPreset}
-                  onValueChange={(v) => loadPreset('instruct', v)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select preset" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(instructPresets ?? []).map((p) => (
-                      <SelectItem key={p.name} value={p.name}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-1">
+                  <Select
+                    value={form.instruct.selectedPreset}
+                    onValueChange={(v) => loadPreset('instruct', v)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select preset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(instructPresets ?? []).map((p) => (
+                        <SelectItem key={p.name} value={p.name}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.instruct.selectedPreset &&
+                    !defaultPresets.has(form.instruct.selectedPreset) && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePreset('instruct', form.instruct.selectedPreset)}
+                        className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                        title="Delete preset"
+                        aria-label="Delete preset"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                      </button>
+                    )}
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -1254,21 +1186,37 @@ export function TextOptionsPanel() {
 
               <div className="space-y-1.5">
                 <Label className="text-[13px] font-medium">Preset</Label>
-                <Select
-                  value={form.sysprompt.selectedPreset}
-                  onValueChange={(v) => loadPreset('sysprompt', v)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select preset" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(syspromptPresets ?? []).map((p) => (
-                      <SelectItem key={p.name} value={p.name}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-1">
+                  <Select
+                    value={form.sysprompt.selectedPreset}
+                    onValueChange={(v) => loadPreset('sysprompt', v)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select preset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(syspromptPresets ?? []).map((p) => (
+                        <SelectItem key={p.name} value={p.name}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.sysprompt.selectedPreset &&
+                    !defaultPresets.has(form.sysprompt.selectedPreset) && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleDeletePreset('sysprompt', form.sysprompt.selectedPreset)
+                        }
+                        className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                        title="Delete preset"
+                        aria-label="Delete preset"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                      </button>
+                    )}
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -1367,21 +1315,37 @@ export function TextOptionsPanel() {
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-[13px] font-medium">Preset</Label>
-                <Select
-                  value={form.reasoning.selectedPreset}
-                  onValueChange={(v) => loadPreset('reasoning', v)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select preset" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(reasoningPresets ?? []).map((p) => (
-                      <SelectItem key={p.name} value={p.name}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-1">
+                  <Select
+                    value={form.reasoning.selectedPreset}
+                    onValueChange={(v) => loadPreset('reasoning', v)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select preset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(reasoningPresets ?? []).map((p) => (
+                        <SelectItem key={p.name} value={p.name}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.reasoning.selectedPreset &&
+                    !defaultPresets.has(form.reasoning.selectedPreset) && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleDeletePreset('reasoning', form.reasoning.selectedPreset)
+                        }
+                        className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                        title="Delete preset"
+                        aria-label="Delete preset"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                      </button>
+                    )}
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">

@@ -11,6 +11,7 @@ import {
   streamChat,
   streamTextCompletion,
   flattenMessagesToPrompt,
+  getInstructStoppingSequences,
   runGenerationInterceptors,
 } from '@/lib/api';
 import type { StreamChatRequest, InstructFlattenParams } from '@/lib/api';
@@ -28,6 +29,26 @@ import { parseThinkingChunks } from '@/lib/parseThinking';
 import type { ReasoningSettings } from '@/shared/types/reasoning';
 
 type CharacterWithId = Character & { id: number };
+
+/** Remap chat-completion-only sources to a text-completion equivalent. */
+function textCompletionSource(chatSource: string): string {
+  if (chatSource === 'openai') return 'llamacpp';
+  return chatSource;
+}
+
+function escapeMarkdownCharacters(text: string, escapeStrings: string): string {
+  if (!escapeStrings) return text;
+  return escapeStrings
+    .split(',')
+    .filter((token) => token.length > 0)
+    .reduce((result, token) => {
+      let escaped = result;
+      for (const char of token) {
+        escaped = escaped.split(char).join(`\\${char}`);
+      }
+      return escaped;
+    }, text);
+}
 
 interface ChatViewProps {
   characterId: number;
@@ -57,9 +78,11 @@ export function ChatView({ characterId }: ChatViewProps) {
     setStreamingThinking,
     setIsThinkingStream,
     appendStreamingContent,
+    startStreaming,
     commitStreaming,
     setIsGenerating,
     clearChat,
+    streamingSendDate,
   } = useChatStore();
 
   const genStore = useGenerationStore();
@@ -67,6 +90,7 @@ export function ChatView({ characterId }: ChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const fullContentRef = useRef('');
+  const isRegeneratingRef = useRef(false);
 
   const { streamingEnabled, smoothStreaming } = useAppStore();
 
@@ -143,14 +167,15 @@ export function ChatView({ characterId }: ChatViewProps) {
   const reasoningSettings = useMemo(() => {
     const r = (settings as { textOptions?: { reasoning?: Partial<ReasoningSettings> } } | undefined)
       ?.textOptions?.reasoning;
+    const hasReasoning = !!(r?.prefix && r.suffix);
     return r
       ? {
           prefix: r.prefix ?? '',
           suffix: r.suffix ?? '',
           separator: r.separator ?? '\n',
-          autoParse: r.autoParse ?? false,
+          autoParse: r.autoParse ?? hasReasoning,
           autoExpand: r.autoExpand ?? false,
-          showHidden: r.showHidden ?? false,
+          showHidden: r.showHidden ?? hasReasoning,
           addToPrompts: r.addToPrompts ?? false,
           maxAdditions: r.maxAdditions ?? 1,
         }
@@ -180,29 +205,23 @@ export function ChatView({ characterId }: ChatViewProps) {
       : { systemPromptOverride: undefined, jailbreakPromptOverride: undefined };
 
     if (!instructEnabled || !to.instruct) {
-      return { ...sysOpts, instruct: undefined };
+      return {
+        ...sysOpts,
+        instruct: undefined,
+        stoppingStrings: to.stoppingStrings,
+        startReplyWith: to.startReplyWith,
+        markdownEscapeStrings: to.markdownEscapeStrings,
+        context: to.context,
+      };
     }
 
     return {
       ...sysOpts,
-      instruct: {
-        enabled: true,
-        systemPrompt: to.instruct.systemPrompt || undefined,
-        inputSequence: to.instruct.inputSequence || '',
-        inputSuffix: to.instruct.inputSuffix || '',
-        outputSequence: to.instruct.outputSequence || '',
-        outputSuffix: to.instruct.outputSuffix || '',
-        systemSequence: to.instruct.systemSequence || '',
-        systemSuffix: to.instruct.systemSuffix || '',
-        separatorSequence: to.instruct.separatorSequence || '',
-        firstOutputSequence: to.instruct.firstOutputSequence || '',
-        lastOutputSequence: to.instruct.lastOutputSequence || '',
-        firstInputSequence: to.instruct.firstInputSequence || '',
-        lastInputSequence: to.instruct.lastInputSequence || '',
-        lastSystemSequence: to.instruct.lastSystemSequence || '',
-        names: to.instruct.names ?? false,
-        wrap: to.instruct.wrap ?? false,
-      },
+      instruct: to.instruct,
+      stoppingStrings: to.stoppingStrings,
+      startReplyWith: to.startReplyWith,
+      markdownEscapeStrings: to.markdownEscapeStrings,
+      context: to.context,
     };
   }, [settings]);
 
@@ -309,7 +328,12 @@ export function ChatView({ characterId }: ChatViewProps) {
     flushDrip(); // ensure no orphaned pending tokens after stop
     setIsGenerating(false);
     emit('generation_stopped', { characterId });
-    if (streamingContent || fullContentRef.current) {
+
+    if (isRegeneratingRef.current) {
+      setStreamingContent('');
+      setStreamingThinking(undefined);
+      setIsThinkingStream(false);
+    } else if (streamingContent || fullContentRef.current) {
       let parsed: { mes: string; thinking?: string } | undefined;
       if (
         reasoningSettings.autoParse &&
@@ -330,6 +354,9 @@ export function ChatView({ characterId }: ChatViewProps) {
     commitStreaming,
     flushDrip,
     reasoningSettings,
+    setStreamingContent,
+    setStreamingThinking,
+    setIsThinkingStream,
   ]);
 
   const sendMessage = useCallback(
@@ -353,6 +380,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       const promptBuildResult = await apiPost<{
         messages: Array<{ role: string; content: string; name?: string }>;
         tokenCount: number;
+        stopStrings?: string[];
       }>('/prompt-builder/build', {
         characterId: characterId,
         messages: allMessages,
@@ -361,13 +389,8 @@ export function ChatView({ characterId }: ChatViewProps) {
         systemPromptOverride: textOptions?.systemPromptOverride,
         jailbreakPromptOverride: textOptions?.jailbreakPromptOverride,
         instruct: textOptions?.instruct,
-        reasoning: {
-          addToPrompts: reasoningSettings.addToPrompts,
-          maxAdditions: reasoningSettings.maxAdditions,
-          prefix: reasoningSettings.prefix,
-          suffix: reasoningSettings.suffix,
-          separator: reasoningSettings.separator,
-        },
+        reasoning: reasoningSettings,
+        context: textOptions?.context,
       });
 
       const promptMessages = promptBuildResult.messages;
@@ -381,6 +404,8 @@ export function ChatView({ characterId }: ChatViewProps) {
       setStreamingContent('');
       setStreamingThinking(undefined);
       setIsThinkingStream(false);
+      startStreaming();
+      isRegeneratingRef.current = false;
       dripRef.current.bodyDripEmitted = 0;
       dripRef.current.thinkingSoFar = undefined;
       dripRef.current.inThinking = false;
@@ -419,10 +444,63 @@ export function ChatView({ characterId }: ChatViewProps) {
         genParams.eta_cutoff = genStore.eta_cutoff;
         genParams.max_context = genStore.max_context;
         genParams.min_tokens = genStore.min_tokens;
+        genParams.samplers = genStore.samplers;
+        genParams.skip_special_tokens = genStore.skip_special_tokens;
+        genParams.add_bos_token = genStore.add_bos_token;
+        genParams.ban_eos_token = genStore.ban_eos_token;
       }
+
+      // Stop strings MUST include the instruct role sequences (outputSequence,
+      // inputSequence, systemSequence, etc.), not just stopSequence + suffixes.
+      // Without them llama.cpp keeps generating past "<|turn>model\n" and the
+      // partial stop-token fragments leak into the rendered text as garbled
+      // fragments like "s *Amalia Amalaia". Mirrors SillyTavern's
+      // getInstructStoppingSequences (public/scripts/instruct-mode.js:301).
+      const mergedStop = [...genStore.stop];
+      const charName = character.name;
+      const instructStops = getInstructStoppingSequences(textOptions?.instruct, {
+        userName,
+        characterName: charName,
+      });
+      for (const seq of instructStops) {
+        if (seq && !mergedStop.includes(seq)) mergedStop.push(seq);
+      }
+      if (textOptions?.instruct?.sequencesAsStopStrings) {
+        const inst = textOptions.instruct;
+        for (const seq of [
+          inst.outputSuffix,
+          inst.inputSuffix,
+          inst.systemSuffix,
+          inst.separatorSequence,
+        ].filter(Boolean)) {
+          if (seq && !mergedStop.includes(seq)) mergedStop.push(seq);
+        }
+      }
+      if (textOptions?.stoppingStrings) {
+        let parsedStops: string[] = [];
+        try {
+          const decoded = JSON.parse(textOptions.stoppingStrings);
+          if (Array.isArray(decoded)) {
+            parsedStops = decoded.filter((s): s is string => typeof s === 'string');
+          }
+        } catch {
+          parsedStops = [];
+        }
+        for (const s of parsedStops) {
+          if (s && !mergedStop.includes(s)) mergedStop.push(s);
+        }
+      }
+      if (promptBuildResult.stopStrings?.length) {
+        for (const stopString of promptBuildResult.stopStrings) {
+          if (stopString && !mergedStop.includes(stopString)) mergedStop.push(stopString);
+        }
+      }
+      genParams.stop = mergedStop.length > 0 ? mergedStop : undefined;
 
       let fullContent = '';
       fullContentRef.current = '';
+      const startReplyWith = textOptions?.startReplyWith ?? '';
+      const markdownEscapeStrings = textOptions?.markdownEscapeStrings ?? '';
       try {
         const interceptorRequest: StreamChatRequest = {
           chat_completion_source: source,
@@ -442,10 +520,21 @@ export function ChatView({ characterId }: ChatViewProps) {
 
         let generator: AsyncGenerator<string>;
         if (genStore.mode === 'text') {
+          let flatPrompt = flattenMessagesToPrompt(interceptedRequest.messages, textOptions?.instruct, textOptions?.context);
+          if (textOptions?.instruct?.enabled && textOptions.instruct.outputSequence) {
+            flatPrompt += textOptions.instruct.outputSequence;
+          }
+          console.log('=== TEXT COMPLETION REQUEST ===');
+          console.log('PROMPT:\n' + flatPrompt);
+          console.log('GEN PARAMS:', JSON.stringify(genParams, null, 2));
+          console.log('INSTRUCT:', JSON.stringify(textOptions?.instruct, null, 2));
+          console.log('REASONING:', JSON.stringify(reasoningSettings, null, 2));
+          console.log('STOP:', genParams.stop);
+          console.log('=== END REQUEST ===');
           generator = streamTextCompletion({
-            text_completion_source: source,
+            text_completion_source: textCompletionSource(source),
             model: genStore.model || model,
-            prompt: flattenMessagesToPrompt(interceptedRequest.messages, textOptions?.instruct),
+            prompt: flatPrompt,
             max_context: genStore.max_context,
             reverse_proxy: reverseProxy,
             ...genParams,
@@ -454,11 +543,14 @@ export function ChatView({ characterId }: ChatViewProps) {
           generator = streamChat(interceptedRequest);
         }
 
+        let isFirstChunk = true;
         for await (const chunk of generator) {
           if (abortRef.current?.signal.aborted) break;
-          fullContent += chunk;
+          const replyChunk = isFirstChunk && startReplyWith ? `${startReplyWith}${chunk}` : chunk;
+          isFirstChunk = false;
+          fullContent += replyChunk;
           fullContentRef.current = fullContent;
-          emit('message_chunk_received', { chunk, index: messages.length + 1 });
+          emit('message_chunk_received', { chunk: replyChunk, index: messages.length + 1 });
           const currentSmooth = useAppStore.getState().smoothStreaming;
           if (reasoningSettings.autoParse && reasoningSettings.prefix && reasoningSettings.suffix) {
             const parsed = parseThinkingChunks(fullContent, reasoningSettings);
@@ -483,14 +575,17 @@ export function ChatView({ characterId }: ChatViewProps) {
             }
           } else {
             if (currentSmooth > 0) {
-              dripRef.current.pending += chunk;
+              dripRef.current.pending += replyChunk;
               if (!dripRef.current.timer) scheduleDrip();
             } else {
-              appendStreamingContent(chunk);
+              appendStreamingContent(replyChunk);
             }
           }
         }
         flushDrip();
+
+        const aborted = !abortRef.current || abortRef.current.signal.aborted;
+        if (aborted) return;
 
         if (fullContent) {
           let finalMes = fullContent;
@@ -499,6 +594,9 @@ export function ChatView({ characterId }: ChatViewProps) {
             const parsed = parseThinkingChunks(fullContent, reasoningSettings);
             finalMes = parsed.body;
             finalThinking = parsed.thinking;
+          }
+          if (markdownEscapeStrings) {
+            finalMes = escapeMarkdownCharacters(finalMes, markdownEscapeStrings);
           }
           const assistantMsg: ChatMessageType = {
             name: character.name,
@@ -522,7 +620,9 @@ export function ChatView({ characterId }: ChatViewProps) {
             const assistantMsg: ChatMessageType = {
               name: character.name,
               is_user: false,
-              mes: fullContent,
+              mes: markdownEscapeStrings
+                ? escapeMarkdownCharacters(fullContent, markdownEscapeStrings)
+                : fullContent,
               send_date: new Date().toISOString(),
               extra: {},
             };
@@ -569,11 +669,19 @@ export function ChatView({ characterId }: ChatViewProps) {
 
   const handleNewChat = useCallback(() => {
     if (!character) return;
+    const oldChatId = activeChatId;
     clearChat();
+    if (oldChatId) {
+      apiPost('/chats/delete', { fileId: oldChatId })
+        .then(() => queryClient.invalidateQueries({ queryKey: ['/api/v1/chats/get'] }))
+        .catch((e) => {
+          console.error('Failed to delete old chat session:', e);
+        });
+    }
     setTimeout(() => {
       createChatMutation.mutate(character.name);
     }, 100);
-  }, [character, clearChat, createChatMutation]);
+  }, [character, clearChat, createChatMutation, activeChatId, queryClient]);
 
   const handleCopyMessage = useCallback((text: string) => {
     navigator.clipboard.writeText(text).catch(() => {
@@ -642,6 +750,8 @@ export function ChatView({ characterId }: ChatViewProps) {
       setStreamingContent('');
       setStreamingThinking(undefined);
       setIsThinkingStream(false);
+      startStreaming();
+      isRegeneratingRef.current = true;
       dripRef.current.bodyDripEmitted = 0;
       dripRef.current.thinkingSoFar = undefined;
       dripRef.current.inThinking = false;
@@ -679,10 +789,65 @@ export function ChatView({ characterId }: ChatViewProps) {
         genParams.eta_cutoff = genStore.eta_cutoff;
         genParams.max_context = genStore.max_context;
         genParams.min_tokens = genStore.min_tokens;
+        genParams.samplers = genStore.samplers;
+        genParams.skip_special_tokens = genStore.skip_special_tokens;
+        genParams.add_bos_token = genStore.add_bos_token;
+        genParams.ban_eos_token = genStore.ban_eos_token;
       }
+
+      // Stop strings MUST include the instruct role sequences (outputSequence,
+      // inputSequence, systemSequence, etc.), not just stopSequence + suffixes.
+      // Without them llama.cpp keeps generating past "<|turn>model\n" and the
+      // partial stop-token fragments leak into the rendered text as garbled
+      // fragments like "s *Amalia Amalaia". Mirrors SillyTavern's
+      // getInstructStoppingSequences (public/scripts/instruct-mode.js:301).
+      const mergedStop = [...genStore.stop];
+      const charName = character?.name ?? '';
+      const instructStops = getInstructStoppingSequences(textOptions?.instruct, {
+        userName,
+        characterName: charName,
+      });
+      for (const seq of instructStops) {
+        if (seq && !mergedStop.includes(seq)) mergedStop.push(seq);
+      }
+      if (textOptions?.instruct?.sequencesAsStopStrings) {
+        const inst = textOptions.instruct;
+        for (const seq of [
+          inst.outputSuffix,
+          inst.inputSuffix,
+          inst.systemSuffix,
+          inst.separatorSequence,
+        ].filter(Boolean)) {
+          if (seq && !mergedStop.includes(seq)) mergedStop.push(seq);
+        }
+      }
+      if (textOptions?.stoppingStrings) {
+        let parsedStops: string[] = [];
+        try {
+          const decoded = JSON.parse(textOptions.stoppingStrings);
+          if (Array.isArray(decoded)) {
+            parsedStops = decoded.filter((s): s is string => typeof s === 'string');
+          }
+        } catch {
+          parsedStops = [];
+        }
+        for (const s of parsedStops) {
+          if (s && !mergedStop.includes(s)) mergedStop.push(s);
+        }
+      }
+      if (textOptions?.context?.namesAsStopStrings) {
+        if (charName && !mergedStop.includes(`${charName}:`)) mergedStop.push(`${charName}:`);
+        if (userName && !mergedStop.includes(`${userName}:`)) mergedStop.push(`${userName}:`);
+      }
+      if (textOptions?.context?.singleLine && !mergedStop.includes('\n')) {
+        mergedStop.push('\n');
+      }
+      genParams.stop = mergedStop.length > 0 ? mergedStop : undefined;
 
       let fullContent = '';
       fullContentRef.current = '';
+      const startReplyWith = textOptions?.startReplyWith ?? '';
+      const markdownEscapeStrings = textOptions?.markdownEscapeStrings ?? '';
       try {
         const interceptorRequest: StreamChatRequest = {
           chat_completion_source: (settings?.chat_completion_source as string) || 'openai',
@@ -708,23 +873,34 @@ export function ChatView({ characterId }: ChatViewProps) {
           (settings?.chat_completion_source as string) || 'openai';
         let generator: AsyncGenerator<string>;
         if (genStore.mode === 'text') {
+          let flatPrompt = flattenMessagesToPrompt(interceptedRequest.messages, textOptions?.instruct, textOptions?.context);
+          if (textOptions?.instruct?.enabled && textOptions.instruct.outputSequence) {
+            flatPrompt += textOptions.instruct.outputSequence;
+          }
           generator = streamTextCompletion({
-            text_completion_source: source,
+            text_completion_source: textCompletionSource(source),
             model: genStore.model || (settings?.chat_completion_model as string) || 'gpt-3.5-turbo',
-            prompt: flattenMessagesToPrompt(interceptedRequest.messages, textOptions?.instruct),
+            prompt: flatPrompt,
             max_context: genStore.max_context,
             reverse_proxy: (settings?.reverse_proxy as string) || undefined,
             ...genParams,
           });
         } else {
+          console.log('=== REGENERATE CHAT REQUEST ===');
+          console.log('MESSAGES:', JSON.stringify(interceptedRequest.messages, null, 2));
+          console.log('GEN PARAMS:', JSON.stringify(genParams, null, 2));
+          console.log('=== END REGENERATE ===');
           generator = streamChat(interceptedRequest);
         }
 
+        let isFirstChunk = true;
         for await (const chunk of generator) {
           if (abortRef.current?.signal.aborted) break;
-          fullContent += chunk;
+          const replyChunk = isFirstChunk && startReplyWith ? `${startReplyWith}${chunk}` : chunk;
+          isFirstChunk = false;
+          fullContent += replyChunk;
           fullContentRef.current = fullContent;
-          emit('message_chunk_received', { chunk, index: messages.length + 1 });
+          emit('message_chunk_received', { chunk: replyChunk, index: messages.length + 1 });
           const currentSmooth = useAppStore.getState().smoothStreaming;
           if (reasoningSettings.autoParse && reasoningSettings.prefix && reasoningSettings.suffix) {
             const parsed = parseThinkingChunks(fullContent, reasoningSettings);
@@ -749,14 +925,17 @@ export function ChatView({ characterId }: ChatViewProps) {
             }
           } else {
             if (currentSmooth > 0) {
-              dripRef.current.pending += chunk;
+              dripRef.current.pending += replyChunk;
               if (!dripRef.current.timer) scheduleDrip();
             } else {
-              appendStreamingContent(chunk);
+              appendStreamingContent(replyChunk);
             }
           }
         }
         flushDrip();
+
+        const aborted = !abortRef.current || abortRef.current.signal.aborted;
+        if (aborted) return;
 
         if (fullContent) {
           let finalMes = fullContent;
@@ -765,6 +944,9 @@ export function ChatView({ characterId }: ChatViewProps) {
             const parsed = parseThinkingChunks(fullContent, reasoningSettings);
             finalMes = parsed.body;
             finalThinking = parsed.thinking;
+          }
+          if (markdownEscapeStrings) {
+            finalMes = escapeMarkdownCharacters(finalMes, markdownEscapeStrings);
           }
           const assistantMsg: ChatMessageType = {
             name: character.name,
@@ -841,7 +1023,7 @@ export function ChatView({ characterId }: ChatViewProps) {
             is_user: false,
             mes: streamingContent,
             thinking: streamingThinking,
-            send_date: new Date().toISOString(),
+            send_date: streamingSendDate,
             extra: {},
           } as ChatMessageType,
         ]
@@ -935,6 +1117,7 @@ export function ChatView({ characterId }: ChatViewProps) {
               canDelete={i !== 0}
               autoExpandThinking={reasoningSettings.autoExpand}
               showHidden={reasoningSettings.showHidden}
+              isStreaming={isGenerating && i === displayMessages.length - 1}
             />
           ))}
           {isGenerating && (streamingContent || isThinkingStream) && smoothStreaming > 0 && (

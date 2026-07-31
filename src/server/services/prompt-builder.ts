@@ -1,7 +1,7 @@
 import type { CharacterData } from '@/shared/types/character';
 import type { ChatMessage } from '@/shared/types/chat';
 import type { ChatCompletionMessage } from '@/shared/types/backends/chatcompletions';
-import type { InstructSettings } from '@/shared/types/text-options';
+import type { ContextSettings, InstructSettings } from '@/shared/types/text-options';
 import { TiktokenTokenizer } from '@/server/tokenizers/tiktoken';
 import { substituteMacros, type MacroContext } from '@/lib/macros';
 
@@ -47,11 +47,13 @@ export interface PromptBuilderParams {
     separator: string;
   };
   instruct?: InstructSettings;
+  context?: ContextSettings;
 }
 
 export interface PromptBuilderResult {
   messages: ChatCompletionMessage[];
   tokenCount: number;
+  stopStrings?: string[];
 }
 
 /**
@@ -94,6 +96,17 @@ export class PromptBuilder {
       system_prompt: character.system_prompt,
       post_history_instructions: character.post_history_instructions,
     };
+    const context = params.context;
+    const persona = params.persona;
+    if (persona) {
+      const personaName = persona.name?.trim() ?? '';
+      if (personaName) {
+        macroCtx.userName = personaName;
+      }
+      if (persona.description?.trim()) {
+        macroCtx.persona = persona.description.trim();
+      }
+    }
     const messagesArray: ChatCompletionMessage[] = [];
 
     // 1. Add World Info before character definitions
@@ -105,10 +118,45 @@ export class PromptBuilder {
       });
     }
 
-    if (params.instruct?.enabled && params.instruct.systemPrompt) {
+    const storyStringContent = context?.storyString
+      ? this.renderStoryString(context.storyString, character, macroCtx, systemPromptOverride)
+      : '';
+
+    const useStoryString =
+      context != null &&
+      storyStringContent.trim().length > 0 &&
+      (!params.instruct?.enabled || !params.instruct.systemPrompt);
+
+    let storyContent = storyStringContent;
+    if (useStoryString && params.instruct?.enabled) {
+      const seq = params.instruct.systemSequence || '';
+      const suf = params.instruct.systemSuffix || '';
+      if (seq && storyContent.startsWith(seq)) {
+        storyContent = storyContent.slice(seq.length);
+      }
+      if (suf && storyContent.endsWith(suf)) {
+        storyContent = storyContent.slice(0, -suf.length);
+      } else if (suf && storyContent.endsWith(suf.trimEnd())) {
+        storyContent = storyContent.slice(0, -suf.trimEnd().length);
+      }
+    }
+
+    if (useStoryString && context!.storyStringPosition === 'inchat') {
+      // Story string placed inchat — skip here
+    } else if (useStoryString) {
+      messagesArray.push({
+        role: context!.storyStringRole,
+        content: storyContent,
+      });
+    } else if (params.instruct?.enabled && params.instruct.systemPrompt) {
       messagesArray.push({
         role: 'system',
         content: substituteMacros(params.instruct.systemPrompt, macroCtx),
+      });
+    } else if (systemPromptOverride) {
+      messagesArray.push({
+        role: 'system',
+        content: substituteMacros(systemPromptOverride, macroCtx),
       });
     } else {
       const mainPrompt = this.getMainPrompt(character, charName, userName);
@@ -129,38 +177,36 @@ export class PromptBuilder {
       });
     }
 
-    // 4. Add character description
-    if (character.description) {
-      messagesArray.push({
-        role: 'system',
-        content: substituteMacros(`Description: ${character.description}`, macroCtx),
-      });
-    }
+    if (useStoryString) {
+    } else {
+      // 4. Add character description
+      if (character.description) {
+        messagesArray.push({
+          role: 'system',
+          content: substituteMacros(`Description: ${character.description}`, macroCtx),
+        });
+      }
 
-    // 5. Add character personality
-    if (character.personality) {
-      messagesArray.push({
-        role: 'system',
-        content: substituteMacros(`${charName}'s personality: ${character.personality}`, macroCtx),
-      });
-    }
+      // 5. Add character personality
+      if (character.personality) {
+        messagesArray.push({
+          role: 'system',
+          content: substituteMacros(`${charName}'s personality: ${character.personality}`, macroCtx),
+        });
+      }
 
-    // 6. Add scenario
-    if (character.scenario) {
-      messagesArray.push({
-        role: 'system',
-        content: substituteMacros(`Scenario: ${character.scenario}`, macroCtx),
-      });
+      // 6. Add scenario
+      if (character.scenario) {
+        messagesArray.push({
+          role: 'system',
+          content: substituteMacros(`Scenario: ${character.scenario}`, macroCtx),
+        });
+      }
     }
 
     // 6.5 Persona description block (between scenario and character system_prompt)
-    if (params.persona) {
-      const persona = params.persona;
+    if (persona && !useStoryString) {
       const personaName = persona.name?.trim() ?? '';
-      if (personaName) {
-        // Override macroCtx.userName so {{user}} / {{personaName}} resolve to persona name
-        macroCtx.userName = personaName;
-      }
       if (persona.description?.trim()) {
         messagesArray.push({
           role: 'system',
@@ -198,28 +244,49 @@ export class PromptBuilder {
     }
 
     // 7. Add system prompt (character's system_prompt field)
-    const systemPrompt = systemPromptOverride || character.system_prompt;
-    if (systemPrompt) {
+    if (!useStoryString && !systemPromptOverride && character.system_prompt) {
       messagesArray.push({
         role: 'system',
-        content: substituteMacros(systemPrompt, macroCtx),
+        content: substituteMacros(character.system_prompt, macroCtx),
       });
     }
 
     // 8. Add example messages (if enabled)
-    if (includeExamples && character.mes_example) {
+    const skipExamples = params.instruct?.enabled && params.instruct.skipExamples;
+    if (includeExamples && !skipExamples && character.mes_example) {
+      const exampleSeparator = context?.exampleSeparator ?? '';
       const exampleMessages = this.formatExampleMessages(
         character.mes_example,
         charName,
         userName,
         macroCtx,
+        exampleSeparator,
       );
       messagesArray.push(...exampleMessages);
     }
 
     // 9. Add chat history
+    const historyStartIdx = messagesArray.length;
     const historyMessages = this.formatChatHistory(messages, charName, userName, macroCtx);
     messagesArray.push(...historyMessages);
+
+    // 9.1 inchat story_string placement
+    if (useStoryString && context!.storyStringPosition === 'inchat') {
+      const depth = Math.max(0, context!.storyStringDepth);
+      const insertIdx = Math.max(historyStartIdx, messagesArray.length - depth);
+      messagesArray.splice(insertIdx, 0, {
+        role: context!.storyStringRole,
+        content: storyContent,
+      });
+    }
+
+    // 9.2 chat_start separator
+    if (context?.chatStart && context.chatStart.trim().length > 0 && historyMessages.length > 0) {
+      messagesArray.splice(historyStartIdx, 0, {
+        role: 'system',
+        content: substituteMacros(context.chatStart, macroCtx),
+      });
+    }
 
     // 9.5 Inject previous thinking content into prompts (when addToPrompts enabled)
     if (params.reasoning?.addToPrompts && params.reasoning.prefix && params.reasoning.suffix) {
@@ -247,11 +314,20 @@ export class PromptBuilder {
       });
     }
 
-    const tokenCount = this.countTokens(messagesArray);
+    // 11. Apply context formatting (trimSpaces, collapseNewlines, singleLine)
+    const formattedMessages = context
+      ? this.applyContextFormatting(messagesArray, context)
+      : messagesArray;
+
+    // 12. Compute stop strings (namesAsStopStrings, singleLine)
+    const stopStrings = this.computeStopStrings(context, charName, userName);
+
+    const tokenCount = this.countTokens(formattedMessages);
 
     return {
-      messages: messagesArray,
+      messages: formattedMessages,
       tokenCount,
+      stopStrings: stopStrings.length > 0 ? stopStrings : undefined,
     };
   }
 
@@ -341,13 +417,22 @@ export class PromptBuilder {
     charName: string,
     userName: string,
     macroCtx: MacroContext,
+    exampleSeparator: string,
   ): ChatCompletionMessage[] {
     if (!mesExample) return [];
 
     const messages: ChatCompletionMessage[] = [];
     const blocks = mesExample.split(/<START>/gi).filter((block) => block.trim());
 
-    for (const block of blocks) {
+    for (let bi = 0; bi < blocks.length; bi++) {
+      const block = blocks[bi];
+      if (!block) continue;
+      if (bi > 0 && exampleSeparator && messages.length > 0) {
+        messages.push({
+          role: 'system',
+          content: substituteMacros(exampleSeparator, macroCtx),
+        });
+      }
       const lines = block.trim().split('\n');
       let currentRole: 'user' | 'assistant' = 'user';
       let currentContent = '';
@@ -445,6 +530,93 @@ export class PromptBuilder {
       }
     }
     return totalTokens;
+  }
+
+  private renderStoryString(
+    template: string,
+    character: CharacterData,
+    macroCtx: MacroContext,
+    systemPromptOverride?: string,
+  ): string {
+    const systemPrompt = systemPromptOverride || character.system_prompt || '';
+    const ctx: Record<string, string> = {
+      char: character.name ?? '',
+      user: macroCtx.userName ?? '',
+      system: systemPrompt,
+      system_prompt: systemPrompt,
+      description: character.description ?? '',
+      personality: character.personality ?? '',
+      scenario: character.scenario ?? '',
+      persona: macroCtx.persona ?? '',
+      mes_example: character.mes_example ?? '',
+      first_mes: character.first_mes ?? '',
+      creator_notes: character.creator_notes ?? '',
+      anchorBefore: '',
+      anchorAfter: '',
+      wiBefore: '',
+      wiAfter: '',
+    };
+    let rendered = this.evalHandlebars(template, ctx);
+    rendered = rendered.replace(/\{\{trim\}\}/gi, '').trimEnd();
+    rendered = substituteMacros(rendered, macroCtx);
+    rendered = substituteMacros(rendered, macroCtx);
+    return rendered;
+  }
+
+  private evalHandlebars(template: string, ctx: Record<string, string>): string {
+    let result = template;
+    const ifRe = /\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g;
+    let prev: string;
+    do {
+      prev = result;
+      result = result.replace(ifRe, (_m, key: string, body: string) => {
+        const val = ctx[key];
+        return val && val.trim().length > 0 ? body : '';
+      });
+    } while (result !== prev && ifRe.test(result));
+    result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key: string) => {
+      return ctx[key] ?? '';
+    });
+    return result;
+  }
+
+  private applyContextFormatting(
+    messages: ChatCompletionMessage[],
+    context: ContextSettings,
+  ): ChatCompletionMessage[] {
+    return messages.map((m) => {
+      let content = m.content;
+      if (context.trimSpaces) {
+        content = content
+          .split('\n')
+          .map((line) => line.trim())
+          .join('\n')
+          .trim();
+      }
+      if (context.collapseNewlines) {
+        content = content.replace(/\n{2,}/g, '\n');
+      }
+      if (context.singleLine) {
+        content = content.replace(/\n+/g, ' ').trim();
+      }
+      return { ...m, content };
+    });
+  }
+
+  private computeStopStrings(
+    context: ContextSettings | undefined,
+    charName: string,
+    userName: string,
+  ): string[] {
+    const stops: string[] = [];
+    if (context?.namesAsStopStrings) {
+      if (charName && !stops.includes(charName)) stops.push(`${charName}:`);
+      if (userName && !stops.includes(userName)) stops.push(`${userName}:`);
+    }
+    if (context?.singleLine) {
+      if (!stops.includes('\n')) stops.push('\n');
+    }
+    return stops;
   }
 }
 

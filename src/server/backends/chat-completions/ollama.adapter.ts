@@ -30,6 +30,7 @@ export class OllamaAdapter implements ChatCompletionAdapter {
           num_predict: req.max_tokens,
           top_p: req.top_p,
           num_ctx: req.max_context,
+          ...(req.stop ? { stop: req.stop } : {}),
         },
       }),
       signal: req.signal as AbortSignal | undefined,

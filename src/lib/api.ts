@@ -1,5 +1,6 @@
 import type { SettingsObject } from '@/shared/types/settings';
 import type { InstructSettings } from '@/shared/types/text-options';
+import { substituteMacros, type MacroContext } from '@/lib/macros';
 
 const BASE = '/api/v1';
 
@@ -100,6 +101,11 @@ export async function getPreset(category: string, name: string): Promise<unknown
 /** Save (create or update) a preset object. */
 export async function savePreset(preset: Record<string, unknown>): Promise<unknown> {
   return await apiPost('/presets/save', { preset });
+}
+
+/** Delete a preset by category and name. */
+export async function deletePreset(category: string, name: string): Promise<unknown> {
+  return await apiPost('/presets/delete', { category, name });
 }
 
 /** Check if onboarding is needed (first boot). */
@@ -204,56 +210,162 @@ export type InstructFlattenParams = Pick<
   | 'lastSystemSequence'
   | 'names'
   | 'wrap'
-> & { systemPrompt?: string };
+> & {
+  systemPrompt?: string;
+  namesBehavior?: InstructSettings['namesBehavior'];
+  systemSameAsUser?: boolean;
+};
+
+export interface FlattenContextParams {
+  chatStart?: string;
+  exampleSeparator?: string;
+  trimSpaces?: boolean;
+  collapseNewlines?: boolean;
+  singleLine?: boolean;
+}
 
 export function flattenMessagesToPrompt(
   messages: Array<{ role: string; content: string; name?: string }>,
   instruct?: InstructFlattenParams,
+  context?: FlattenContextParams,
 ): string {
+  let prompt: string;
   if (!instruct?.enabled) {
-    return messages
+    prompt = messages
       .map((m) => {
         if (m.role === 'system') return `[System: ${m.content}]`;
         return `${m.role}: ${m.content}`;
       })
       .join('\n\n');
+  } else {
+    const parts: string[] = [];
+    let isFirstUser = true;
+    let isFirstAssistant = true;
+    const namesBehavior = instruct.namesBehavior ?? (instruct.names ? 'force' : 'none');
+
+    for (const m of messages) {
+      if (m.role === 'system') {
+        const namePrefix = namesBehavior === 'always' && m.name ? `${m.name}: ` : '';
+        if (instruct.systemSameAsUser) {
+          parts.push(
+            `${namePrefix}${instruct.inputSequence || ''}${m.content}${instruct.inputSuffix || ''}`,
+          );
+        } else {
+          parts.push(
+            `${namePrefix}${instruct.systemSequence || ''}${m.content}${instruct.systemSuffix || ''}`,
+          );
+        }
+      } else if (m.role === 'user') {
+        const namePrefix = namesBehavior !== 'none' && m.name ? `${m.name}: ` : '';
+        let prefix = isFirstUser
+          ? instruct.firstInputSequence || instruct.inputSequence
+          : instruct.inputSequence;
+        const suffix = instruct.inputSuffix;
+        prefix = `${namePrefix}${prefix}`;
+        parts.push(`${prefix}${m.content}${suffix}`);
+        isFirstUser = false;
+      } else if (m.role === 'assistant') {
+        const namePrefix = namesBehavior !== 'none' && m.name ? `${m.name}: ` : '';
+        let prefix = isFirstAssistant
+          ? instruct.firstOutputSequence || instruct.outputSequence
+          : instruct.outputSequence;
+        const suffix = instruct.outputSuffix;
+        prefix = `${namePrefix}${prefix}`;
+        parts.push(`${prefix}${m.content}${suffix}`);
+        isFirstAssistant = false;
+      }
+    }
+
+    prompt = parts.join(instruct.separatorSequence ?? '\n\n');
   }
 
-  const parts: string[] = [];
-  let isFirstUser = true;
-  let isFirstAssistant = true;
-
-  for (const m of messages) {
-    if (m.role === 'system') {
-      const prefix = instruct.systemSequence || '';
-      const suffix = instruct.systemSuffix || '';
-      parts.push(`${prefix}${m.content}${suffix}`);
-    } else if (m.role === 'user') {
-      const namePrefix = instruct.names && m.name ? `${m.name}: ` : '';
-      let prefix = isFirstUser
-        ? (instruct.firstInputSequence || instruct.inputSequence)
-        : instruct.inputSequence;
-      const suffix = isFirstUser
-        ? (instruct.lastInputSequence || instruct.inputSuffix)
-        : instruct.inputSuffix;
-      prefix = instruct.wrap ? `${namePrefix}${prefix}` : `${namePrefix}${prefix}`;
-      parts.push(`${prefix}${m.content}${suffix}`);
-      isFirstUser = false;
-    } else if (m.role === 'assistant') {
-      const namePrefix = instruct.names && m.name ? `${m.name}: ` : '';
-      let prefix = isFirstAssistant
-        ? (instruct.firstOutputSequence || instruct.outputSequence)
-        : instruct.outputSequence;
-      const suffix = isFirstAssistant
-        ? (instruct.lastOutputSequence || instruct.outputSuffix)
-        : instruct.outputSuffix;
-      prefix = instruct.wrap ? `${namePrefix}${prefix}` : `${namePrefix}${prefix}`;
-      parts.push(`${prefix}${m.content}${suffix}`);
-      isFirstAssistant = false;
+  if (context?.chatStart && context.chatStart.trim().length > 0) {
+    const chatStartContent = context.chatStart.trim();
+    const alreadyPresent = messages.some(
+      (m) => m.role === 'system' && m.content.trim() === chatStartContent,
+    );
+    if (!alreadyPresent) {
+      prompt = `${context.chatStart}\n${prompt}`;
     }
   }
 
-  return parts.join(instruct.separatorSequence || '\n\n');
+  if (context?.trimSpaces) {
+    prompt = prompt
+      .split('\n')
+      .map((line) => line.trim())
+      .join('\n')
+      .trim();
+  }
+  if (context?.collapseNewlines) {
+    prompt = prompt.replace(/\n{2,}/g, '\n');
+  }
+  if (context?.singleLine) {
+    prompt = prompt.replace(/\n+/g, ' ').trim();
+  }
+
+  return prompt;
+}
+
+/**
+ * Mirrors SillyTavern `getInstructStoppingSequences` (public/scripts/instruct-mode.js):
+ * always includes `stopSequence`, adds the role sequences when
+ * `sequencesAsStopStrings`, prepends `\n` when `wrap`, skips whitespace-only
+ * entries, dedupes. `{{name}}` resolves to `defaultName`; other macros via
+ * `substituteMacros` when `instruct.macro`.
+ */
+export function getInstructStoppingSequences(
+  instruct: InstructSettings | undefined,
+  macroCtx: MacroContext | undefined,
+): string[] {
+  const result: string[] = [];
+  if (!instruct || !instruct.enabled) return result;
+
+  const macroEnabled = instruct.macro === true;
+  const wrap = instruct.wrap === true;
+  const wrapSeq = (s: string): string => (wrap ? `\n${s}` : s);
+
+  const addSeq = (raw: string | undefined, defaultName: string): void => {
+    if (typeof raw !== 'string' || raw.length === 0) return;
+    const named = raw.replace(/\{\{\s*name\s*\}\}/gi, defaultName);
+    const resolved = macroEnabled
+      ? substituteMacros(named, macroCtx ?? { userName: '', characterName: '' })
+      : named;
+    if (resolved.trim().length === 0) return;
+    const wrapped = wrapSeq(resolved);
+    if (!result.includes(wrapped)) result.push(wrapped);
+  };
+
+  addSeq(instruct.stopSequence, '');
+
+  if (instruct.sequencesAsStopStrings) {
+    addSeq(instruct.inputSequence, macroCtx?.userName ?? '');
+    addSeq(instruct.outputSequence, macroCtx?.characterName ?? '');
+    addSeq(instruct.firstOutputSequence, macroCtx?.characterName ?? '');
+    addSeq(instruct.lastOutputSequence, macroCtx?.characterName ?? '');
+    addSeq(instruct.systemSequence, 'System');
+    addSeq(instruct.lastSystemSequence, 'System');
+    addSeq(instruct.firstInputSequence, macroCtx?.userName ?? '');
+    addSeq(instruct.lastInputSequence, macroCtx?.userName ?? '');
+  }
+
+  return result;
+}
+
+/** Tail-trim any stop string (or its partial prefix) from `text`, matching
+ *  SillyTavern `cleanUpMessage` lines 6410-6419 of public/script.js. */
+export function trimStopStringTail(text: string, stops: string[] | undefined): string {
+  if (!text || !stops || stops.length === 0) return text;
+  let out = text;
+  for (const stop of stops) {
+    if (!stop || stop.length === 0) continue;
+    for (let j = stop.length; j > 0; j--) {
+      if (out.slice(-j) === stop.slice(0, j)) {
+        out = out.slice(0, -j);
+        break;
+      }
+    }
+  }
+  return out;
 }
 
 /**
@@ -278,10 +390,7 @@ export async function* streamTextCompletion(
     }
     const data = (await res.json()) as Record<string, unknown>;
     const content =
-      (data.content as string) ||
-      (data.text as string) ||
-      (data.result as string) ||
-      '';
+      (data.content as string) || (data.text as string) || (data.result as string) || '';
     if (content) yield content;
     return;
   }
@@ -303,9 +412,20 @@ export async function* streamTextCompletion(
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
+  // Tail-trim partial stop-string prefixes per chunk and short-circuit when a
+  // full stop matches. Needed because llama.cpp's server-side stop matching on
+  // the token stream can fall behind the rendered text when skip_special_tokens
+  // strips the special tokens composing a multi-token stop string (e.g.
+  // "<|turn>model\n" decodes as "model\n" — server-side stop may not fire). The
+  // tail trim is the safety net that keeps partial fragments like "<|turn>m"
+  // from flashing in the UI. Mirrors SillyTavern cleanUpMessage
+  // (public/script.js:6410-6419).
+  const stops = Array.isArray(request.stop) ? request.stop : undefined;
 
   try {
     let buffer = '';
+    let accumulated = '';
+    let emitted = 0;
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -327,7 +447,17 @@ export async function* streamTextCompletion(
             (parsed.text as string) ||
             (parsed.result as string) ||
             '';
-          if (content) yield content;
+          if (!content) continue;
+          if (stops) {
+            accumulated = trimStopStringTail(accumulated + content, stops);
+            if (accumulated.length > emitted) {
+              yield accumulated.slice(emitted);
+              emitted = accumulated.length;
+            }
+            if (stops.some((s) => accumulated.endsWith(s))) return;
+          } else {
+            yield content;
+          }
         } catch {
           // skip parse errors during streaming
         }
@@ -345,7 +475,16 @@ export async function* streamTextCompletion(
             (parsed.text as string) ||
             (parsed.result as string) ||
             '';
-          if (content) yield content;
+          if (!content) return;
+          if (stops) {
+            accumulated = trimStopStringTail(accumulated + content, stops);
+            if (accumulated.length > emitted) {
+              yield accumulated.slice(emitted);
+              emitted = accumulated.length;
+            }
+          } else {
+            yield content;
+          }
         } catch {
           // skip
         }

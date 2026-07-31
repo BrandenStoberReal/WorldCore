@@ -32,6 +32,8 @@ export class OpenAIAdapter implements ChatCompletionAdapter {
       seed: req.seed,
     };
 
+    if (req.stop) body.stop = req.stop;
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${this.getKey(req)}`,

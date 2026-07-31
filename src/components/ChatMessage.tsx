@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo, memo, useRef } from 'react';
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import { cn } from '@/lib/utils';
 import { substituteMacros, type MacroContext } from '@/lib/macros';
@@ -27,9 +27,10 @@ interface ChatMessageProps {
   canDelete?: boolean;
   autoExpandThinking?: boolean;
   showHidden?: boolean;
+  isStreaming?: boolean;
 }
 
-export function ChatMessage({
+export const ChatMessage = memo(function ChatMessage({
   msg,
   index = 0,
   characterAvatar,
@@ -51,11 +52,24 @@ export function ChatMessage({
   canDelete = true,
   autoExpandThinking = false,
   showHidden = true,
+  isStreaming = false,
 }: ChatMessageProps) {
   const isUser = msg.is_user;
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(msg.mes);
+  const [thinkingOpen, setThinkingOpen] = useState(autoExpandThinking);
+  const wasStreamingRef = useRef(false);
+
+  useEffect(() => {
+    if (isStreaming) {
+      wasStreamingRef.current = true;
+      setThinkingOpen(true);
+    } else if (wasStreamingRef.current) {
+      wasStreamingRef.current = false;
+      if (!autoExpandThinking) setThinkingOpen(false);
+    }
+  }, [isStreaming, autoExpandThinking]);
 
   let ts: string;
   try {
@@ -82,14 +96,15 @@ export function ChatMessage({
     post_history_instructions,
   } satisfies MacroContext;
 
-  const processedText = substituteMacros(msg.mes, macroContext);
-  const renderedContent = renderMarkdown(processedText);
+  const processedText = useMemo(() => substituteMacros(msg.mes, macroContext), [msg.mes, macroContext]);
+  const renderedContent = useMemo(() => renderMarkdown(processedText), [processedText]);
 
   const thinkingContent =
     !isUser && typeof msg.thinking === 'string' && msg.thinking.length > 0 ? msg.thinking : null;
-  const renderedThinking = thinkingContent
-    ? renderMarkdown(substituteMacros(thinkingContent, macroContext))
-    : null;
+  const renderedThinking = useMemo(
+    () => (thinkingContent ? renderMarkdown(substituteMacros(thinkingContent, macroContext)) : null),
+    [thinkingContent, macroContext],
+  );
 
   return (
     <div className="group relative flex flex-col">
@@ -158,14 +173,26 @@ export function ChatMessage({
         </div>
       </div>
 
-      {/* Thinking aside — collapsible, AI-only */}
+      {/* Thinking aside — inline drawer above message body */}
       {renderedThinking && showHidden && (
         <details
-          open={autoExpandThinking}
+          open={thinkingOpen}
+          onToggle={(e) => setThinkingOpen(e.currentTarget.open)}
           className="group/thinking border-border/40 bg-muted/20 mx-3 mt-1 mb-0.5 rounded-md border text-[12px]"
         >
           <summary className="text-muted-foreground/70 hover:text-muted-foreground flex cursor-pointer items-center gap-1.5 px-3 py-1.5 transition-colors select-none">
-            <span className="mono-tag">Thinking...</span>
+            {isStreaming ? (
+              <span className="mono-tag flex items-center gap-1.5">
+                <span className="dot-hot" aria-hidden>
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                Thinking…
+              </span>
+            ) : (
+              <span className="mono-tag">Thoughts</span>
+            )}
             <span className="ml-auto opacity-0 transition-all group-open/thinking:rotate-180 group-hover/thinking:opacity-100">
               <ChevronDown className="h-2.5 w-2.5" />
             </span>
@@ -259,4 +286,4 @@ export function ChatMessage({
       </div>
     </div>
   );
-}
+});

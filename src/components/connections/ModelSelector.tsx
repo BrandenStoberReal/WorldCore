@@ -21,6 +21,7 @@ interface ModelSelectorProps {
   queryParams?: Record<string, string>;
   url?: string;
   onModelsLoaded?: (models: ModelEntry[]) => void;
+  onConnected?: () => void;
 }
 
 interface ModelEntry {
@@ -46,6 +47,7 @@ export function ModelSelector({
   queryParams,
   url,
   onModelsLoaded,
+  onConnected,
 }: ModelSelectorProps) {
   const [models, setModels] = useState<ModelEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -66,13 +68,14 @@ export function ModelSelector({
       const list = normalizeModels(data);
       setModels(list);
       onModelsLoaded?.(list);
+      if (list.length > 0) onConnected?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load models');
       setModels([]);
     } finally {
       setLoading(false);
     }
-  }, [source, queryParams, url, onModelsLoaded]);
+  }, [source, queryParams, url, onModelsLoaded, onConnected]);
 
   useEffect(() => {
     void fetchModels();

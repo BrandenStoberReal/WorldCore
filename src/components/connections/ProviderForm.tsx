@@ -51,6 +51,7 @@ export interface ProviderFormProps {
   showReverseProxy?: boolean;
   children?: React.ReactNode;
   onModelsLoaded?: (models: { id: string; label: string; context_length?: number }[]) => void;
+  onConnected?: () => void;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -286,6 +287,7 @@ export function ProviderForm({
   onModelChange,
   children,
   onModelsLoaded,
+  onConnected,
 }: ProviderFormProps) {
   const resolved = useMemo(() => {
     if (!subType) return null;
@@ -380,6 +382,7 @@ export function ProviderForm({
             onChange={setModel}
             url={showUrl ? url : undefined}
             onModelsLoaded={onModelsLoaded}
+            onConnected={onConnected}
           />
         </div>
       )}

@@ -29,9 +29,10 @@ interface TextGenPanelProps {
   connected?: boolean;
   activeSource?: string;
   profile?: ConnectionProfile | null;
+  onConnected?: () => void;
 }
 
-export function TextGenPanel({ onConnect, connected = false, profile }: TextGenPanelProps) {
+export function TextGenPanel({ onConnect, connected = false, profile, onConnected }: TextGenPanelProps) {
   const [subType, setSubType] = useState<TextGenSubType>('llamacpp');
   const [deriveContext, setDeriveContext] = useState(true);
   const [bypassStatus, setBypassStatus] = useState(false);
@@ -151,6 +152,7 @@ export function TextGenPanel({ onConnect, connected = false, profile }: TextGenP
           model={model}
           onModelChange={handleModelChange}
           onModelsLoaded={handleModelsLoaded}
+          onConnected={onConnected}
         />
       )}
 

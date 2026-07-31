@@ -362,6 +362,7 @@ export function ConnectionsPanel() {
             onConnect={handleConnect}
             connected={connected}
             profile={selectedProfile}
+            onConnected={() => setConnected(true)}
           />
         )}
         {apiType === 'openai' && (

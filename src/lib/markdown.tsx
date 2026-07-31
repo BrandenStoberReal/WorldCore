@@ -154,11 +154,68 @@ function prepareBlock(text: string): {
 // ---------------------------------------------------------------------------
 
 function renderBlock(block: string, depth: number, key: number): ReactNode {
-  // Blockquote run: first line starts with `> ` (or is just `>`).
   if (block.startsWith('> ') || block === '>' || block.startsWith('>\n')) {
     return renderBlockquote(block, depth, key);
   }
+  const listMatch = detectList(block);
+  if (listMatch) {
+    return renderList(block, listMatch.ordered, key);
+  }
   return renderParagraphBlock(block, key);
+}
+
+const UL_RE = /^[-*]\s+/;
+const OL_RE = /^\d+\.\s+/;
+
+function detectList(block: string): { ordered: boolean } | null {
+  const lines = block.split('\n');
+  let ulCount = 0;
+  let olCount = 0;
+  for (const line of lines) {
+    if (UL_RE.test(line)) ulCount++;
+    else if (OL_RE.test(line)) olCount++;
+  }
+  if (ulCount + olCount < 2) return null;
+  if (olCount > ulCount) return { ordered: true };
+  return { ordered: false };
+}
+
+function renderList(block: string, ordered: boolean, key: number): ReactNode {
+  const lines = block.split('\n');
+  const items: ReactNode[] = [];
+  let currentText: string[] = [];
+
+  const flushItem = (itemKey: number) => {
+    if (currentText.length === 0) return;
+    const text = currentText.join('\n');
+    const prepared = prepareBlock(text);
+    items.push(
+      <li key={`li-${itemKey}`}>{renderInlineTokens(prepared.text, prepared.fences, prepared.codes, 0)}</li>,
+    );
+    currentText = [];
+  };
+
+  let itemIdx = 0;
+  for (const line of lines) {
+    if (UL_RE.test(line)) {
+      flushItem(itemIdx);
+      itemIdx++;
+      currentText.push(line.replace(UL_RE, ''));
+    } else if (OL_RE.test(line)) {
+      flushItem(itemIdx);
+      itemIdx++;
+      currentText.push(line.replace(OL_RE, ''));
+    } else {
+      currentText.push(line);
+    }
+  }
+  flushItem(itemIdx);
+
+  return ordered ? (
+    <ol key={key}>{items}</ol>
+  ) : (
+    <ul key={key}>{items}</ul>
+  );
 }
 
 function renderBlockquote(block: string, depth: number, key: number): ReactNode {

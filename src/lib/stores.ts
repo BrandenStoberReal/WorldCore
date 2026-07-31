@@ -122,6 +122,19 @@ const CHAT_DEFAULTS = {
   min_tokens: 0,
 } as const;
 
+const LLAMACPP_DEFAULT_SAMPLERS = [
+  'penalties',
+  'dry',
+  'top_n_sigma',
+  'top_k',
+  'typ_p',
+  'top_p',
+  'min_p',
+  'xtc',
+  'temperature',
+  'adaptive_p',
+] as const;
+
 const TEXT_DEFAULTS = {
   min_p: 0,
   typical_p: 1,
@@ -137,8 +150,32 @@ const TEXT_DEFAULTS = {
   mirostat_tau: 5,
   mirostat_eta: 0.1,
   smoothing_factor: 0,
+  smoothing_curve: 0,
   epsilon_cutoff: 0,
   eta_cutoff: 0,
+  rep_pen_decay: 0,
+  dry_penalty_last_n: -1,
+  dry_sequence_breakers: '',
+  min_temp: 0,
+  max_temp: 0,
+  dynatemp_exponent: 1,
+  penalty_alpha: 0,
+  num_beams: 1,
+  length_penalty: 1,
+  min_length: 0,
+  encoder_rep_pen: 1,
+  skew: 0,
+  xtc_threshold: 0.1,
+  xtc_probability: 0,
+  nsigma: 0,
+  min_keep: 0,
+  rep_pen_size: 0,
+  adaptive_target: 0,
+  adaptive_decay: 0,
+  samplers: [...LLAMACPP_DEFAULT_SAMPLERS] as string[],
+  skip_special_tokens: true,
+  add_bos_token: true,
+  ban_eos_token: false,
 } as const;
 
 export const CHAT_GEN_DEFAULTS = { ...SHARED_DEFAULTS, ...CHAT_DEFAULTS } as const;
@@ -172,9 +209,35 @@ export interface GenerationState {
   mirostat_tau: number;
   mirostat_eta: number;
   smoothing_factor: number;
+  smoothing_curve: number;
   epsilon_cutoff: number;
   eta_cutoff: number;
+  rep_pen_decay: number;
+  dry_penalty_last_n: number;
+  dry_sequence_breakers: string;
+  min_temp: number;
+  max_temp: number;
+  dynatemp_exponent: number;
+  penalty_alpha: number;
+  num_beams: number;
+  length_penalty: number;
+  min_length: number;
+  encoder_rep_pen: number;
+  skew: number;
+  xtc_threshold: number;
+  xtc_probability: number;
+  nsigma: number;
+  min_keep: number;
+  rep_pen_size: number;
+  adaptive_target: number;
+  adaptive_decay: number;
   max_context: number;
+
+  samplers: string[];
+
+  skip_special_tokens: boolean;
+  add_bos_token: boolean;
+  ban_eos_token: boolean;
 
   model: string;
   preset: string;
@@ -214,14 +277,38 @@ type GenerationParams = Pick<
   | 'mirostat_tau'
   | 'mirostat_eta'
   | 'smoothing_factor'
+  | 'smoothing_curve'
   | 'epsilon_cutoff'
   | 'eta_cutoff'
+  | 'rep_pen_decay'
+  | 'dry_penalty_last_n'
+  | 'dry_sequence_breakers'
+  | 'min_temp'
+  | 'max_temp'
+  | 'dynatemp_exponent'
+  | 'penalty_alpha'
+  | 'num_beams'
+  | 'length_penalty'
+  | 'min_length'
+  | 'encoder_rep_pen'
+  | 'skew'
+  | 'xtc_threshold'
+  | 'xtc_probability'
+  | 'nsigma'
+  | 'min_keep'
+  | 'rep_pen_size'
+  | 'adaptive_target'
+  | 'adaptive_decay'
   | 'max_context'
+  | 'samplers'
+  | 'skip_special_tokens'
+  | 'add_bos_token'
+  | 'ban_eos_token'
   | 'model'
   | 'preset'
 >;
 
-const PARAM_KEYS = [
+export const PARAM_KEYS = [
   'mode',
   'temperature',
   'top_p',
@@ -246,9 +333,33 @@ const PARAM_KEYS = [
   'mirostat_tau',
   'mirostat_eta',
   'smoothing_factor',
+  'smoothing_curve',
   'epsilon_cutoff',
   'eta_cutoff',
+  'rep_pen_decay',
+  'dry_penalty_last_n',
+  'dry_sequence_breakers',
+  'min_temp',
+  'max_temp',
+  'dynatemp_exponent',
+  'penalty_alpha',
+  'num_beams',
+  'length_penalty',
+  'min_length',
+  'encoder_rep_pen',
+  'skew',
+  'xtc_threshold',
+  'xtc_probability',
+  'nsigma',
+  'min_keep',
+  'rep_pen_size',
+  'adaptive_target',
+  'adaptive_decay',
   'max_context',
+  'samplers',
+  'skip_special_tokens',
+  'add_bos_token',
+  'ban_eos_token',
   'model',
   'preset',
 ] as const satisfies readonly (keyof GenerationParams)[];
@@ -384,6 +495,7 @@ export interface ChatStore {
   streamingContent: string;
   streamingThinking: string | undefined;
   isThinkingStream: boolean;
+  streamingSendDate: string;
   setActiveChat: (id: string | null) => void;
   setActiveCharacter: (id: number | null) => void;
   setMessages: (messages: ChatMessage[]) => void;
@@ -393,6 +505,7 @@ export interface ChatStore {
   setStreamingThinking: (thinking: string | undefined) => void;
   setIsThinkingStream: (inThinking: boolean) => void;
   appendStreamingContent: (content: string) => void;
+  startStreaming: () => void;
   commitStreaming: (name: string, parsed?: { mes: string; thinking?: string }) => void;
   setIsGenerating: (generating: boolean) => void;
   clearChat: () => void;
@@ -406,6 +519,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   streamingContent: '',
   streamingThinking: undefined,
   isThinkingStream: false,
+  streamingSendDate: '',
   setActiveChat: (id) => {
     set({ activeChatId: id });
     emit('chat_changed', { chatId: id });
@@ -428,6 +542,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   setIsThinkingStream: (inThinking) => set({ isThinkingStream: inThinking }),
   appendStreamingContent: (content) =>
     set((state) => ({ streamingContent: state.streamingContent + content })),
+  startStreaming: () => set({ streamingSendDate: new Date().toISOString() }),
   commitStreaming: (name, parsed) =>
     set((state) => {
       const source = parsed?.mes ?? state.streamingContent;
@@ -437,7 +552,7 @@ export const useChatStore = create<ChatStore>((set) => ({
         is_user: false,
         mes: source,
         thinking: parsed?.thinking,
-        send_date: new Date().toISOString(),
+        send_date: state.streamingSendDate || new Date().toISOString(),
         extra: {},
       };
       return {
@@ -445,6 +560,7 @@ export const useChatStore = create<ChatStore>((set) => ({
         streamingContent: '',
         streamingThinking: undefined,
         isThinkingStream: false,
+        streamingSendDate: '',
       };
     }),
   setIsGenerating: (generating) => set({ isGenerating: generating }),
