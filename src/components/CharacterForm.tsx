@@ -337,8 +337,8 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
     const [depthPromptRole, setDepthPromptRole] = useState<string>(
       existingDepthPrompt?.role ?? 'system',
     );
-    const [talkativeness, setTalkativeness] = useState(
-      (existingExtensions?.talkativeness as number) ?? 0.5,
+  const [talkativeness, setTalkativeness] = useState(
+    Number(existingExtensions?.talkativeness) || 0.5,
     );
 
     // ── Avatar ───────────────────────────────────────────────

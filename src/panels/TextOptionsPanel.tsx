@@ -1,4 +1,4 @@
-import { useCallback, useRef, useMemo } from 'react';
+import { useCallback, useRef, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { InlineSection } from '@/components/drawers/InlineSection';
-import { apiFetch, apiGet, apiPost, deletePreset } from '@/lib/api';
+import { apiFetch, apiGet, apiPost, deletePreset, savePreset } from '@/lib/api';
 import { useDebouncedAutoSave } from '@/hooks';
 import { parseSillyTavernOptions } from '@/lib/parseSillyTavernOptions';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -210,6 +210,20 @@ export function TextOptionsPanel() {
     value: textOptionsValue,
     save: async (data) => {
       await apiPost('/settings/save', { textOptions: data });
+
+      const categories = [
+        { key: 'context', category: 'context' },
+        { key: 'instruct', category: 'instruct' },
+        { key: 'sysprompt', category: 'sysprompt' },
+        { key: 'reasoning', category: 'reasoning' },
+      ] as const;
+      for (const { key, category } of categories) {
+        const presetName = data[key]?.selectedPreset;
+        if (!presetName || defaultPresets.has(presetName)) continue;
+        const { selectedPreset: _, ...presetData } = data[key];
+        void _;
+        await savePreset({ name: presetName, category, data: { name: presetName, ...presetData } });
+      }
     },
     delayMs: 800,
     equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),
@@ -299,6 +313,7 @@ export function TextOptionsPanel() {
   const handleReset = () => setForm(defaultState);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
   const handleImportClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
@@ -307,6 +322,8 @@ export function TextOptionsPanel() {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
+
+      setImporting(true);
 
       const reader = new FileReader();
       reader.onload = async (event) => {
@@ -364,7 +381,14 @@ export function TextOptionsPanel() {
             });
           }
 
-          await queryClient.invalidateQueries({ queryKey: ['/api/v1/presets/all'] });
+          // Refresh preset dropdowns and default presets after import
+          await queryClient.refetchQueries({
+            queryKey: ['/api/v1/presets/all'],
+            type: 'active',
+          });
+          await queryClient.invalidateQueries({
+            queryKey: ['/api/v1/presets/all', 'textoptions-defaults'],
+          });
 
           if (presetsToSave.length > 0) {
             toast.success(
@@ -375,10 +399,13 @@ export function TextOptionsPanel() {
           }
         } catch {
           toast.error('Failed to parse JSON file');
+        } finally {
+          setImporting(false);
         }
       };
       reader.onerror = () => {
         toast.error('Failed to read file');
+        setImporting(false);
       };
       reader.readAsText(file);
 
@@ -529,9 +556,14 @@ export function TextOptionsPanel() {
                 </span>
               </span>
             )}
-            <Button variant="outline" onClick={handleImportClick} className="h-8">
-              <Upload className="h-3.5 w-3.5" />
-              <span className="mono-tag">IMPORT</span>
+            <Button
+              variant="outline"
+              onClick={handleImportClick}
+              className="h-8"
+              disabled={importing}
+            >
+              {importing ? <LoadingSpinner size="sm" /> : <Upload className="h-3.5 w-3.5" />}
+              <span className="mono-tag">{importing ? 'IMPORTING...' : 'IMPORT'}</span>
             </Button>
             <Button variant="outline" onClick={handleReset} className="h-8">
               <RotateCcw className="h-3.5 w-3.5" />

@@ -176,6 +176,25 @@ const TEXT_DEFAULTS = {
   skip_special_tokens: true,
   add_bos_token: true,
   ban_eos_token: false,
+  temperature_last: false,
+  no_repeat_ngram_size: 0,
+  do_sample: true,
+  early_stopping: false,
+  dynatemp: false,
+  guidance_scale: 1,
+  negative_prompt: '',
+  grammar_string: '',
+  json_schema: {} as Record<string, unknown>,
+  json_schema_allow_empty: false,
+  banned_tokens: '',
+  sampler_priority: [] as string[],
+  samplers_priorities: [] as string[],
+  ignore_eos_token: false,
+  spaces_between_special_tokens: false,
+  speculative_ngram: false,
+  sampler_order: [] as number[],
+  logit_bias: [] as Array<[number, number]>,
+  max_length: 4096,
 } as const;
 
 export const CHAT_GEN_DEFAULTS = { ...SHARED_DEFAULTS, ...CHAT_DEFAULTS } as const;
@@ -238,6 +257,26 @@ export interface GenerationState {
   skip_special_tokens: boolean;
   add_bos_token: boolean;
   ban_eos_token: boolean;
+
+  temperature_last: boolean;
+  no_repeat_ngram_size: number;
+  do_sample: boolean;
+  early_stopping: boolean;
+  dynatemp: boolean;
+  guidance_scale: number;
+  negative_prompt: string;
+  grammar_string: string;
+  json_schema: Record<string, unknown>;
+  json_schema_allow_empty: boolean;
+  banned_tokens: string;
+  sampler_priority: string[];
+  samplers_priorities: string[];
+  ignore_eos_token: boolean;
+  spaces_between_special_tokens: boolean;
+  speculative_ngram: boolean;
+  sampler_order: number[];
+  logit_bias: Array<[number, number]>;
+  max_length: number;
 
   model: string;
   preset: string;
@@ -304,6 +343,25 @@ type GenerationParams = Pick<
   | 'skip_special_tokens'
   | 'add_bos_token'
   | 'ban_eos_token'
+  | 'temperature_last'
+  | 'no_repeat_ngram_size'
+  | 'do_sample'
+  | 'early_stopping'
+  | 'dynatemp'
+  | 'guidance_scale'
+  | 'negative_prompt'
+  | 'grammar_string'
+  | 'json_schema'
+  | 'json_schema_allow_empty'
+  | 'banned_tokens'
+  | 'sampler_priority'
+  | 'samplers_priorities'
+  | 'ignore_eos_token'
+  | 'spaces_between_special_tokens'
+  | 'speculative_ngram'
+  | 'sampler_order'
+  | 'logit_bias'
+  | 'max_length'
   | 'model'
   | 'preset'
 >;
@@ -360,6 +418,25 @@ export const PARAM_KEYS = [
   'skip_special_tokens',
   'add_bos_token',
   'ban_eos_token',
+  'temperature_last',
+  'no_repeat_ngram_size',
+  'do_sample',
+  'early_stopping',
+  'dynatemp',
+  'guidance_scale',
+  'negative_prompt',
+  'grammar_string',
+  'json_schema',
+  'json_schema_allow_empty',
+  'banned_tokens',
+  'sampler_priority',
+  'samplers_priorities',
+  'ignore_eos_token',
+  'spaces_between_special_tokens',
+  'speculative_ngram',
+  'sampler_order',
+  'logit_bias',
+  'max_length',
   'model',
   'preset',
 ] as const satisfies readonly (keyof GenerationParams)[];

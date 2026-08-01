@@ -95,10 +95,11 @@ export function parseSillyTavernOptions(json: Record<string, unknown>): Partial<
       result.instruct.skipExamples = instruct.skip_examples as boolean;
     if (typeof instruct.names_behavior === 'string') {
       const behaviors = ['none', 'force', 'always'] as const;
-      result.instruct.namesBehavior =
-        behaviors.includes(instruct.names_behavior as (typeof behaviors)[number])
-          ? (instruct.names_behavior as (typeof behaviors)[number])
-          : 'none';
+      result.instruct.namesBehavior = behaviors.includes(
+        instruct.names_behavior as (typeof behaviors)[number],
+      )
+        ? (instruct.names_behavior as (typeof behaviors)[number])
+        : 'none';
     } else if (typeof instruct.names_behavior === 'number') {
       const behaviors = ['none', 'force', 'always'] as const;
       result.instruct.namesBehavior = behaviors[instruct.names_behavior as number] ?? 'none';

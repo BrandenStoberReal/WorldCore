@@ -96,6 +96,9 @@ function parseSillyTavernGenerationPreset(
     'rep_pen_size',
     'adaptive_target',
     'adaptive_decay',
+    'no_repeat_ngram_size',
+    'guidance_scale',
+    'max_length',
   ];
 
   for (const key of numericKeys) {
@@ -176,12 +179,53 @@ function parseSillyTavernGenerationPreset(
     }
   }
 
-  const booleanKeys = ['skip_special_tokens', 'add_bos_token', 'ban_eos_token'] as const;
+  const booleanKeys = [
+    'skip_special_tokens',
+    'add_bos_token',
+    'ban_eos_token',
+    'temperature_last',
+    'do_sample',
+    'early_stopping',
+    'dynatemp',
+    'json_schema_allow_empty',
+    'ignore_eos_token',
+    'spaces_between_special_tokens',
+    'speculative_ngram',
+  ] as const;
   for (const key of booleanKeys) {
     if (key in source) {
       const val = source[key];
       if (typeof val === 'boolean') params[key] = val;
     }
+  }
+
+  if ('negative_prompt' in source && typeof source.negative_prompt === 'string') {
+    params.negative_prompt = source.negative_prompt;
+  }
+  if ('grammar_string' in source && typeof source.grammar_string === 'string') {
+    params.grammar_string = source.grammar_string;
+  }
+  if ('banned_tokens' in source && typeof source.banned_tokens === 'string') {
+    params.banned_tokens = source.banned_tokens;
+  }
+  if (
+    'json_schema' in source &&
+    typeof source.json_schema === 'object' &&
+    source.json_schema !== null
+  ) {
+    params.json_schema = source.json_schema;
+  }
+  if ('sampler_priority' in source && Array.isArray(source.sampler_priority)) {
+    params.sampler_priority = source.sampler_priority;
+  }
+  if ('samplers_priorities' in source && Array.isArray(source.samplers_priorities)) {
+    params.samplers_priorities = source.samplers_priorities;
+  }
+  if ('sampler_order' in source && Array.isArray(source.sampler_order)) {
+    params.sampler_order = source.sampler_order;
+  }
+  if ('logit_bias' in source && Array.isArray(source.logit_bias)) {
+    params.logit_bias = source.logit_bias;
   }
 
   if (Object.keys(params).length === 0) return null;
@@ -927,7 +971,11 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
             )}
           </InlineSection>
 
-          <InlineSection panelId="generation" sectionId="advanced-sampling" title="Advanced Sampling">
+          <InlineSection
+            panelId="generation"
+            sectionId="advanced-sampling"
+            title="Advanced Sampling"
+          >
             {mode === 'text' && (
               <>
                 <GenerationSlider
@@ -996,6 +1044,26 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
           <InlineSection panelId="generation" sectionId="dynatemp-xtc" title="Dynatemp & XTC">
             {mode === 'text' && (
               <>
+                <div className="flex items-center justify-between py-0.5">
+                  <label className="mono-tag text-foreground/60">Dynatemp</label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={store.dynatemp}
+                    onClick={() => update('dynatemp', !store.dynatemp)}
+                    className={cn(
+                      'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
+                      store.dynatemp ? 'bg-ember/60' : 'bg-border',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                        store.dynatemp ? 'translate-x-3' : 'translate-x-0',
+                      )}
+                    />
+                  </button>
+                </div>
                 <GenerationSlider
                   label="Min Temp"
                   value={store.min_temp}
@@ -1050,7 +1118,11 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
             )}
           </InlineSection>
 
-          <InlineSection panelId="generation" sectionId="penalty-filtering" title="Penalty & Filtering">
+          <InlineSection
+            panelId="generation"
+            sectionId="penalty-filtering"
+            title="Penalty & Filtering"
+          >
             {mode === 'text' && (
               <>
                 <GenerationSlider
@@ -1219,6 +1291,66 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   onChange={(v) => update('eta_cutoff', v)}
                   description="Softer version of epsilon cutoff. 0 = disabled. Lower = more aggressive filtering."
                 />
+                <div className="flex items-center justify-between py-0.5">
+                  <label className="mono-tag text-foreground/60">Temperature Last</label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={store.temperature_last}
+                    onClick={() => update('temperature_last', !store.temperature_last)}
+                    className={cn(
+                      'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
+                      store.temperature_last ? 'bg-ember/60' : 'bg-border',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                        store.temperature_last ? 'translate-x-3' : 'translate-x-0',
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between py-0.5">
+                  <label className="mono-tag text-foreground/60">Do Sample</label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={store.do_sample}
+                    onClick={() => update('do_sample', !store.do_sample)}
+                    className={cn(
+                      'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
+                      store.do_sample ? 'bg-ember/60' : 'bg-border',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                        store.do_sample ? 'translate-x-3' : 'translate-x-0',
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between py-0.5">
+                  <label className="mono-tag text-foreground/60">Early Stopping</label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={store.early_stopping}
+                    onClick={() => update('early_stopping', !store.early_stopping)}
+                    className={cn(
+                      'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
+                      store.early_stopping ? 'bg-ember/60' : 'bg-border',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                        store.early_stopping ? 'translate-x-3' : 'translate-x-0',
+                      )}
+                    />
+                  </button>
+                </div>
               </>
             )}
             {mode === 'chat' && (
@@ -1327,6 +1459,37 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 description="Minimum tokens before the response stops. Useful for ensuring complete answers."
               />
             )}
+            {mode === 'text' && (
+              <>
+                <GenerationSlider
+                  label="No Repeat Ngram Size"
+                  value={store.no_repeat_ngram_size}
+                  min={0}
+                  max={20}
+                  step={1}
+                  onChange={(v) => update('no_repeat_ngram_size', v)}
+                  description="Ngram size that cannot be repeated. 0 = disabled."
+                />
+                <GenerationSlider
+                  label="Guidance Scale"
+                  value={store.guidance_scale}
+                  min={1}
+                  max={20}
+                  step={0.1}
+                  onChange={(v) => update('guidance_scale', v)}
+                  description="Classifier-free guidance scale. Higher = closer to prompt. 1 = no guidance."
+                />
+                <GenerationSlider
+                  label="Max Length"
+                  value={store.max_length}
+                  min={1}
+                  max={131072}
+                  step={1}
+                  onChange={(v) => update('max_length', v)}
+                  description="Maximum sequence length for text generation backends."
+                />
+              </>
+            )}
             <div className="space-y-1">
               <label className="mono-tag text-foreground/60">Stop Sequences</label>
               <input
@@ -1386,6 +1549,119 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
               </button>
             </div>
+            {mode === 'text' && (
+              <>
+                <div className="flex items-center justify-between py-0.5">
+                  <label className="mono-tag text-foreground/60">Ignore EOS Token</label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={store.ignore_eos_token}
+                    onClick={() => update('ignore_eos_token', !store.ignore_eos_token)}
+                    className={cn(
+                      'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
+                      store.ignore_eos_token ? 'bg-ember/60' : 'bg-border',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                        store.ignore_eos_token ? 'translate-x-3' : 'translate-x-0',
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between py-0.5">
+                  <label className="mono-tag text-foreground/60">
+                    Spaces Between Special Tokens
+                  </label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={store.spaces_between_special_tokens}
+                    onClick={() =>
+                      update('spaces_between_special_tokens', !store.spaces_between_special_tokens)
+                    }
+                    className={cn(
+                      'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
+                      store.spaces_between_special_tokens ? 'bg-ember/60' : 'bg-border',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                        store.spaces_between_special_tokens ? 'translate-x-3' : 'translate-x-0',
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between py-0.5">
+                  <label className="mono-tag text-foreground/60">Speculative Ngram</label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={store.speculative_ngram}
+                    onClick={() => update('speculative_ngram', !store.speculative_ngram)}
+                    className={cn(
+                      'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
+                      store.speculative_ngram ? 'bg-ember/60' : 'bg-border',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                        store.speculative_ngram ? 'translate-x-3' : 'translate-x-0',
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  <label className="mono-tag text-foreground/60">Negative Prompt</label>
+                  <input
+                    type="text"
+                    value={store.negative_prompt}
+                    onChange={(e) => update('negative_prompt', e.target.value)}
+                    placeholder="optional negative prompt"
+                    className={cn(
+                      'border-border bg-background/60 h-6 w-full rounded-md border px-2',
+                      'text-foreground/80 placeholder:text-foreground/25 text-[11px] outline-none',
+                      'focus:border-ember/50',
+                    )}
+                    aria-label="Negative prompt"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="mono-tag text-foreground/60">Grammar String</label>
+                  <input
+                    type="text"
+                    value={store.grammar_string}
+                    onChange={(e) => update('grammar_string', e.target.value)}
+                    placeholder="optional grammar约束"
+                    className={cn(
+                      'border-border bg-background/60 h-6 w-full rounded-md border px-2',
+                      'text-foreground/80 placeholder:text-foreground/25 text-[11px] outline-none',
+                      'focus:border-ember/50',
+                    )}
+                    aria-label="Grammar string"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="mono-tag text-foreground/60">Banned Tokens</label>
+                  <input
+                    type="text"
+                    value={store.banned_tokens}
+                    onChange={(e) => update('banned_tokens', e.target.value)}
+                    placeholder="comma separated tokens"
+                    className={cn(
+                      'border-border bg-background/60 h-6 w-full rounded-md border px-2',
+                      'text-foreground/80 placeholder:text-foreground/25 text-[11px] outline-none',
+                      'focus:border-ember/50',
+                    )}
+                    aria-label="Banned tokens"
+                  />
+                </div>
+              </>
+            )}
           </InlineSection>
         </div>
       </div>

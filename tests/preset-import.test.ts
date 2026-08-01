@@ -20,13 +20,30 @@ function parseSillyTavernGenerationPreset(
   };
 
   const numericKeys = [
-    'temperature', 'top_p', 'top_k', 'max_tokens', 'seed',
-    'frequency_penalty', 'presence_penalty', 'min_tokens',
-    'min_p', 'typical_p', 'top_a', 'tfs',
-    'rep_pen', 'rep_pen_range', 'rep_pen_slope',
-    'dry_multiplier', 'dry_base', 'dry_allowed_length',
-    'mirostat_mode', 'mirostat_tau', 'mirostat_eta',
-    'smoothing_factor', 'epsilon_cutoff', 'eta_cutoff',
+    'temperature',
+    'top_p',
+    'top_k',
+    'max_tokens',
+    'seed',
+    'frequency_penalty',
+    'presence_penalty',
+    'min_tokens',
+    'min_p',
+    'typical_p',
+    'top_a',
+    'tfs',
+    'rep_pen',
+    'rep_pen_range',
+    'rep_pen_slope',
+    'dry_multiplier',
+    'dry_base',
+    'dry_allowed_length',
+    'mirostat_mode',
+    'mirostat_tau',
+    'mirostat_eta',
+    'smoothing_factor',
+    'epsilon_cutoff',
+    'eta_cutoff',
   ];
 
   for (const key of numericKeys) {
@@ -58,8 +75,13 @@ function parseSillyTavernGenerationPreset(
     const order = source.sampler_order;
     if (order.every((n: unknown) => typeof n === 'number')) {
       const KOBOLD_TO_LLAMACPP: Record<number, string> = {
-        0: 'top_k', 1: 'top_p', 2: 'tfs', 3: 'typ_p',
-        4: 'temperature', 5: 'top_a', 6: 'penalties',
+        0: 'top_k',
+        1: 'top_p',
+        2: 'tfs',
+        3: 'typ_p',
+        4: 'temperature',
+        5: 'top_a',
+        6: 'penalties',
       };
       params.samplers = order.map((n: number) => KOBOLD_TO_LLAMACPP[n]).filter(Boolean);
     }
@@ -67,10 +89,16 @@ function parseSillyTavernGenerationPreset(
     const priority = source.sampler_priority;
     if (priority.every((s: unknown) => typeof s === 'string')) {
       const OOBA_TO_LLAMACPP: Record<string, string> = {
-        repetition_penalty: 'penalties', frequency_penalty: 'penalties',
-        presence_penalty: 'penalties', top_n_sigma: 'top_n_sigma',
-        typical_p: 'typ_p', temperature: 'temperature', min_p: 'min_p',
-        top_a: 'top_a', top_k: 'top_k', top_p: 'top_p',
+        repetition_penalty: 'penalties',
+        frequency_penalty: 'penalties',
+        presence_penalty: 'penalties',
+        top_n_sigma: 'top_n_sigma',
+        typical_p: 'typ_p',
+        temperature: 'temperature',
+        min_p: 'min_p',
+        top_a: 'top_a',
+        top_k: 'top_k',
+        top_p: 'top_p',
       };
       const seen = new Set<string>();
       params.samplers = priority
@@ -169,13 +197,7 @@ describe('parseSillyTavernGenerationPreset', () => {
 
     it('converts sampler_priority (Ooba) to samplers with dedup', () => {
       const result = parseSillyTavernGenerationPreset({
-        sampler_priority: [
-          'repetition_penalty',
-          'temperature',
-          'top_k',
-          'top_p',
-          'typical_p',
-        ],
+        sampler_priority: ['repetition_penalty', 'temperature', 'top_k', 'top_p', 'typical_p'],
       });
       expect(result).toEqual({
         samplers: ['penalties', 'temperature', 'top_k', 'top_p', 'typ_p'],
@@ -267,7 +289,9 @@ describe('parseSillyTavernGenerationPreset', () => {
     });
 
     it('returns null for non-object input', () => {
-      expect(() => parseSillyTavernGenerationPreset(null as unknown as Record<string, unknown>)).toThrow();
+      expect(() =>
+        parseSillyTavernGenerationPreset(null as unknown as Record<string, unknown>),
+      ).toThrow();
     });
 
     it('returns null for array input', () => {

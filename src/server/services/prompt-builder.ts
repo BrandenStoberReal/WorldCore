@@ -191,7 +191,10 @@ export class PromptBuilder {
       if (character.personality) {
         messagesArray.push({
           role: 'system',
-          content: substituteMacros(`${charName}'s personality: ${character.personality}`, macroCtx),
+          content: substituteMacros(
+            `${charName}'s personality: ${character.personality}`,
+            macroCtx,
+          ),
         });
       }
 
@@ -303,6 +306,33 @@ export class PromptBuilder {
           content: `[Previous thinking]\n${thinkingContent}`,
         });
       }
+    }
+
+    // 9.6 Inject character depth_prompt at specified depth in chat history
+    const depthPrompt = (character as Record<string, unknown>).extensions;
+    const dp =
+      depthPrompt &&
+      typeof depthPrompt === 'object' &&
+      'depth_prompt' in depthPrompt
+        ? (depthPrompt as Record<string, unknown>).depth_prompt
+        : null;
+    if (
+      dp &&
+      typeof dp === 'object' &&
+      'prompt' in dp &&
+      typeof (dp as Record<string, unknown>).prompt === 'string' &&
+      (dp as Record<string, unknown>).prompt
+    ) {
+      const dpObj = dp as Record<string, unknown>;
+      const dpDepth = typeof dpObj.depth === 'number' ? dpObj.depth : 4;
+      const dpRole =
+        dpObj.role === 'user' || dpObj.role === 'assistant' ? dpObj.role : 'system';
+      const dpContent = substituteMacros(dpObj.prompt as string, macroCtx);
+      const insertIdx = Math.max(historyStartIdx, messagesArray.length - dpDepth);
+      messagesArray.splice(insertIdx, 0, {
+        role: dpRole,
+        content: dpContent,
+      });
     }
 
     // 10. Add post-history instructions (jailbreak)
@@ -424,13 +454,22 @@ export class PromptBuilder {
     const messages: ChatCompletionMessage[] = [];
     const blocks = mesExample.split(/<START>/gi).filter((block) => block.trim());
 
+    if (blocks.length > 0) {
+      messages.push({
+        role: 'system',
+        content: 'Example dialogue:',
+      });
+    }
+
     for (let bi = 0; bi < blocks.length; bi++) {
       const block = blocks[bi];
       if (!block) continue;
-      if (bi > 0 && exampleSeparator && messages.length > 0) {
+      if (bi > 0 && messages.length > 0) {
         messages.push({
           role: 'system',
-          content: substituteMacros(exampleSeparator, macroCtx),
+          content: exampleSeparator
+            ? substituteMacros(exampleSeparator, macroCtx)
+            : '---',
         });
       }
       const lines = block.trim().split('\n');

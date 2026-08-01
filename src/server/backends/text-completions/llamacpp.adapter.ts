@@ -104,6 +104,11 @@ export class LlamaCppAdapter implements TextCompletionAdapter {
     const adaptiveDecay = num('adaptive_decay');
     if (adaptiveDecay !== undefined) body.adaptive_decay = adaptiveDecay;
 
+    const samplerPriority = r.sampler_priority;
+    if (Array.isArray(samplerPriority)) body.sampler_priority = samplerPriority;
+    const samplersPriorities = r.samplers_priorities;
+    if (Array.isArray(samplersPriorities)) body.samplers_priorities = samplersPriorities;
+
     const drySeqBreakers = r.dry_sequence_breakers;
     if (typeof drySeqBreakers === 'string' && drySeqBreakers.length > 0) {
       try {
@@ -114,7 +119,10 @@ export class LlamaCppAdapter implements TextCompletionAdapter {
       } catch {
         body.dry_sequence_breakers = [drySeqBreakers];
       }
-    } else if (Array.isArray(drySeqBreakers) && drySeqBreakers.every((s: unknown) => typeof s === 'string')) {
+    } else if (
+      Array.isArray(drySeqBreakers) &&
+      drySeqBreakers.every((s: unknown) => typeof s === 'string')
+    ) {
       body.dry_sequence_breakers = drySeqBreakers;
     }
 

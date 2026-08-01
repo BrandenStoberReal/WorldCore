@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RotateCcw, Check, Plug, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ConnectionProfileSelector } from '@/components/connections/ConnectionProfileSelector';
 import { TextGenPanel } from '@/components/connections/TextGenPanel';
@@ -95,6 +96,10 @@ export function ConnectionsPanel() {
         queryKey: ['/api/v1/connection-profiles/all'],
       });
       setCreateOpen(false);
+      toast.success('Connection profile created');
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to create profile');
     },
   });
 
@@ -110,6 +115,10 @@ export function ConnectionsPanel() {
         queryKey: ['/api/v1/connection-profiles/all'],
       });
       setEditProfile(null);
+      toast.success('Connection profile updated');
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to update profile');
     },
   });
 
@@ -120,10 +129,17 @@ export function ConnectionsPanel() {
         body: JSON.stringify({ id }),
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, deletedId) => {
       queryClient.invalidateQueries({
         queryKey: ['/api/v1/connection-profiles/all'],
       });
+      if (selectedProfileId === deletedId) {
+        setSelectedProfileId(null);
+      }
+      toast.success('Connection profile deleted');
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete profile');
     },
   });
 
@@ -154,12 +170,14 @@ export function ConnectionsPanel() {
     [profiles, createMutation],
   );
 
+  const isProfileLoading =
+    createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
+
   const handleConnect = useCallback(
     async (config: Record<string, unknown>) => {
       const source = (typeof config.type === 'string' && config.type) || apiType;
       const model = (typeof config.model === 'string' && config.model) || '';
-      const url =
-        (typeof config._url === 'string' && config._url) || 'http://localhost:8080';
+      const url = (typeof config._url === 'string' && config._url) || 'http://localhost:8080';
       setConnectionError(null);
       try {
         await saveSettingsPatch({
@@ -200,15 +218,9 @@ export function ConnectionsPanel() {
   }, []);
 
   // Profile action handlers
-  const handleViewProfile = useCallback(
-    (id: string) => {
-      const profile = profiles?.find((p) => p.id === id);
-      if (profile) {
-        setEditProfile(profile);
-      }
-    },
-    [profiles],
-  );
+  const handleViewProfile = useCallback((id: string) => {
+    // Details panel toggle is handled by ConnectionProfileSelector itself.
+  }, []);
 
   const handleEditProfile = useCallback(
     (id: string) => {
@@ -282,11 +294,11 @@ export function ConnectionsPanel() {
                 <span className="mono-tag">SAVED</span>
               </span>
             )}
-            <Button variant="outline" onClick={handleReset} className="h-8">
+            <Button variant="outline" size="sm" onClick={handleReset}>
               <RotateCcw className="h-3.5 w-3.5" />
               <span className="mono-tag">RESET</span>
             </Button>
-            <Button onClick={() => handleConnect({})} className="ember-pulse h-8">
+            <Button size="sm" onClick={() => handleConnect({})} className="ember-pulse">
               <Plug className="h-3.5 w-3.5" />
               <span className="mono-tag font-bold">CONNECT</span>
             </Button>
@@ -296,7 +308,7 @@ export function ConnectionsPanel() {
 
       {/* Connection error banner */}
       {connectionError && (
-        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        <div className="border-destructive/40 bg-destructive/5 text-destructive flex items-start gap-2 rounded-md border px-3 py-2 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="flex-1">
             <span className="font-medium">Connection failed</span>
@@ -305,7 +317,7 @@ export function ConnectionsPanel() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-[11px] text-destructive hover:text-destructive"
+            className="text-destructive hover:text-destructive h-6 px-2 text-[11px]"
             onClick={() => setConnectionError(null)}
           >
             Dismiss
@@ -328,7 +340,7 @@ export function ConnectionsPanel() {
         onClone={handleCloneProfile}
         onReload={handleReloadProfile}
         onDelete={handleDeleteProfile}
-        loading={isLoading}
+        loading={isLoading || isProfileLoading}
       />
 
       {/* API Type Selector */}

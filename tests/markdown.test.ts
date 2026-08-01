@@ -153,4 +153,81 @@ describe('renderMarkdown', () => {
     expect(html).not.toContain('<strong>');
     expect(html).toContain('foo__bold__baz');
   });
+
+  describe('highlightOpeningTags', () => {
+    it('renders unclosed **bold with opening tag marker', () => {
+      const html = render(renderMarkdown('**bold text', { highlightOpeningTags: true }));
+      expect(html).toContain('md-opening-tag');
+      expect(html).toContain('**');
+      expect(html).toContain('<strong>bold text</strong>');
+    });
+
+    it('renders unclosed *italic with opening tag marker', () => {
+      const html = render(renderMarkdown('*italic text', { highlightOpeningTags: true }));
+      expect(html).toContain('md-opening-tag');
+      expect(html).toContain('<em>italic text</em>');
+    });
+
+    it('renders unclosed `code with opening tag marker', () => {
+      const html = render(renderMarkdown('`inline code', { highlightOpeningTags: true }));
+      expect(html).toContain('md-opening-tag');
+      expect(html).toContain('<code>inline code</code>');
+    });
+
+    it('does NOT highlight * Hello world (space after * = bullet list)', () => {
+      const html = render(renderMarkdown('* Hello world', { highlightOpeningTags: true }));
+      expect(html).not.toContain('md-opening-tag');
+      expect(html).not.toContain('<em>');
+    });
+
+    it('renders closed **bold** normally with highlighting enabled', () => {
+      const html = render(renderMarkdown('**bold text**', { highlightOpeningTags: true }));
+      expect(html).not.toContain('md-opening-tag');
+      expect(html).toContain('<strong>bold text</strong>');
+    });
+
+    it('renders closed `code` normally with highlighting enabled', () => {
+      const html = render(renderMarkdown('`inline code`', { highlightOpeningTags: true }));
+      expect(html).not.toContain('md-opening-tag');
+      expect(html).toContain('<code>inline code</code>');
+    });
+
+    it('without highlightOpeningTags, unclosed delimiters are literal (backward compat)', () => {
+      const html = render(renderMarkdown('**bold text'));
+      expect(html).not.toContain('md-opening-tag');
+      expect(html).not.toContain('<strong>');
+      expect(html).toContain('**bold text');
+    });
+
+    it('stops unclosed code highlight at newline', () => {
+      const html = render(renderMarkdown('`code\nmore text', { highlightOpeningTags: true }));
+      expect(html).toContain('md-opening-tag');
+      expect(html).toContain('<code>code</code>');
+      expect(html).toContain('more text');
+    });
+  });
+
+  it('renders emphasis inside dialogue quotes', () => {
+    const html = render(renderMarkdown('"You didn\'t need to say it like *that*!"'));
+    expect(html).toContain('var(--dialogue)');
+    expect(html).toContain('<em>that</em>');
+  });
+
+  it('renders curly quotes with dialogue color and nested emphasis', () => {
+    const html = render(renderMarkdown('\u201cHello *world*\u201d'));
+    expect(html).toContain('var(--dialogue)');
+    expect(html).toContain('<em>world</em>');
+  });
+
+  it('highlights unclosed opening quote when highlightOpeningTags is true', () => {
+    const html = render(renderMarkdown('"Crazy?!', { highlightOpeningTags: true }));
+    expect(html).toContain('var(--dialogue)');
+    expect(html).toContain('Crazy?!');
+  });
+
+  it('does NOT highlight unclosed quote without highlightOpeningTags', () => {
+    const html = render(renderMarkdown('"Crazy?!'));
+    expect(html).not.toContain('var(--dialogue)');
+    expect(html).toContain('&quot;Crazy?!');
+  });
 });

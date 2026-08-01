@@ -83,20 +83,26 @@ export const promptBuilderRoutes = {
         instruct: parsed.instruct
           ? { ...TextOptionsDefaults.instruct, ...parsed.instruct }
           : undefined,
-        context: parsed.context
-          ? { ...TextOptionsDefaults.context, ...parsed.context }
-          : undefined,
+        context: parsed.context ? { ...TextOptionsDefaults.context, ...parsed.context } : undefined,
       });
 
       console.log('=== PROMPT BUILDER RESULT ===');
-      console.log('INSTRUCT (merged):', JSON.stringify(
-        parsed.instruct ? { ...TextOptionsDefaults.instruct, ...parsed.instruct } : undefined,
-        null, 2
-      ));
-      console.log('CONTEXT (merged):', JSON.stringify(
-        parsed.context ? { ...TextOptionsDefaults.context, ...parsed.context } : undefined,
-        null, 2
-      ));
+      console.log(
+        'INSTRUCT (merged):',
+        JSON.stringify(
+          parsed.instruct ? { ...TextOptionsDefaults.instruct, ...parsed.instruct } : undefined,
+          null,
+          2,
+        ),
+      );
+      console.log(
+        'CONTEXT (merged):',
+        JSON.stringify(
+          parsed.context ? { ...TextOptionsDefaults.context, ...parsed.context } : undefined,
+          null,
+          2,
+        ),
+      );
       console.log('MESSAGES COUNT:', result.messages.length);
       console.log('MESSAGES:', JSON.stringify(result.messages, null, 2));
       console.log('STOP STRINGS:', result.stopStrings);

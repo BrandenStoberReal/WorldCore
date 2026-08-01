@@ -53,10 +53,7 @@ describe('flattenMessagesToPrompt', () => {
     });
 
     it('formats user message with inputSequence and inputSuffix', () => {
-      const result = flattenMessagesToPrompt(
-        [{ role: 'user', content: 'Hello!' }],
-        gemma4Instruct,
-      );
+      const result = flattenMessagesToPrompt([{ role: 'user', content: 'Hello!' }], gemma4Instruct);
       expect(result).toBe('<|turn>user\nHello!<turn|>\n');
     });
 
@@ -70,10 +67,7 @@ describe('flattenMessagesToPrompt', () => {
 
     it('uses firstInputSequence for first user message when provided', () => {
       const instruct = { ...gemma4Instruct, firstInputSequence: '<|turn>user\n' };
-      const result = flattenMessagesToPrompt(
-        [{ role: 'user', content: 'Hello!' }],
-        instruct,
-      );
+      const result = flattenMessagesToPrompt([{ role: 'user', content: 'Hello!' }], instruct);
       expect(result).toBe('<|turn>user\nHello!<turn|>\n');
     });
 
@@ -126,10 +120,7 @@ describe('flattenMessagesToPrompt', () => {
     });
 
     it('handles messages with empty content', () => {
-      const result = flattenMessagesToPrompt(
-        [{ role: 'user', content: '' }],
-        gemma4Instruct,
-      );
+      const result = flattenMessagesToPrompt([{ role: 'user', content: '' }], gemma4Instruct);
       expect(result).toBe('<|turn>user\n<turn|>\n');
     });
 

@@ -92,45 +92,60 @@ export function ConnectionProfileSelector({
               setDetailsOpen(!detailsOpen);
             }
           }}
-          disabled={!selectedId}
+          disabled={!selectedId || loading}
         />
         <ActionButton
           icon={Plus}
           title="Create a new connection profile"
           onClick={() => onCreate?.()}
+          disabled={loading}
+        />
+        <ActionButton
+          icon={Plus}
+          title="Create a new connection profile"
+          onClick={() => onCreate?.()}
+          disabled={loading}
         />
         <ActionButton
           icon={Save}
           title="Update a connection profile"
           onClick={() => selectedId && onUpdate?.(selectedId)}
-          disabled={!selectedId}
+          disabled={!selectedId || loading}
         />
         <ActionButton
           icon={Pencil}
           title="Edit a connection profile"
           onClick={() => selectedId && onEdit?.(selectedId)}
-          disabled={!selectedId}
+          disabled={!selectedId || loading}
         />
         <ActionButton
           icon={Copy}
           title="Clone this connection profile"
           onClick={() => selectedId && onClone?.(selectedId)}
-          disabled={!selectedId}
+          disabled={!selectedId || loading}
         />
         <ActionButton
           icon={RefreshCw}
           title="Reload a connection profile"
           onClick={() => selectedId && onReload?.(selectedId)}
-          disabled={!selectedId}
+          disabled={!selectedId || loading}
         />
         <ActionButton
           icon={Trash2}
           title="Delete a connection profile"
           onClick={() => selectedId && onDelete?.(selectedId)}
-          disabled={!selectedId}
+          disabled={!selectedId || loading}
           variant="destructive"
         />
       </div>
+
+      {/* Empty state */}
+      {profiles.length === 0 && !loading && (
+        <p className="text-muted-foreground/50 mt-2 text-[12px]">
+          No connection profiles yet. Click the <span className="text-ember">+</span> button to
+          create one.
+        </p>
+      )}
 
       {/* Expandable details */}
       {detailsOpen && selected && (
@@ -170,7 +185,7 @@ function ActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'inline-flex h-9 w-9 items-center justify-center rounded-md border transition-colors',
+        'inline-flex h-6 w-6 items-center justify-center rounded border transition-colors',
         'focus:ring-ember/50 focus:ring-1 focus:outline-none',
         disabled
           ? 'border-border/40 bg-muted/30 text-muted-foreground/30 cursor-not-allowed'
@@ -179,7 +194,7 @@ function ActionButton({
             : 'border-border bg-background hover:bg-accent/50 hover:border-ember/30 hover:text-ember text-muted-foreground/70',
       )}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-3 w-3" />
     </button>
   );
 }

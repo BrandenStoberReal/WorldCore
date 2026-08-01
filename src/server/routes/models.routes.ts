@@ -46,12 +46,10 @@ export const modelsRoutes = {
     let models: Array<{ id: string; label: string; context_length?: number }> = [];
 
     if (source === 'ollama') {
-      const modelList =
-        (data as { models?: Array<{ name: string }> }).models ?? [];
+      const modelList = (data as { models?: Array<{ name: string }> }).models ?? [];
       models = modelList.map((m) => ({ id: m.name, label: m.name }));
     } else {
-      const modelList =
-        (data as { data?: Array<{ id: string; name?: string }> }).data ?? [];
+      const modelList = (data as { data?: Array<{ id: string; name?: string }> }).data ?? [];
       models = modelList.map((m) => ({ id: m.id, label: m.name || m.id }));
     }
 
@@ -91,8 +89,7 @@ export const modelsRoutes = {
       const slotsRes = await fetch(`${base}/slots?model=${encodeURIComponent(model)}`);
       if (slotsRes.ok) {
         const slots = (await slotsRes.json()) as
-          | Array<Record<string, unknown>>
-          | Record<string, unknown>;
+          Array<Record<string, unknown>> | Record<string, unknown>;
         const first = Array.isArray(slots) ? slots[0] : slots;
         const nCtx = first?.n_ctx as number | undefined;
         if (typeof nCtx === 'number' && nCtx > 0) {

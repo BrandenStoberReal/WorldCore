@@ -4,7 +4,7 @@ import { MessageSquarePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
-import { useAppStore, useChatStore, useGenerationStore } from '@/lib/stores';
+import { useAppStore, useChatStore, useGenerationStore, PARAM_KEYS } from '@/lib/stores';
 import {
   apiGet,
   apiPost,
@@ -91,6 +91,12 @@ export function ChatView({ characterId }: ChatViewProps) {
   const abortRef = useRef<AbortController | null>(null);
   const fullContentRef = useRef('');
   const isRegeneratingRef = useRef(false);
+  // Tracks when the thinking stream began so we can compute its duration on
+  // commit. Ref (not state) to avoid re-render loops during streaming.
+  const thinkingStartTimeRef = useRef<number | null>(null);
+  // Set when we've locally mutated messages (delete, reorder) so the query
+  // sync effect doesn't overwrite our local state with stale server data.
+  const localModificationsRef = useRef(false);
 
   const { streamingEnabled, smoothStreaming } = useAppStore();
 
@@ -243,10 +249,14 @@ export function ChatView({ characterId }: ChatViewProps) {
   const resolvedPersona = useResolvedPersona(chatPersonaId, character?.boundPersonaId);
 
   useEffect(() => {
-    if (chatData?.messages) {
+    if (chatData?.messages && !localModificationsRef.current) {
       setMessages(chatData.messages);
     }
   }, [chatData?.messages, setMessages]);
+
+  useEffect(() => {
+    localModificationsRef.current = false;
+  }, [activeChatId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -413,41 +423,17 @@ export function ChatView({ characterId }: ChatViewProps) {
       abortRef.current = new AbortController();
 
       const genParams: Record<string, unknown> = {
-        temperature: genStore.temperature,
-        top_p: genStore.top_p,
-        top_k: genStore.top_k,
-        max_tokens: genStore.max_tokens,
-        seed: genStore.seed,
         streaming: streamingEnabled,
-        stop: genStore.stop.length > 0 ? genStore.stop : undefined,
       };
-
-      if (genStore.mode === 'chat') {
-        genParams.frequency_penalty = genStore.frequency_penalty;
-        genParams.presence_penalty = genStore.presence_penalty;
-      } else {
-        genParams.min_p = genStore.min_p;
-        genParams.typical_p = genStore.typical_p;
-        genParams.top_a = genStore.top_a;
-        genParams.tfs = genStore.tfs;
-        genParams.rep_pen = genStore.rep_pen;
-        genParams.rep_pen_range = genStore.rep_pen_range;
-        genParams.rep_pen_slope = genStore.rep_pen_slope;
-        genParams.dry_multiplier = genStore.dry_multiplier;
-        genParams.dry_base = genStore.dry_base;
-        genParams.dry_allowed_length = genStore.dry_allowed_length;
-        genParams.mirostat_mode = genStore.mirostat_mode;
-        genParams.mirostat_tau = genStore.mirostat_tau;
-        genParams.mirostat_eta = genStore.mirostat_eta;
-        genParams.smoothing_factor = genStore.smoothing_factor;
-        genParams.epsilon_cutoff = genStore.epsilon_cutoff;
-        genParams.eta_cutoff = genStore.eta_cutoff;
-        genParams.max_context = genStore.max_context;
-        genParams.min_tokens = genStore.min_tokens;
-        genParams.samplers = genStore.samplers;
-        genParams.skip_special_tokens = genStore.skip_special_tokens;
-        genParams.add_bos_token = genStore.add_bos_token;
-        genParams.ban_eos_token = genStore.ban_eos_token;
+      for (const key of PARAM_KEYS) {
+        if (key === 'mode' || key === 'preset') continue;
+        const val = genStore[key];
+        if (typeof val === 'function') continue;
+        if (key === 'stop') {
+          genParams.stop = (val as string[]).length > 0 ? val : undefined;
+        } else {
+          genParams[key] = val;
+        }
       }
 
       // Stop strings MUST include the instruct role sequences (outputSequence,
@@ -520,7 +506,11 @@ export function ChatView({ characterId }: ChatViewProps) {
 
         let generator: AsyncGenerator<string>;
         if (genStore.mode === 'text') {
-          let flatPrompt = flattenMessagesToPrompt(interceptedRequest.messages, textOptions?.instruct, textOptions?.context);
+          let flatPrompt = flattenMessagesToPrompt(
+            interceptedRequest.messages,
+            textOptions?.instruct,
+            textOptions?.context,
+          );
           if (textOptions?.instruct?.enabled && textOptions.instruct.outputSequence) {
             flatPrompt += textOptions.instruct.outputSequence;
           }
@@ -566,6 +556,9 @@ export function ChatView({ characterId }: ChatViewProps) {
             if (dripRef.current.inThinking !== parsed.inThinking) {
               dripRef.current.inThinking = parsed.inThinking;
               setIsThinkingStream(parsed.inThinking);
+              if (parsed.inThinking) {
+                thinkingStartTimeRef.current = Date.now();
+              }
             }
             if (currentSmooth > 0) {
               dripRef.current.pending += bodyChunk;
@@ -598,13 +591,18 @@ export function ChatView({ characterId }: ChatViewProps) {
           if (markdownEscapeStrings) {
             finalMes = escapeMarkdownCharacters(finalMes, markdownEscapeStrings);
           }
+          const thinkingDuration =
+            thinkingStartTimeRef.current !== null
+              ? Date.now() - thinkingStartTimeRef.current
+              : undefined;
+          thinkingStartTimeRef.current = null;
           const assistantMsg: ChatMessageType = {
             name: character.name,
             is_user: false,
             mes: finalMes,
             thinking: finalThinking,
             send_date: new Date().toISOString(),
-            extra: {},
+            extra: thinkingDuration !== undefined ? { thinkingDuration } : {},
           };
           addMessage(assistantMsg);
           setStreamingContent('');
@@ -617,6 +615,11 @@ export function ChatView({ characterId }: ChatViewProps) {
         if (error.name !== 'AbortError') {
           console.error('Streaming error:', error);
           if (fullContent) {
+            const thinkingDuration =
+              thinkingStartTimeRef.current !== null
+                ? Date.now() - thinkingStartTimeRef.current
+                : undefined;
+            thinkingStartTimeRef.current = null;
             const assistantMsg: ChatMessageType = {
               name: character.name,
               is_user: false,
@@ -624,7 +627,7 @@ export function ChatView({ characterId }: ChatViewProps) {
                 ? escapeMarkdownCharacters(fullContent, markdownEscapeStrings)
                 : fullContent,
               send_date: new Date().toISOString(),
-              extra: {},
+              extra: thinkingDuration !== undefined ? { thinkingDuration } : {},
             };
             addMessage(assistantMsg);
             setStreamingContent('');
@@ -696,6 +699,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       if (!msg) return;
       if (newText.trim().length === 0) return; // ignore empty edits — keep previous message text
 
+      localModificationsRef.current = true;
       const updatedMsg = { ...msg, mes: newText };
       const newMessages = [...messages];
       newMessages[index] = updatedMsg;
@@ -721,6 +725,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       if (!activeChatId || index < 0 || index >= messages.length) return;
       if (index === 0) return; // never delete the greeting (first message)
 
+      localModificationsRef.current = true;
       removeMessage(index);
       emit('message_removed', { index });
 
@@ -758,41 +763,17 @@ export function ChatView({ characterId }: ChatViewProps) {
       abortRef.current = new AbortController();
 
       const genParams: Record<string, unknown> = {
-        temperature: genStore.temperature,
-        top_p: genStore.top_p,
-        top_k: genStore.top_k,
-        max_tokens: genStore.max_tokens,
-        seed: genStore.seed,
         streaming: streamingEnabled,
-        stop: genStore.stop.length > 0 ? genStore.stop : undefined,
       };
-
-      if (genStore.mode === 'chat') {
-        genParams.frequency_penalty = genStore.frequency_penalty;
-        genParams.presence_penalty = genStore.presence_penalty;
-      } else {
-        genParams.min_p = genStore.min_p;
-        genParams.typical_p = genStore.typical_p;
-        genParams.top_a = genStore.top_a;
-        genParams.tfs = genStore.tfs;
-        genParams.rep_pen = genStore.rep_pen;
-        genParams.rep_pen_range = genStore.rep_pen_range;
-        genParams.rep_pen_slope = genStore.rep_pen_slope;
-        genParams.dry_multiplier = genStore.dry_multiplier;
-        genParams.dry_base = genStore.dry_base;
-        genParams.dry_allowed_length = genStore.dry_allowed_length;
-        genParams.mirostat_mode = genStore.mirostat_mode;
-        genParams.mirostat_tau = genStore.mirostat_tau;
-        genParams.mirostat_eta = genStore.mirostat_eta;
-        genParams.smoothing_factor = genStore.smoothing_factor;
-        genParams.epsilon_cutoff = genStore.epsilon_cutoff;
-        genParams.eta_cutoff = genStore.eta_cutoff;
-        genParams.max_context = genStore.max_context;
-        genParams.min_tokens = genStore.min_tokens;
-        genParams.samplers = genStore.samplers;
-        genParams.skip_special_tokens = genStore.skip_special_tokens;
-        genParams.add_bos_token = genStore.add_bos_token;
-        genParams.ban_eos_token = genStore.ban_eos_token;
+      for (const key of PARAM_KEYS) {
+        if (key === 'mode' || key === 'preset') continue;
+        const val = genStore[key];
+        if (typeof val === 'function') continue;
+        if (key === 'stop') {
+          genParams.stop = (val as string[]).length > 0 ? val : undefined;
+        } else {
+          genParams[key] = val;
+        }
       }
 
       // Stop strings MUST include the instruct role sequences (outputSequence,
@@ -869,11 +850,14 @@ export function ChatView({ characterId }: ChatViewProps) {
           return;
         }
 
-        const source =
-          (settings?.chat_completion_source as string) || 'openai';
+        const source = (settings?.chat_completion_source as string) || 'openai';
         let generator: AsyncGenerator<string>;
         if (genStore.mode === 'text') {
-          let flatPrompt = flattenMessagesToPrompt(interceptedRequest.messages, textOptions?.instruct, textOptions?.context);
+          let flatPrompt = flattenMessagesToPrompt(
+            interceptedRequest.messages,
+            textOptions?.instruct,
+            textOptions?.context,
+          );
           if (textOptions?.instruct?.enabled && textOptions.instruct.outputSequence) {
             flatPrompt += textOptions.instruct.outputSequence;
           }
@@ -1016,7 +1000,7 @@ export function ChatView({ characterId }: ChatViewProps) {
 
   const displayMessages = [
     ...messages,
-    ...(streamingContent || isThinkingStream
+    ...(streamingContent || isThinkingStream || isGenerating
       ? [
           {
             name: character.name,
@@ -1118,6 +1102,11 @@ export function ChatView({ characterId }: ChatViewProps) {
               autoExpandThinking={reasoningSettings.autoExpand}
               showHidden={reasoningSettings.showHidden}
               isStreaming={isGenerating && i === displayMessages.length - 1}
+              thinkingDuration={
+                typeof msg.extra?.thinkingDuration === 'number'
+                  ? msg.extra.thinkingDuration
+                  : undefined
+              }
             />
           ))}
           {isGenerating && (streamingContent || isThinkingStream) && smoothStreaming > 0 && (

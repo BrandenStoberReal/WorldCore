@@ -32,7 +32,12 @@ interface TextGenPanelProps {
   onConnected?: () => void;
 }
 
-export function TextGenPanel({ onConnect, connected = false, profile, onConnected }: TextGenPanelProps) {
+export function TextGenPanel({
+  onConnect,
+  connected = false,
+  profile,
+  onConnected,
+}: TextGenPanelProps) {
   const [subType, setSubType] = useState<TextGenSubType>('llamacpp');
   const [deriveContext, setDeriveContext] = useState(true);
   const [bypassStatus, setBypassStatus] = useState(false);
@@ -78,9 +83,7 @@ export function TextGenPanel({ onConnect, connected = false, profile, onConnecte
   const handleConnect = useCallback(
     async (data: Record<string, string | boolean | number>) => {
       const connectUrl =
-        (typeof data._url === 'string' && data._url) ||
-        url ||
-        'http://localhost:8080';
+        (typeof data._url === 'string' && data._url) || url || 'http://localhost:8080';
       updateParam('model', model);
       if (deriveContext) {
         const contextSize = await fetchModelContextSize(subType, connectUrl, model);

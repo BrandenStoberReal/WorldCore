@@ -63,7 +63,10 @@ describe('getInstructStoppingSequences', () => {
   });
 
   it('adds input/output/system sequences when sequencesAsStopStrings is true (no wrap)', () => {
-    const stops = getInstructStoppingSequences(baseInstruct({ sequencesAsStopStrings: true }), macroCtx);
+    const stops = getInstructStoppingSequences(
+      baseInstruct({ sequencesAsStopStrings: true }),
+      macroCtx,
+    );
     expect(stops).toContain('<|turn>user\n');
     expect(stops).toContain('<|turn>model\n');
     expect(stops).toContain('<|turn>system\n');

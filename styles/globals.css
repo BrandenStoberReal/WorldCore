@@ -576,6 +576,11 @@
   margin-bottom: 0;
 }
 
+.md-opening-tag {
+  color: color-mix(in oklch, var(--ember) 55%, var(--background));
+  user-select: none;
+}
+
 /* Mobile-first responsive utilities */
 @layer utilities {
   /* Touch-friendly minimum target size */

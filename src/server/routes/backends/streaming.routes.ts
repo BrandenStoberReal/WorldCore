@@ -14,7 +14,9 @@ const STREAM_HEADERS: HeadersInit = {
   'X-Accel-Buffering': 'no',
 };
 
-const STREAM_INIT = { idleTimeout: 0, headers: STREAM_HEADERS } as ResponseInit & { idleTimeout: number };
+const STREAM_INIT = { idleTimeout: 0, headers: STREAM_HEADERS } as ResponseInit & {
+  idleTimeout: number;
+};
 
 export const streamingRoutes = {
   chatStream: errorGuard(async (req: Request): Promise<Response> => {
@@ -56,7 +58,10 @@ export const streamingRoutes = {
     console.log('[textStream] request:', JSON.stringify(parsed).slice(0, 500));
     const response = await textGenerateHandler(parsed as TextCompletionRequest);
     if (!response.ok) {
-      const errText = await response.clone().text().catch(() => '');
+      const errText = await response
+        .clone()
+        .text()
+        .catch(() => '');
       console.error(`[textStream] upstream ${response.status}:`, errText.slice(0, 500));
     }
     return new Response(response.body, {

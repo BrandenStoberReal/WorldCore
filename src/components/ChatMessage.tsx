@@ -1,9 +1,18 @@
 import { useState, useEffect, useMemo, memo, useRef } from 'react';
 import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
-import { cn } from '@/lib/utils';
+import { cn, estimateTokens } from '@/lib/utils';
 import { substituteMacros, type MacroContext } from '@/lib/macros';
 import { renderMarkdown } from '@/lib/markdown';
 import { ChevronDown, Copy, Pencil, RotateCcw, Check, Trash2 } from 'lucide-react';
+
+function formatThinkingDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(1)}s`;
+  const m = Math.floor(s / 60);
+  const rem = s - m * 60;
+  return `${m}m ${rem.toFixed(0)}s`;
+}
 
 interface ChatMessageProps {
   msg: ChatMessageType;
@@ -28,6 +37,7 @@ interface ChatMessageProps {
   autoExpandThinking?: boolean;
   showHidden?: boolean;
   isStreaming?: boolean;
+  thinkingDuration?: number;
 }
 
 export const ChatMessage = memo(function ChatMessage({
@@ -53,6 +63,7 @@ export const ChatMessage = memo(function ChatMessage({
   autoExpandThinking = false,
   showHidden = true,
   isStreaming = false,
+  thinkingDuration,
 }: ChatMessageProps) {
   const isUser = msg.is_user;
   const [copied, setCopied] = useState(false);
@@ -60,6 +71,9 @@ export const ChatMessage = memo(function ChatMessage({
   const [editText, setEditText] = useState(msg.mes);
   const [thinkingOpen, setThinkingOpen] = useState(autoExpandThinking);
   const wasStreamingRef = useRef(false);
+  const thinkingStartRef = useRef<number | null>(null);
+  const [liveThinkingElapsed, setLiveThinkingElapsed] = useState<number | null>(null);
+  const thinkingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (isStreaming) {
@@ -67,9 +81,16 @@ export const ChatMessage = memo(function ChatMessage({
       setThinkingOpen(true);
     } else if (wasStreamingRef.current) {
       wasStreamingRef.current = false;
-      if (!autoExpandThinking) setThinkingOpen(false);
+      if (thinkingTimerRef.current) {
+        clearInterval(thinkingTimerRef.current);
+        thinkingTimerRef.current = null;
+      }
+      if (thinkingStartRef.current !== null) {
+        setLiveThinkingElapsed(Date.now() - thinkingStartRef.current);
+      }
+      thinkingStartRef.current = null;
     }
-  }, [isStreaming, autoExpandThinking]);
+  }, [isStreaming]);
 
   let ts: string;
   try {
@@ -96,14 +117,41 @@ export const ChatMessage = memo(function ChatMessage({
     post_history_instructions,
   } satisfies MacroContext;
 
-  const processedText = useMemo(() => substituteMacros(msg.mes, macroContext), [msg.mes, macroContext]);
-  const renderedContent = useMemo(() => renderMarkdown(processedText), [processedText]);
+  const processedText = useMemo(
+    () => substituteMacros(msg.mes, macroContext),
+    [msg.mes, macroContext],
+  );
+  const renderedContent = useMemo(
+    () => renderMarkdown(processedText, { highlightOpeningTags: true }),
+    [processedText],
+  );
 
   const thinkingContent =
     !isUser && typeof msg.thinking === 'string' && msg.thinking.length > 0 ? msg.thinking : null;
+
+  useEffect(() => {
+    if (isStreaming && thinkingContent && !thinkingTimerRef.current) {
+      thinkingStartRef.current = Date.now();
+      setLiveThinkingElapsed(0);
+      thinkingTimerRef.current = setInterval(() => {
+        setLiveThinkingElapsed(Date.now() - thinkingStartRef.current!);
+      }, 200);
+    }
+  }, [isStreaming, thinkingContent]);
+
   const renderedThinking = useMemo(
-    () => (thinkingContent ? renderMarkdown(substituteMacros(thinkingContent, macroContext)) : null),
+    () =>
+      thinkingContent
+        ? renderMarkdown(substituteMacros(thinkingContent, macroContext), {
+            highlightOpeningTags: true,
+          })
+        : null,
     [thinkingContent, macroContext],
+  );
+
+  const thinkingTokenCount = useMemo(
+    () => (thinkingContent ? estimateTokens(thinkingContent) : 0),
+    [thinkingContent],
   );
 
   return (
@@ -193,6 +241,16 @@ export const ChatMessage = memo(function ChatMessage({
             ) : (
               <span className="mono-tag">Thoughts</span>
             )}
+            {thinkingContent && (
+              <span className="mono-tag text-muted-foreground/40 ml-1.5">
+                {thinkingTokenCount} tok
+                {isStreaming && liveThinkingElapsed != null
+                  ? ` · ${formatThinkingDuration(liveThinkingElapsed)}`
+                  : !isStreaming && thinkingDuration != null && thinkingDuration > 0
+                    ? ` · ${formatThinkingDuration(thinkingDuration)}`
+                    : ''}
+              </span>
+            )}
             <span className="ml-auto opacity-0 transition-all group-open/thinking:rotate-180 group-hover/thinking:opacity-100">
               <ChevronDown className="h-2.5 w-2.5" />
             </span>
@@ -233,14 +291,10 @@ export const ChatMessage = memo(function ChatMessage({
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
-            className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded-md border p-0 backdrop-blur-sm transition-colors"
+            className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
             title="Copy message"
           >
-            {copied ? (
-              <Check className="h-2.5 w-2.5 text-emerald-500" />
-            ) : (
-              <Copy className="h-2.5 w-2.5" />
-            )}
+            {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
           </button>
 
           {onEdit && (
@@ -254,10 +308,10 @@ export const ChatMessage = memo(function ChatMessage({
                   setIsEditing(true);
                 }
               }}
-              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded-md border p-0 backdrop-blur-sm transition-colors"
+              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
               title={isEditing ? 'Save edit' : 'Edit message'}
             >
-              <Pencil className="h-2.5 w-2.5" />
+              <Pencil className="h-3 w-3" />
             </button>
           )}
 
@@ -265,10 +319,10 @@ export const ChatMessage = memo(function ChatMessage({
             <button
               type="button"
               onClick={() => onRegenerate(index)}
-              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded-md border p-0 backdrop-blur-sm transition-colors"
+              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
               title="Regenerate response"
             >
-              <RotateCcw className="h-2.5 w-2.5" />
+              <RotateCcw className="h-3 w-3" />
             </button>
           )}
 
@@ -276,10 +330,10 @@ export const ChatMessage = memo(function ChatMessage({
             <button
               type="button"
               onClick={() => onDelete(index)}
-              className="bg-background/80 hover:bg-destructive/10 hover:text-destructive border-border/60 flex h-6 w-6 items-center justify-center rounded-md border p-0 backdrop-blur-sm transition-colors"
+              className="bg-background/80 hover:bg-destructive/10 hover:text-destructive border-border/60 flex h-6 w-6 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
               title="Delete message"
             >
-              <Trash2 className="h-2.5 w-2.5" />
+              <Trash2 className="h-3 w-3" />
             </button>
           )}
         </div>

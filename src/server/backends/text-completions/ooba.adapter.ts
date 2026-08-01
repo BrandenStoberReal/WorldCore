@@ -65,7 +65,7 @@ export class OobaAdapter implements TextCompletionAdapter {
     if (lengthPenalty !== undefined) body.length_penalty = lengthPenalty;
     const minLength = num('min_length');
     if (minLength !== undefined) body.min_length = minLength;
-    const dynatemp = num('dynatemp');
+    const dynatemp = bool('dynatemp');
     if (dynatemp !== undefined) body.dynatemp = dynatemp;
     const minTemp = num('min_temp');
     if (minTemp !== undefined) body.min_temp = minTemp;
@@ -107,6 +107,13 @@ export class OobaAdapter implements TextCompletionAdapter {
     if (negativePrompt !== undefined) body.negative_prompt = negativePrompt;
     const guidanceScale = num('guidance_scale');
     if (guidanceScale !== undefined) body.guidance_scale = guidanceScale;
+
+    const samplerPriority = r.sampler_priority;
+    if (Array.isArray(samplerPriority)) body.sampler_priority = samplerPriority;
+    const samplersPriorities = r.samplers_priorities;
+    if (Array.isArray(samplersPriorities)) body.samplers_priorities = samplersPriorities;
+    const samplerOrder = r.sampler_order;
+    if (Array.isArray(samplerOrder)) body.sampler_order = samplerOrder;
 
     return fetch(`${url}/v1/completions`, {
       method: 'POST',

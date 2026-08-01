@@ -57,7 +57,11 @@ export function parseThinkingChunks(
   // (like a lone "<") would hide real body content permanently if the
   // stream ended right there.
   let partialLen = 0;
-  for (let len = Math.min(prefix.length - 1, tail.length); len >= (captures.length > 0 ? 1 : 2); len--) {
+  for (
+    let len = Math.min(prefix.length - 1, tail.length);
+    len >= (captures.length > 0 ? 1 : 2);
+    len--
+  ) {
     if (tail.endsWith(prefix.slice(0, len))) {
       partialLen = len;
       break;

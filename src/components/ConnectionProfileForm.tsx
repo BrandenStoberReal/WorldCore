@@ -1,5 +1,5 @@
 // Used in modals for profile CRUD (create/edit). Not a standalone panel.
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -111,25 +111,6 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
     return { ...EMPTY_FORM };
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const debouncedSave = useCallback(
-    (data: typeof form) => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      saveTimeoutRef.current = setTimeout(() => {
-        const result: ConnectionProfile = {
-          ...data,
-          id: profile?.id ?? crypto.randomUUID(),
-          createdAt: profile?.createdAt ?? new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        onSave(result);
-      }, 500);
-    },
-    [profile, onSave],
-  );
 
   // Collapsible sections
   const [openSections, setOpenSections] = useState({
@@ -148,15 +129,9 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
 
   const updateField = useCallback(
     <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
-      setForm((prev) => {
-        const next = { ...prev, [key]: value };
-        if (isEdit) {
-          debouncedSave(next);
-        }
-        return next;
-      });
+      setForm((prev) => ({ ...prev, [key]: value }));
     },
-    [isEdit, debouncedSave],
+    [],
   );
 
   const toggleExclude = useCallback((item: string) => {
@@ -216,7 +191,10 @@ export function ConnectionProfileForm({ profile, onSave, onCancel }: ConnectionP
               <Label>
                 API Type <span className="text-destructive">*</span>
               </Label>
-              <Select value={form.api} onValueChange={(val) => updateField('api', val as typeof form.api)}>
+              <Select
+                value={form.api}
+                onValueChange={(val) => updateField('api', val as typeof form.api)}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select API type" />
                 </SelectTrigger>

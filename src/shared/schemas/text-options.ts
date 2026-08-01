@@ -140,7 +140,7 @@ export const TextOptionsDefaults: z.infer<typeof TextOptionsSchema> = {
     separator: '\n',
     autoParse: false,
     autoExpand: false,
-    showHidden: false,
+    showHidden: true,
     addToPrompts: false,
     maxAdditions: 1,
   },
@@ -150,7 +150,9 @@ export const TextOptionsDefaults: z.infer<typeof TextOptionsSchema> = {
   showReplyPrefix: true,
 };
 
-export function mergeTextOptions(partial?: Partial<z.infer<typeof TextOptionsSchema>>): z.infer<typeof TextOptionsSchema> {
+export function mergeTextOptions(
+  partial?: Partial<z.infer<typeof TextOptionsSchema>>,
+): z.infer<typeof TextOptionsSchema> {
   return {
     ...TextOptionsDefaults,
     ...partial,

@@ -60,7 +60,8 @@ describe('parseThinkingChunks - Gemma4 style', () => {
 
   describe('multiple thinking blocks', () => {
     it('joins multiple thinking blocks with separator', () => {
-      const input = '<|channel>thought\nThinking 1\n<channel|>Middle<|channel>thought\nThinking 2\n<channel|>End';
+      const input =
+        '<|channel>thought\nThinking 1\n<channel|>Middle<|channel>thought\nThinking 2\n<channel|>End';
       const result = parseThinkingChunks(input, gemma4Opts);
       expect(result.thinking).toBe('Thinking 1\n\n\nThinking 2\n');
       expect(result.body).toBe('MiddleEnd');

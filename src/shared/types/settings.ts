@@ -1,5 +1,9 @@
 import type { z } from 'zod';
-import { SettingsObjectSchema, SettingsSnapshotSchema, TypedSettingsSchema } from '@/shared/schemas/settings';
+import {
+  SettingsObjectSchema,
+  SettingsSnapshotSchema,
+  TypedSettingsSchema,
+} from '@/shared/schemas/settings';
 
 export type SettingsObject = z.infer<typeof SettingsObjectSchema>;
 export type SettingsSnapshot = z.infer<typeof SettingsSnapshotSchema>;

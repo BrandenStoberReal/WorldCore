@@ -26,8 +26,22 @@ import { CodeBlock } from '@/components/CodeBlock';
  *
  * Pure function: deterministic, no I/O, no globals, no internal memoization (caller memoizes).
  */
-export function renderMarkdown(input: string): ReactNode {
+export interface RenderMarkdownOptions {
+  /**
+   * When true, an unclosed emphasis/code delimiter (no matching closer found) is rendered
+   * as a visible `<span class="md-opening-tag">` marker followed by the remaining text wrapped
+   * in the corresponding formatting element (`<strong>`, `<em>`, or `<code>`). This is intended
+   * for LLM token-streaming UX: a partial `**bold tex` shows the `**` marker plus bold "bold tex",
+   * and once the closing `**` arrives the same input renders as plain `**bold text**` → `<strong>`.
+   *
+   * When false/undefined, unclosed delimiters render as literal text (backward compatible).
+   */
+  highlightOpeningTags?: boolean;
+}
+
+export function renderMarkdown(input: string, options?: RenderMarkdownOptions): ReactNode {
   if (input.length === 0) return null;
+  const highlight = options?.highlightOpeningTags === true;
 
   // 1. Split into blocks on blank lines (\n\n+) — on RAW input so > is visible.
   const blocks = input.split(/\n{2,}/);
@@ -35,7 +49,7 @@ export function renderMarkdown(input: string): ReactNode {
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
     if (block === undefined || block.length === 0) continue;
-    out.push(renderBlock(block, 0, i));
+    out.push(renderBlock(block, 0, i, highlight));
   }
 
   if (out.length === 0) return null;
@@ -153,15 +167,15 @@ function prepareBlock(text: string): {
 // Block-level rendering  (works on RAW input for > detection)
 // ---------------------------------------------------------------------------
 
-function renderBlock(block: string, depth: number, key: number): ReactNode {
+function renderBlock(block: string, depth: number, key: number, highlight: boolean): ReactNode {
   if (block.startsWith('> ') || block === '>' || block.startsWith('>\n')) {
-    return renderBlockquote(block, depth, key);
+    return renderBlockquote(block, depth, key, highlight);
   }
   const listMatch = detectList(block);
   if (listMatch) {
-    return renderList(block, listMatch.ordered, key);
+    return renderList(block, listMatch.ordered, key, highlight);
   }
-  return renderParagraphBlock(block, key);
+  return renderParagraphBlock(block, key, highlight);
 }
 
 const UL_RE = /^[-*]\s+/;
@@ -180,7 +194,7 @@ function detectList(block: string): { ordered: boolean } | null {
   return { ordered: false };
 }
 
-function renderList(block: string, ordered: boolean, key: number): ReactNode {
+function renderList(block: string, ordered: boolean, key: number, highlight: boolean): ReactNode {
   const lines = block.split('\n');
   const items: ReactNode[] = [];
   let currentText: string[] = [];
@@ -190,7 +204,9 @@ function renderList(block: string, ordered: boolean, key: number): ReactNode {
     const text = currentText.join('\n');
     const prepared = prepareBlock(text);
     items.push(
-      <li key={`li-${itemKey}`}>{renderInlineTokens(prepared.text, prepared.fences, prepared.codes, 0)}</li>,
+      <li key={`li-${itemKey}`}>
+        {renderInlineTokens(prepared.text, prepared.fences, prepared.codes, 0, highlight)}
+      </li>,
     );
     currentText = [];
   };
@@ -211,18 +227,23 @@ function renderList(block: string, ordered: boolean, key: number): ReactNode {
   }
   flushItem(itemIdx);
 
-  return ordered ? (
-    <ol key={key}>{items}</ol>
-  ) : (
-    <ul key={key}>{items}</ul>
-  );
+  return ordered ? <ol key={key}>{items}</ol> : <ul key={key}>{items}</ul>;
 }
 
-function renderBlockquote(block: string, depth: number, key: number): ReactNode {
+function renderBlockquote(
+  block: string,
+  depth: number,
+  key: number,
+  highlight: boolean,
+): ReactNode {
   if (depth >= MAX_BLOCKQUOTE_DEPTH) {
     // Depth exceeded — escape and render as paragraph to avoid infinite recursion.
     const prepared = prepareBlock(block);
-    return <p key={key}>{renderInlineTokens(prepared.text, prepared.fences, prepared.codes, 0)}</p>;
+    return (
+      <p key={key}>
+        {renderInlineTokens(prepared.text, prepared.fences, prepared.codes, 0, highlight)}
+      </p>
+    );
   }
 
   const lines = block.split('\n');
@@ -239,13 +260,13 @@ function renderBlockquote(block: string, depth: number, key: number): ReactNode 
 
   const body = bodyLines.join('\n');
   // Recursively render the body — may contain nested blockquotes.
-  const inner = renderBlock(body, depth + 1, 0);
+  const inner = renderBlock(body, depth + 1, 0, highlight);
   return <blockquote key={key}>{inner}</blockquote>;
 }
 
-function renderParagraphBlock(block: string, key: number): ReactNode {
+function renderParagraphBlock(block: string, key: number, highlight: boolean): ReactNode {
   const prepared = prepareBlock(block);
-  return renderParagraph(prepared.text, prepared.fences, prepared.codes, 0, key);
+  return renderParagraph(prepared.text, prepared.fences, prepared.codes, 0, key, highlight);
 }
 
 function renderParagraph(
@@ -254,6 +275,7 @@ function renderParagraph(
   codes: string[],
   depth: number,
   key: number,
+  highlight: boolean,
 ): ReactNode {
   const segments = text.split('\n');
   const children: ReactNode[] = [];
@@ -261,7 +283,7 @@ function renderParagraph(
     const seg = segments[i];
     if (seg === undefined) continue;
     if (i > 0) children.push(<br key={`br-${i}`} />);
-    children.push(renderInlineTokens(seg, fences, codes, depth));
+    children.push(renderInlineTokens(seg, fences, codes, depth, highlight));
   }
   return <p key={key}>{children}</p>;
 }
@@ -275,6 +297,7 @@ function renderInlineTokens(
   fences: FencedCode[],
   codes: string[],
   depth: number,
+  highlight: boolean = false,
 ): ReactNode {
   if (depth >= MAX_INLINE_DEPTH) return text;
   if (text.length === 0) return '';
@@ -291,27 +314,49 @@ function renderInlineTokens(
       continue;
     }
 
+    // Try inline code (must come before emphasis to avoid ` being consumed as italic)
+    const codeResult = tryMatchInlineCode(text, pos, highlight);
+    if (codeResult !== null) {
+      pushToken(tokens, codeResult.node);
+      pos = codeResult.end;
+      continue;
+    }
+
     // Try emphasis in priority: ** > __ > * > _
-    const emph = tryMatchEmphasis(text, pos, fences, codes, depth);
+    const emph = tryMatchEmphasis(text, pos, fences, codes, depth, highlight);
     if (emph !== null) {
       pushToken(tokens, emph.node);
       pos = emph.end;
       continue;
     }
 
-    // Try dialogue quotes: "..."
-    if (text.charCodeAt(pos) === 0x22) {
-      const closeQuote = text.indexOf('"', pos + 1);
-      if (closeQuote !== -1) {
+    // Try dialogue quotes: "..." or \u201c...\u201d
+    const qCode = text.charCodeAt(pos);
+    if (qCode === 0x22 || qCode === 0x201c) {
+      const closeQ = qCode === 0x22 ? text.indexOf('"', pos + 1) : text.indexOf('\u201d', pos + 1);
+      const qChar = qCode === 0x22 ? '"' : '\u201c';
+      if (closeQ !== -1) {
+        const inner = text.slice(pos + 1, closeQ);
+        const qClose = qCode === 0x22 ? '"' : '\u201d';
         pushToken(
           tokens,
           <span key={`q${pos}`} style={{ color: 'var(--dialogue)' }}>
-            {'"'}
-            {text.slice(pos + 1, closeQuote)}
-            {'"'}
+            {qChar}
+            {renderInlineTokens(inner, fences, codes, depth, highlight)}
+            {qClose}
           </span>,
         );
-        pos = closeQuote + 1;
+        pos = closeQ + 1;
+        continue;
+      }
+      if (highlight) {
+        pushToken(
+          tokens,
+          <span key={`q${pos}`} style={{ color: 'var(--dialogue)' }}>
+            {qChar}
+          </span>,
+        );
+        pos++;
         continue;
       }
     }
@@ -372,6 +417,38 @@ function tryMatchPlaceholder(
 }
 
 // ---------------------------------------------------------------------------
+// Inline code matching (highlight-aware)
+// ---------------------------------------------------------------------------
+
+interface InlineCodeMatch {
+  node: ReactNode;
+  end: number;
+}
+
+function tryMatchInlineCode(text: string, pos: number, highlight: boolean): InlineCodeMatch | null {
+  if (text.charCodeAt(pos) !== 0x60) return null;
+  if (!highlight) return null;
+
+  const closeIdx = text.indexOf('`', pos + 1);
+  if (closeIdx !== -1 && closeIdx > pos + 1) return null;
+
+  const nlIdx = text.indexOf('\n', pos + 1);
+  const end = nlIdx !== -1 ? nlIdx : text.length;
+  const rest = text.slice(pos + 1, end);
+  if (rest.length === 0) return null;
+
+  return {
+    node: (
+      <span key={`uch${pos}`}>
+        <span className="md-opening-tag">{'`'}</span>
+        <code>{rest}</code>
+      </span>
+    ),
+    end,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Emphasis matching
 // ---------------------------------------------------------------------------
 
@@ -386,6 +463,7 @@ function tryMatchEmphasis(
   fences: FencedCode[],
   codes: string[],
   depth: number,
+  highlight: boolean = false,
 ): EmphMatch | null {
   // Priority 1: **bold**
   const boldStar = matchDelim(text, pos, '**');
@@ -394,12 +472,30 @@ function tryMatchEmphasis(
     if (isValidEmphContent(inner)) {
       return {
         node: (
-          <strong key={`b${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1)}</strong>
+          <strong key={`b${pos}`}>
+            {renderInlineTokens(inner, fences, codes, depth + 1, false)}
+          </strong>
         ),
         end: boldStar.contentEnd + 2,
       };
     }
   }
+  // Highlight unclosed **bold
+  if (highlight && text.slice(pos, pos + 2) === '**') {
+    const content = text.slice(pos + 2);
+    if (content.length > 0 && isValidEmphContent(content)) {
+      return {
+        node: (
+          <span key={`bh${pos}`}>
+            <span className="md-opening-tag">{'**'}</span>
+            <strong>{renderInlineTokens(content, fences, codes, depth + 1, false)}</strong>
+          </span>
+        ),
+        end: text.length,
+      };
+    }
+  }
+
   // Priority 2: __bold__ at word boundary
   const boldUnder = matchDelim(text, pos, '__');
   if (boldUnder !== null && isWordBoundaryBefore(text, pos)) {
@@ -407,34 +503,84 @@ function tryMatchEmphasis(
     if (isValidEmphContent(inner)) {
       return {
         node: (
-          <strong key={`B${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1)}</strong>
+          <strong key={`B${pos}`}>
+            {renderInlineTokens(inner, fences, codes, depth + 1, false)}
+          </strong>
         ),
         end: boldUnder.contentEnd + 2,
       };
     }
   }
+  // Highlight unclosed __bold__ at word boundary
+  if (highlight && text.slice(pos, pos + 2) === '__' && isWordBoundaryBefore(text, pos)) {
+    const content = text.slice(pos + 2);
+    if (content.length > 0 && isValidEmphContent(content)) {
+      return {
+        node: (
+          <span key={`Bh${pos}`}>
+            <span className="md-opening-tag">{'__'}</span>
+            <strong>{renderInlineTokens(content, fences, codes, depth + 1, false)}</strong>
+          </span>
+        ),
+        end: text.length,
+      };
+    }
+  }
+
   // Priority 3: *italic*
   const italStar = matchDelim(text, pos, '*');
   if (italStar !== null) {
     const inner = text.slice(italStar.contentStart, italStar.contentEnd);
     if (isValidEmphContent(inner)) {
       return {
-        node: <em key={`i${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1)}</em>,
+        node: <em key={`i${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1, false)}</em>,
         end: italStar.contentEnd + 1,
       };
     }
   }
+  // Highlight unclosed *italic* (but not if ** was already checked above)
+  if (highlight && text.charCodeAt(pos) === 0x2a && text.charCodeAt(pos + 1) !== 0x2a) {
+    const content = text.slice(pos + 1);
+    if (content.length > 0 && isValidEmphContent(content)) {
+      return {
+        node: (
+          <span key={`ih${pos}`}>
+            <span className="md-opening-tag">{'*'}</span>
+            <em>{renderInlineTokens(content, fences, codes, depth + 1, false)}</em>
+          </span>
+        ),
+        end: text.length,
+      };
+    }
+  }
+
   // Priority 4: _italic_ at word boundary
   const italUnder = matchDelim(text, pos, '_');
   if (italUnder !== null && isWordBoundaryBefore(text, pos)) {
     const inner = text.slice(italUnder.contentStart, italUnder.contentEnd);
     if (isValidEmphContent(inner)) {
       return {
-        node: <em key={`I${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1)}</em>,
+        node: <em key={`I${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1, false)}</em>,
         end: italUnder.contentEnd + 1,
       };
     }
   }
+  // Highlight unclosed _italic_ at word boundary
+  if (highlight && text.charCodeAt(pos) === 0x5f && isWordBoundaryBefore(text, pos)) {
+    const content = text.slice(pos + 1);
+    if (content.length > 0 && isValidEmphContent(content)) {
+      return {
+        node: (
+          <span key={`Ih${pos}`}>
+            <span className="md-opening-tag">{'_'}</span>
+            <em>{renderInlineTokens(content, fences, codes, depth + 1, false)}</em>
+          </span>
+        ),
+        end: text.length,
+      };
+    }
+  }
+
   return null;
 }
 
@@ -479,7 +625,15 @@ function isValidEmphContent(s: string): boolean {
 function findNextSpecial(text: string, from: number): number {
   for (let i = from; i < text.length; i++) {
     const ch = text.charCodeAt(i);
-    if (ch === 0 || ch === 0x22 || ch === 0x2a || ch === 0x5f || ch === 0x60) {
+    if (
+      ch === 0 ||
+      ch === 0x22 ||
+      ch === 0x2a ||
+      ch === 0x5f ||
+      ch === 0x60 ||
+      ch === 0x201c ||
+      ch === 0x201d
+    ) {
       return i;
     }
   }
