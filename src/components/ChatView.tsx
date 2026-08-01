@@ -335,7 +335,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       abortRef.current.abort();
       abortRef.current = null;
     }
-    flushDrip(); // ensure no orphaned pending tokens after stop
+    flushDrip();
     setIsGenerating(false);
     emit('generation_stopped', { characterId });
 
@@ -355,11 +355,24 @@ export function ChatView({ characterId }: ChatViewProps) {
         parsed = { mes: p.body, thinking: p.thinking };
       }
       commitStreaming(character?.name ?? 'Assistant', parsed);
+
+      if (activeChatId) {
+        const latestMessages = useChatStore.getState().messages;
+        const committedMsg = latestMessages[latestMessages.length - 1];
+        if (committedMsg && !committedMsg.is_user) {
+          void apiPost('/chats/message', {
+            fileId: activeChatId,
+            action: 'append',
+            message: committedMsg,
+          });
+        }
+      }
     }
   }, [
     abortRef,
     streamingContent,
     character,
+    activeChatId,
     setIsGenerating,
     commitStreaming,
     flushDrip,
@@ -371,7 +384,7 @@ export function ChatView({ characterId }: ChatViewProps) {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!character || !activeChatId || isGenerating) return;
+      if (!character || !activeChatId || useChatStore.getState().isGenerating) return;
 
       const userName = resolvedPersona.name;
       const userMsg: ChatMessageType = {
@@ -744,7 +757,7 @@ export function ChatView({ characterId }: ChatViewProps) {
 
   const handleRegenerate = useCallback(
     async (index: number) => {
-      if (!character || !activeChatId || isGenerating) return;
+      if (!character || !activeChatId || useChatStore.getState().isGenerating) return;
       if (index < 0 || index >= messages.length) return;
 
       const userName = resolvedPersona.name;
@@ -896,6 +909,9 @@ export function ChatView({ characterId }: ChatViewProps) {
             if (dripRef.current.inThinking !== parsed.inThinking) {
               dripRef.current.inThinking = parsed.inThinking;
               setIsThinkingStream(parsed.inThinking);
+              if (parsed.inThinking) {
+                thinkingStartTimeRef.current = Date.now();
+              }
             }
             if (currentSmooth > 0) {
               dripRef.current.pending += bodyChunk;
@@ -928,14 +944,31 @@ export function ChatView({ characterId }: ChatViewProps) {
           if (markdownEscapeStrings) {
             finalMes = escapeMarkdownCharacters(finalMes, markdownEscapeStrings);
           }
+          const thinkingDuration =
+            thinkingStartTimeRef.current !== null
+              ? Date.now() - thinkingStartTimeRef.current
+              : undefined;
+          thinkingStartTimeRef.current = null;
           const assistantMsg: ChatMessageType = {
             name: character.name,
             is_user: false,
             mes: finalMes,
             thinking: finalThinking,
             send_date: new Date().toISOString(),
-            extra: {},
+            extra: thinkingDuration !== undefined ? { thinkingDuration } : {},
           };
+          // Delete the old message at `index` from the server before appending
+          // the replacement. Without this, the server chat file accumulates
+          // orphaned messages that reappear on next page load.
+          try {
+            await apiPost('/chats/message', {
+              fileId: activeChatId,
+              action: 'delete',
+              index,
+            });
+          } catch {
+            // Non-fatal: local state is already correct via setMessages below.
+          }
           const newMessages = [...truncatedMessages, assistantMsg];
           setMessages(newMessages);
           setStreamingContent('');
@@ -952,6 +985,11 @@ export function ChatView({ characterId }: ChatViewProps) {
         if (error.name !== 'AbortError') {
           console.error('Regeneration error:', error);
         }
+        // Clear stale streaming UI state on error so the user doesn't see
+        // a ghost message with leftover content from a failed generation.
+        setStreamingContent('');
+        setStreamingThinking(undefined);
+        setIsThinkingStream(false);
       } finally {
         flushDrip();
         setIsGenerating(false);
