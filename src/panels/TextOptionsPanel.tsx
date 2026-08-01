@@ -178,7 +178,6 @@ const CONTEXT_CHECKBOXS = [
   ['trimSpaces', 'Trim spaces'],
   ['trimSentences', 'Trim Incomplete Sentences'],
   ['separatorsAsStopStrings', 'Separators as Stop Strings'],
-  ['namesAsStopStrings', 'Names as Stop Strings'],
 ] as const;
 
 const REASONING_CHECKBOXES = [

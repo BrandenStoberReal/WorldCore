@@ -816,10 +816,6 @@ export function ChatView({ characterId }: ChatViewProps) {
           if (s && !mergedStop.includes(s)) mergedStop.push(s);
         }
       }
-      if (textOptions?.context?.namesAsStopStrings) {
-        if (charName && !mergedStop.includes(`${charName}:`)) mergedStop.push(`${charName}:`);
-        if (userName && !mergedStop.includes(`${userName}:`)) mergedStop.push(`${userName}:`);
-      }
       if (textOptions?.context?.singleLine && !mergedStop.includes('\n')) {
         mergedStop.push('\n');
       }
