@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -10,8 +10,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RotateCcw, Check, Plug, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { ConnectionProfileSelector } from '@/components/connections/ConnectionProfileSelector';
 import { TextGenPanel } from '@/components/connections/TextGenPanel';
 import { ChatCompletionPanel } from '@/components/connections/ChatCompletionPanel';
@@ -22,212 +20,65 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ConnectionProfileForm } from '@/components/ConnectionProfileForm';
-import { apiFetch, saveSettingsPatch } from '@/lib/api';
-import { useNavStore } from '@/lib/navStore';
+import { useConnection, modeForApiType, type ApiType } from '@/hooks/useConnection';
 import { useGenerationStore } from '@/lib/stores';
 import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
 
-type ApiType = 'textgenerationwebui' | 'openai' | 'novel' | 'koboldhorde';
-
-function modeForApiType(api: ApiType): 'chat' | 'text' {
-  return api === 'textgenerationwebui' ? 'text' : 'chat';
-}
+const PROFILE_QUERY_KEY = ['/api/v1/connection-profiles/all'] as const;
 
 export function ConnectionsPanel() {
   const queryClient = useQueryClient();
-  const [saved, setSaved] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
-  const [apiType, setApiType] = useState<ApiType>('textgenerationwebui');
-  const [autoConnect, setAutoConnect] = useState(false);
-  const connected = useNavStore((s) => s.connected);
-  const setConnected = useNavStore((s) => s.setConnected);
   const setMode = useGenerationStore((s) => s.setMode);
 
-  // Modal state for profile CRUD
+  const {
+    profiles,
+    profilesLoading,
+    profilesError,
+    selectedProfileId,
+    setSelectedProfileId,
+    selectedProfile,
+    apiType,
+    setApiType,
+    connected,
+    setConnected,
+    connectionError,
+    setConnectionError,
+    saved,
+    autoConnect,
+    setAutoConnect,
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    isProfileLoading,
+    handleConnect,
+    handleReset,
+    handleCloneProfile,
+    profileKey,
+    bumpProfileKey,
+  } = useConnection();
+
+  // Modal state for profile CRUD (UI-only — data lives in the hook)
   const [createOpen, setCreateOpen] = useState(false);
   const [editProfile, setEditProfile] = useState<ConnectionProfile | null>(null);
   const [deleteProfile, setDeleteProfile] = useState<ConnectionProfile | null>(null);
 
-  // Key to force child panel re-mount on profile reload
-  const [profileKey, setProfileKey] = useState(0);
-
-  // Fetch profiles
-  const {
-    data: profiles,
-    isLoading,
-    error,
-  } = useQuery<ConnectionProfile[]>({
-    queryKey: ['/api/v1/connection-profiles/all'],
-    queryFn: () =>
-      apiFetch('/connection-profiles/all', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      }) as Promise<ConnectionProfile[]>,
-    meta: { silenceErrorToast: true },
-  });
-
-  const selectedProfile = profiles?.find((p) => p.id === selectedProfileId);
-
-  // Sync apiType from selected profile
+  // Close modals when the corresponding mutation succeeds. The hook owns the
+  // data side-effects (invalidation + toast); modal dismissal is a UI concern
+  // that belongs here.
   useEffect(() => {
-    if (selectedProfile) {
-      const profileApi = selectedProfile.api as ApiType;
-      if (
-        profileApi &&
-        ['textgenerationwebui', 'openai', 'novel', 'koboldhorde'].includes(profileApi)
-      ) {
-        setApiType(profileApi);
-        setMode(modeForApiType(profileApi));
-      }
-    }
-  }, [selectedProfile, setMode]);
-
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: async (data: ConnectionProfile) => {
-      return apiFetch('/connection-profiles/create', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['/api/v1/connection-profiles/all'],
-      });
-      setCreateOpen(false);
-      toast.success('Connection profile created');
-    },
-    onError: (err) => {
-      toast.error(err instanceof Error ? err.message : 'Failed to create profile');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: ConnectionProfile) => {
-      return apiFetch('/connection-profiles/update', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['/api/v1/connection-profiles/all'],
-      });
-      setEditProfile(null);
-      toast.success('Connection profile updated');
-    },
-    onError: (err) => {
-      toast.error(err instanceof Error ? err.message : 'Failed to update profile');
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return apiFetch('/connection-profiles/delete', {
-        method: 'POST',
-        body: JSON.stringify({ id }),
-      });
-    },
-    onSuccess: (_, deletedId) => {
-      queryClient.invalidateQueries({
-        queryKey: ['/api/v1/connection-profiles/all'],
-      });
-      if (selectedProfileId === deletedId) {
-        setSelectedProfileId(null);
-      }
-      toast.success('Connection profile deleted');
-    },
-    onError: (err) => {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete profile');
-    },
-  });
-
-  const handleCloneProfile = useCallback(
-    (id: string) => {
-      const profile = profiles?.find((p) => p.id === id);
-      if (!profile) return;
-
-      const baseName = profile.name.replace(/\s*\(\d+\)$/, '');
-      const existingNames = new Set((profiles ?? []).map((p) => p.name));
-      let cloneName = `${baseName} (1)`;
-      let counter = 2;
-      while (existingNames.has(cloneName)) {
-        cloneName = `${baseName} (${counter})`;
-        counter++;
-      }
-
-      const now = new Date().toISOString();
-      createMutation.mutate({
-        ...profile,
-        id: crypto.randomUUID(),
-        name: cloneName,
-        isDefault: false,
-        createdAt: now,
-        updatedAt: now,
-      });
-    },
-    [profiles, createMutation],
-  );
-
-  const isProfileLoading =
-    createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
-
-  const handleConnect = useCallback(
-    async (config: Record<string, unknown>) => {
-      const source = (typeof config.type === 'string' && config.type) || apiType;
-      const model = (typeof config.model === 'string' && config.model) || '';
-      const url = (typeof config._url === 'string' && config._url) || 'http://localhost:8080';
-      setConnectionError(null);
-      try {
-        await saveSettingsPatch({
-          chat_completion_source: source,
-          chat_completion_model: model,
-          reverse_proxy: url,
-          api: apiType,
-          autoConnect,
-        });
-
-        try {
-          await apiFetch(`/models/${source}?url=${encodeURIComponent(url)}`);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : 'Connection failed';
-          setConnected(false);
-          setConnectionError(msg);
-          return;
-        }
-
-        setConnected(true);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Connection failed';
-        setConnected(false);
-        setConnectionError(msg);
-      }
-    },
-    [apiType, autoConnect],
-  );
-
-  const handleReset = useCallback(() => {
-    setConnected(false);
-    setSelectedProfileId(null);
-    setApiType('textgenerationwebui');
-    setAutoConnect(false);
-    setProfileKey((k) => k + 1);
-  }, []);
-
-  // Profile action handlers
-  const handleViewProfile = useCallback((id: string) => {
-    // Details panel toggle is handled by ConnectionProfileSelector itself.
-  }, []);
+    if (createMutation.isSuccess) setCreateOpen(false);
+  }, [createMutation.isSuccess]);
+  useEffect(() => {
+    if (updateMutation.isSuccess) setEditProfile(null);
+  }, [updateMutation.isSuccess]);
+  useEffect(() => {
+    if (deleteMutation.isSuccess) setDeleteProfile(null);
+  }, [deleteMutation.isSuccess]);
 
   const handleEditProfile = useCallback(
     (id: string) => {
       const profile = profiles?.find((p) => p.id === id);
-      if (profile) {
-        setEditProfile(profile);
-      }
+      if (profile) setEditProfile(profile);
     },
     [profiles],
   );
@@ -235,27 +86,20 @@ export function ConnectionsPanel() {
   const handleDeleteProfile = useCallback(
     (id: string) => {
       const profile = profiles?.find((p) => p.id === id);
-      if (profile) {
-        setDeleteProfile(profile);
-      }
+      if (profile) setDeleteProfile(profile);
     },
     [profiles],
   );
 
   const handleReloadProfile = useCallback(
     (id: string) => {
-      void queryClient.invalidateQueries({
-        queryKey: ['/api/v1/connection-profiles/all'],
-      });
-      if (id === selectedProfileId) {
-        setProfileKey((k) => k + 1);
-      }
+      void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+      if (id === selectedProfileId) bumpProfileKey();
     },
-    [queryClient, selectedProfileId],
+    [queryClient, selectedProfileId, bumpProfileKey],
   );
 
-  // Loading state
-  if (isLoading) {
+  if (profilesLoading) {
     return (
       <div
         data-panel="connections"
@@ -266,15 +110,14 @@ export function ConnectionsPanel() {
     );
   }
 
-  // Error state
-  if (error) {
+  if (profilesError) {
     return (
       <div
         data-panel="connections"
         className="border-destructive/40 bg-card flex h-64 flex-col items-center justify-center gap-2 rounded-md border p-8"
       >
         <span className="mono-tag text-destructive">error</span>
-        <p className="text-muted-foreground text-sm">{error.message}</p>
+        <p className="text-muted-foreground text-sm">{profilesError.message}</p>
       </div>
     );
   }
@@ -330,7 +173,6 @@ export function ConnectionsPanel() {
         profiles={profiles ?? []}
         selectedId={selectedProfileId}
         onSelect={setSelectedProfileId}
-        onView={handleViewProfile}
         onCreate={() => setCreateOpen(true)}
         onUpdate={(id) => {
           const p = profiles?.find((prof) => prof.id === id);
@@ -340,7 +182,7 @@ export function ConnectionsPanel() {
         onClone={handleCloneProfile}
         onReload={handleReloadProfile}
         onDelete={handleDeleteProfile}
-        loading={isLoading || isProfileLoading}
+        loading={profilesLoading || isProfileLoading}
       />
 
       {/* API Type Selector */}

@@ -20,30 +20,46 @@ export function App() {
   useKeyboardShortcuts();
 
   useEffect(() => {
-    void checkOnboardingStatus().then((needed) => {
+    async function boot(): Promise<void> {
+      const needed = await checkOnboardingStatus();
       setOnboardingNeeded(needed);
-      if (!needed) {
-        void initUser();
-        void initSettings().then(() => {
-          void (async () => {
-            try {
-              const settings = await getSettings<Record<string, unknown>>();
-              const source =
-                typeof settings?.chat_completion_source === 'string'
-                  ? settings.chat_completion_source
-                  : null;
-              const url = typeof settings?.reverse_proxy === 'string' ? settings.reverse_proxy : '';
-              if (!source) return;
-              const qs = url ? `?url=${encodeURIComponent(url)}` : '';
-              await apiFetch(`/models/${source}${qs}`);
-              setConnected(true);
-            } catch {
-              setConnected(false);
-            }
-          })();
-        });
+      if (needed) return;
+
+      await initUser();
+      await initSettings();
+
+      // Auto-connect on load — only when the user previously opted in via the
+      // ConnectionsPanel "Auto-connect to Last Server" checkbox. The flag is
+      // persisted to localStorage key `worldcore/connection` by useConnection.
+      let autoConnect = false;
+      try {
+        const raw = localStorage.getItem('worldcore/connection');
+        if (raw) {
+          const parsed = JSON.parse(raw) as { autoConnect?: unknown };
+          if (typeof parsed.autoConnect === 'boolean') autoConnect = parsed.autoConnect;
+        }
+      } catch {
+        /* ignore malformed storage */
       }
-    });
+      if (!autoConnect) return;
+
+      try {
+        const settings = await getSettings<Record<string, unknown>>();
+        const source =
+          typeof settings?.chat_completion_source === 'string'
+            ? settings.chat_completion_source
+            : null;
+        const url = typeof settings?.reverse_proxy === 'string' ? settings.reverse_proxy : '';
+        if (!source) return;
+
+        const qs = url ? `?url=${encodeURIComponent(url)}` : '';
+        await apiFetch(`/models/${source}${qs}`);
+        setConnected(true);
+      } catch {
+        setConnected(false);
+      }
+    }
+    void boot();
   }, [initUser, initSettings, setConnected]);
 
   if (bootloader.error && typeof console !== 'undefined') {
