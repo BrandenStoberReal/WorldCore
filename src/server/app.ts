@@ -106,7 +106,13 @@ async function handleRequest(req: Request): Promise<Response> {
   const safePath = safePathWithin(distDir, userPath);
   if (!safePath) {
     return new Response(htmlContent, {
-      headers: { 'Content-Type': 'text/html', ...securityHeaders },
+      headers: {
+        'Content-Type': 'text/html',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        ...securityHeaders,
+      },
       status: 404,
     });
   }
@@ -115,13 +121,22 @@ async function handleRequest(req: Request): Promise<Response> {
     return new Response(file.stream(), {
       headers: {
         'Content-Type': resolveMimeType(safePath),
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         ...securityHeaders,
       },
     });
   }
 
   return new Response(htmlContent, {
-    headers: { 'Content-Type': 'text/html', ...securityHeaders },
+    headers: {
+      'Content-Type': 'text/html',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      ...securityHeaders,
+    },
   });
 }
 
