@@ -648,10 +648,6 @@ export class PromptBuilder {
     userName: string,
   ): string[] {
     const stops: string[] = [];
-    if (context?.namesAsStopStrings) {
-      if (charName && !stops.includes(charName)) stops.push(`${charName}:`);
-      if (userName && !stops.includes(userName)) stops.push(`${userName}:`);
-    }
     if (context?.singleLine) {
       if (!stops.includes('\n')) stops.push('\n');
     }
