@@ -546,7 +546,7 @@ function tryMatchEmphasis(
         node: (
           <span key={`ih${pos}`}>
             <span className="md-opening-tag">{'*'}</span>
-            <em>{renderInlineTokens(content, fences, codes, depth + 1, false)}</em>
+            <em data-depth={depth}>{renderInlineTokens(content, fences, codes, depth + 1, false)}</em>
           </span>
         ),
         end: text.length,
@@ -573,7 +573,7 @@ function tryMatchEmphasis(
         node: (
           <span key={`Ih${pos}`}>
             <span className="md-opening-tag">{'_'}</span>
-            <em>{renderInlineTokens(content, fences, codes, depth + 1, false)}</em>
+            <em data-depth={depth}>{renderInlineTokens(content, fences, codes, depth + 1, false)}</em>
           </span>
         ),
         end: text.length,
