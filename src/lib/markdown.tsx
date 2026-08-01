@@ -533,7 +533,7 @@ function tryMatchEmphasis(
     const inner = text.slice(italStar.contentStart, italStar.contentEnd);
     if (isValidEmphContent(inner)) {
       return {
-        node: <em key={`i${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1, false)}</em>,
+        node: <em key={`i${pos}`} data-depth={depth}>{renderInlineTokens(inner, fences, codes, depth + 1, false)}</em>,
         end: italStar.contentEnd + 1,
       };
     }
@@ -560,7 +560,7 @@ function tryMatchEmphasis(
     const inner = text.slice(italUnder.contentStart, italUnder.contentEnd);
     if (isValidEmphContent(inner)) {
       return {
-        node: <em key={`I${pos}`}>{renderInlineTokens(inner, fences, codes, depth + 1, false)}</em>,
+        node: <em key={`I${pos}`} data-depth={depth}>{renderInlineTokens(inner, fences, codes, depth + 1, false)}</em>,
         end: italUnder.contentEnd + 1,
       };
     }
