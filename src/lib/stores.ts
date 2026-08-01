@@ -602,7 +602,14 @@ export const useChatStore = create<ChatStore>((set) => ({
     emit('chat_changed', { chatId: id });
   },
   setActiveCharacter: (id) => {
-    set({ activeCharacterId: id });
+    set({
+      activeCharacterId: id,
+      activeChatId: null,
+      messages: [],
+      streamingContent: '',
+      streamingThinking: undefined,
+      isThinkingStream: false,
+    });
     emit('character_changed', { characterId: id });
   },
   setMessages: (messages) => set({ messages }),
