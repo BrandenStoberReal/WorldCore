@@ -19,6 +19,7 @@ import { cn, estimateTokens } from '@/lib/utils';
 import { InlineEdit } from '@/components/InlineEdit';
 import { EditableTags } from '@/components/EditableTags';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Modal } from '@/components/Modal';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { PanelHeader } from '@/components/ui/panel-header';
@@ -85,6 +86,44 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
         setActiveCharacter(null);
         openSection('chats');
       }
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await Promise.all(
+        ids.map((id) =>
+          apiFetch('/characters/delete', { method: 'POST', body: JSON.stringify({ id }) }),
+        ),
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
+      if (Array.from(selectedIds).includes(activeCharacterId ?? -1)) {
+        setActiveCharacter(null);
+        openSection('chats');
+      }
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+    },
+  });
+
+  const bulkTagMutation = useMutation({
+    mutationFn: async ({ ids, tags }: { ids: number[]; tags: string[] }) => {
+      await Promise.all(
+        ids.map((id) =>
+          apiFetch('/characters/edit', {
+            method: 'POST',
+            body: JSON.stringify({ id, data: { tags } }),
+          }),
+        ),
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
+      setSelectedIds(new Set());
+      setBulkTagOpen(false);
+      setBulkTagValue('');
     },
   });
 
@@ -158,24 +197,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
   }
 
   function confirmBulkDelete() {
-    const ids = Array.from(selectedIds);
-    Promise.all(
-      ids.map((id) =>
-        apiFetch('/characters/delete', { method: 'POST', body: JSON.stringify({ id }) }),
-      ),
-    )
-      .then(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
-        if (ids.includes(activeCharacterId ?? -1)) {
-          setActiveCharacter(null);
-          openSection('chats');
-        }
-        setSelectedIds(new Set());
-        setBulkDeleteOpen(false);
-      })
-      .catch((err) => {
-        console.error('Bulk delete failed:', err);
-      });
+    bulkDeleteMutation.mutate(Array.from(selectedIds));
   }
 
   function handleBulkTag() {
@@ -183,33 +205,13 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
   }
 
   function confirmBulkTag() {
-    const ids = Array.from(selectedIds);
     const tags = bulkTagValue
       .split(',')
       .map((t) => t.trim())
       .filter(Boolean);
     if (tags.length === 0) return;
 
-    Promise.all(
-      ids.map((id) =>
-        apiFetch('/characters/edit', {
-          method: 'POST',
-          body: JSON.stringify({
-            id,
-            data: { tags },
-          }),
-        }),
-      ),
-    )
-      .then(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
-        setSelectedIds(new Set());
-        setBulkTagOpen(false);
-        setBulkTagValue('');
-      })
-      .catch((err) => {
-        console.error('Bulk tag failed:', err);
-      });
+    bulkTagMutation.mutate({ ids: Array.from(selectedIds), tags });
   }
 
   // Reset to list view when the selected character is cleared (e.g. EditMode's
@@ -519,43 +521,37 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
         />
 
         {/* Bulk Tag Dialog */}
-        {bulkTagOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div
-              className="bg-background/80 fixed inset-0 backdrop-blur-sm"
-              onClick={() => setBulkTagOpen(false)}
-            />
-            <div className="bg-background border-border relative z-10 w-full max-w-sm rounded-lg border p-4 shadow-lg">
-              <h3 className="display-host text-[14px] leading-none tracking-tight">
-                Tag Selected Characters
-              </h3>
-              <p className="text-muted-foreground mt-2 text-[12px]">
-                Add tags to {selectedIds.size} selected characters. Separate multiple tags with
-                commas.
-              </p>
-              <input
-                type="text"
-                value={bulkTagValue}
-                onChange={(e) => setBulkTagValue(e.target.value)}
-                placeholder="tag1, tag2, tag3"
-                className="border-border bg-background focus:border-ember/50 mt-3 w-full rounded-md border px-3 py-2 text-[13px] outline-none"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') confirmBulkTag();
-                  if (e.key === 'Escape') setBulkTagOpen(false);
-                }}
-              />
-              <div className="mt-4 flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setBulkTagOpen(false)}>
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={confirmBulkTag} disabled={!bulkTagValue.trim()}>
-                  Apply Tags
-                </Button>
-              </div>
-            </div>
+        <Modal
+          open={bulkTagOpen}
+          onClose={() => setBulkTagOpen(false)}
+          title="Tag Selected Characters"
+          className="max-w-sm"
+        >
+          <p className="text-muted-foreground mt-2 text-[12px]">
+            Add tags to {selectedIds.size} selected characters. Separate multiple tags with
+            commas.
+          </p>
+          <input
+            type="text"
+            value={bulkTagValue}
+            onChange={(e) => setBulkTagValue(e.target.value)}
+            placeholder="tag1, tag2, tag3"
+            className="border-border bg-background focus:border-ember/50 mt-3 w-full rounded-md border px-3 py-2 text-[13px] outline-none"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') confirmBulkTag();
+              if (e.key === 'Escape') setBulkTagOpen(false);
+            }}
+          />
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setBulkTagOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={confirmBulkTag} disabled={!bulkTagValue.trim()}>
+              Apply Tags
+            </Button>
           </div>
-        )}
+        </Modal>
         <input
           ref={fileInputRef}
           type="file"

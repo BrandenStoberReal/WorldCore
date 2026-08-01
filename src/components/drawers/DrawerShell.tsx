@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { Users } from 'lucide-react';
 import { DrawerSlot } from './DrawerSlot';
 import { NavRail } from './NavRail';
@@ -109,7 +109,21 @@ export function DrawerShell() {
   const topDrawer = useNavStore((s) => s.topDrawer);
   const genSidebarOpen = useNavStore((s) => s.genSidebarOpen);
   const toggleGenSidebar = useNavStore((s) => s.toggleGenSidebar);
+  const charactersOpen = useNavStore((s) => s.charactersOpen);
   const { isMobile } = useBreakpoint();
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const anyOverlayOpen = charactersOpen || genSidebarOpen;
+    if (anyOverlayOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobile, charactersOpen, genSidebarOpen]);
 
   const lastTopPanelRef = useRef<React.ComponentType | null>(null);
   const CurrentTopPanel = topDrawer ? TOP_DRAWER_PANELS[topDrawer] : null;

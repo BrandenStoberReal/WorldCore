@@ -4,6 +4,7 @@ import { Search, Download, Check, AlertCircle, Loader2, Compass, X } from 'lucid
 import { toastSuccess, toastError } from '@/lib/toast';
 import { emit } from '@/lib/extensionEventBus';
 import { cn } from '@/lib/utils';
+import { apiFetch } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -116,13 +117,9 @@ export function CharacterBrowserPanel() {
   const { data: installedChars } = useQuery<ShallowCharacter[]>({
     queryKey: ['/api/v1/characters/all', 'browser-dedup'],
     queryFn: () =>
-      fetch('/api/v1/characters/all', {
+      apiFetch('/characters/all', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shallow: true }),
-      }).then((r) => {
-        if (!r.ok) throw new Error(`Failed to load characters: ${r.status}`);
-        return r.json();
       }) as Promise<ShallowCharacter[]>,
   });
 
@@ -198,12 +195,10 @@ export function CharacterBrowserPanel() {
       });
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/v1/characters/import', { method: 'POST', body: fd });
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw new Error(`Import failed (${res.status}): ${text}`);
-      }
-      const body = (await res.json()) as { ok: boolean; id: number };
+      const body = (await apiFetch('/characters/import', {
+        method: 'POST',
+        body: fd,
+      })) as { ok: boolean; id: number };
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
       emit('character_import', { id: body.id, name: listing.name });
       toastSuccess('Character imported', listing.name);

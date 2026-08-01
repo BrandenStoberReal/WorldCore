@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, X, ChevronDown, ChevronRight, ArrowLeft } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
@@ -440,6 +440,7 @@ function LorebookEditor({ characterId }: { characterId: number }) {
   });
 
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const entriesEndRef = useRef<HTMLDivElement>(null);
 
   // ── Handlers ─────────────────────────────────────────
   const book = autosave.local;
@@ -462,12 +463,15 @@ function LorebookEditor({ characterId }: { characterId: number }) {
     autosave.setLocal({ ...book, entries: newEntries });
   };
 
-  const addEntry = () => {
+  const addEntry = useCallback(() => {
     if (book == null) return;
     const newEntry = createNewEntry();
     autosave.setLocal({ ...book, entries: [...book.entries, newEntry] });
     setExpandedIdx(book.entries.length);
-  };
+    requestAnimationFrame(() => {
+      entriesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }, [book, autosave]);
 
   const deleteEntry = (index: number) => {
     if (book == null) return;
@@ -613,6 +617,7 @@ function LorebookEditor({ characterId }: { characterId: number }) {
                     <Plus className="h-4 w-4" />
                     Add Entry
                   </Button>
+                  <div ref={entriesEndRef} />
                 </CardContent>
               </Card>
             </div>

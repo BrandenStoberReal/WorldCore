@@ -16,6 +16,7 @@ import {
   Trash2,
   Search,
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { InlineSection } from '@/components/drawers/InlineSection';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -33,6 +34,7 @@ export function ExtensionsPanel() {
   const [installOpen, setInstallOpen] = useState(false);
   const [installUrl, setInstallUrl] = useState('');
   const [installScope, setInstallScope] = useState<'user' | 'global'>('user');
+  const [uninstallId, setUninstallId] = useState<string | null>(null);
 
   const {
     data: extensions,
@@ -247,7 +249,7 @@ export function ExtensionsPanel() {
                   variant="ghost"
                   size="sm"
                   className="hover:bg-destructive/10 hover:text-destructive h-8 flex-1 justify-center rounded-none border-0 font-medium"
-                  onClick={() => uninstallMutation.mutate(ext.id)}
+                  onClick={() => setUninstallId(ext.id)}
                   disabled={uninstallMutation.isPending}
                   aria-label="uninstall extension"
                 >
@@ -332,6 +334,20 @@ export function ExtensionsPanel() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={uninstallId != null}
+        onClose={() => setUninstallId(null)}
+        onConfirm={() => {
+          if (uninstallId) {
+            uninstallMutation.mutate(uninstallId);
+            setUninstallId(null);
+          }
+        }}
+        title="Uninstall Extension"
+        message="Remove this extension? This action cannot be undone."
+        confirmLabel="Uninstall"
+      />
     </div>
   );
 }
