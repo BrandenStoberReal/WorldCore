@@ -2,9 +2,10 @@ import { useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { apiFetch, bindCharacterPersona } from '@/lib/api';
+import { apiFetch, apiPost, bindCharacterPersona } from '@/lib/api';
 import { useChatStore } from '@/lib/stores';
 import { useNavStore } from '@/lib/navStore';
+import { toastSuccess, toastError } from '@/lib/toast';
 import { CharacterForm, type CharacterFormHandle } from '@/components/CharacterForm';
 import { cn } from '@/lib/utils';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -67,7 +68,11 @@ function CreateMode() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
+      toastSuccess('Character created');
       openSection('chats');
+    },
+    onError: (err) => {
+      toastError(err);
     },
   });
 
@@ -91,7 +96,38 @@ function EditMode({ characterId }: { characterId: number }) {
   const queryClient = useQueryClient();
   const openSection = useNavStore((s) => s.openSection);
   const setActiveCharacter = useChatStore((s) => s.setActiveCharacter);
+  const activeChatId = useChatStore((s) => s.activeChatId);
+  const messages = useChatStore((s) => s.messages);
+  const setMessages = useChatStore((s) => s.setMessages);
   const formRef = useRef<CharacterFormHandle>(null);
+
+  const syncGreetingToSession = async (newFirstMes: string) => {
+    if (!activeChatId || messages.length === 0) return;
+    const hasUserMessage = messages.some((m) => m.is_user);
+    if (hasUserMessage) return;
+
+    const first = messages[0];
+    if (!first) return;
+    const updatedFirstMsg = {
+      name: first.name,
+      is_user: first.is_user,
+      mes: newFirstMes,
+      send_date: new Date().toISOString(),
+      extra: first.extra ?? {},
+    };
+    setMessages([updatedFirstMsg, ...messages.slice(1)]);
+
+    try {
+      await apiPost('/chats/message', {
+        fileId: activeChatId,
+        action: 'edit',
+        index: 0,
+        updates: updatedFirstMsg,
+      });
+    } catch (err) {
+      console.error('Failed to sync greeting to session:', err);
+    }
+  };
 
   const { data: editCharacter, isLoading: charLoading } = useQuery<CharacterWithId>({
     queryKey: ['/api/v1/characters/get', characterId],
@@ -126,10 +162,18 @@ function EditMode({ characterId }: { characterId: number }) {
         });
       }
       await bindCharacterPersona(id, boundPersonaId ?? null);
+      return { editData };
     },
-    onSuccess: () => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/get', characterId] });
+      toastSuccess('Character saved');
+      if (result.editData.first_mes != null) {
+        await syncGreetingToSession(result.editData.first_mes as string);
+      }
+    },
+    onError: (err) => {
+      toastError(err);
     },
   });
 
