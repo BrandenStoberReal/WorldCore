@@ -20,6 +20,38 @@ async function generatePlaceholderPng(): Promise<Buffer> {
   return img.getBuffer('image/png');
 }
 
+function safeJsonParse(raw: string, context: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new Error(`${context}: Expected a JSON object, got ${Array.isArray(parsed) ? 'array' : typeof parsed}`);
+    }
+    return parsed as Record<string, unknown>;
+  } catch (err) {
+    if (err instanceof SyntaxError) {
+      throw new Error(`${context}: Invalid JSON - ${err.message}`);
+    }
+    throw err;
+  }
+}
+
+function sanitizeZipEntryPath(entryName: string): string {
+  const normalized = path.normalize(entryName);
+  const parts = normalized.split(/[\\/]/);
+  const safeParts: string[] = [];
+  for (const part of parts) {
+    if (part === '..' || part === '.') continue;
+    if (part === '') continue;
+    safeParts.push(part);
+  }
+  return safeParts.join('/');
+}
+
+function isSafeZipEntry(entryName: string): boolean {
+  const normalized = path.normalize(entryName);
+  return !normalized.startsWith('..') && !path.isAbsolute(normalized);
+}
+
 function normalizeToV3(raw: Record<string, unknown>): Record<string, unknown> {
   const data = { ...raw };
 
@@ -96,7 +128,7 @@ export async function importFromPng(uploadPath: string, userId: string): Promise
     throw new Error('No character data found in PNG');
   }
 
-  const parsed = JSON.parse(jsonData) as Record<string, unknown>;
+  const parsed = safeJsonParse(jsonData, 'PNG character data');
   const normalized = normalizeToV3(parsed);
 
   const pngBuffer = await fs.readFile(uploadPath);
@@ -108,7 +140,7 @@ export async function importFromPng(uploadPath: string, userId: string): Promise
 
 export async function importFromJson(uploadPath: string, userId: string): Promise<number> {
   const content = await fs.readFile(uploadPath, 'utf-8');
-  const parsed = JSON.parse(content) as Record<string, unknown>;
+  const parsed = safeJsonParse(content, 'JSON character data');
 
   const normalized = normalizeToV3(parsed);
   const pngBuffer = await generatePlaceholderPng();
@@ -121,7 +153,18 @@ export async function importFromJson(uploadPath: string, userId: string): Promis
 
 export async function importFromYaml(uploadPath: string, userId: string): Promise<number> {
   const content = await fs.readFile(uploadPath, 'utf-8');
-  const parsed = parse(content) as Record<string, unknown>;
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = parse(content);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new Error(`Expected a YAML object, got ${Array.isArray(parsed) ? 'array' : typeof parsed}`);
+    }
+  } catch (err) {
+    if (err instanceof Error) {
+      throw new Error(`YAML character data: ${err.message}`);
+    }
+    throw new Error('YAML character data: Invalid YAML');
+  }
 
   const mapped: Record<string, unknown> = {
     name: parsed.name ?? 'Unknown',
@@ -162,7 +205,7 @@ export async function importFromCharX(uploadPath: string, userId: string): Promi
     throw new Error('No card.json found in CharX archive');
   }
 
-  const cardData = JSON.parse(cardEntry.getData().toString('utf-8')) as Record<string, unknown>;
+  const cardData = safeJsonParse(cardEntry.getData().toString('utf-8'), 'CharX card.json');
   const normalized = normalizeToV3(cardData);
 
   const avatarEntry = zip.getEntries().find((e) => {
@@ -178,8 +221,10 @@ export async function importFromCharX(uploadPath: string, userId: string): Promi
   }
 
   for (const entry of zip.getEntries()) {
-    if (entry.entryName.startsWith('assets/')) {
-      const assetName = path.basename(entry.entryName);
+    if (entry.entryName.startsWith('assets/') && !entry.isDirectory) {
+      const safeName = sanitizeZipEntryPath(entry.entryName);
+      if (!safeName || !safeName.startsWith('assets/')) continue;
+      const assetName = path.basename(safeName);
       const assetPath = path.join(paths.assets, assetName);
       await fs.mkdir(path.dirname(assetPath), { recursive: true });
       await fs.writeFile(assetPath, entry.getData() as Buffer);
@@ -208,7 +253,7 @@ export async function importFromByaf(uploadPath: string, userId: string): Promis
     throw new Error('No card data found in BYAF archive');
   }
 
-  const cardData = JSON.parse(cardEntry.getData().toString('utf-8')) as Record<string, unknown>;
+  const cardData = safeJsonParse(cardEntry.getData().toString('utf-8'), 'BYAF card data');
   const normalized = normalizeToV3(cardData);
 
   const avatarEntry = zip
@@ -223,8 +268,10 @@ export async function importFromByaf(uploadPath: string, userId: string): Promis
   }
 
   for (const entry of zip.getEntries()) {
-    if (entry.entryName.startsWith('backgrounds/')) {
-      const bgName = path.basename(entry.entryName);
+    if (entry.entryName.startsWith('backgrounds/') && !entry.isDirectory) {
+      const safeName = sanitizeZipEntryPath(entry.entryName);
+      if (!safeName || !safeName.startsWith('backgrounds/')) continue;
+      const bgName = path.basename(safeName);
       const bgPath = path.join(paths.backgrounds, bgName);
       await fs.mkdir(path.dirname(bgPath), { recursive: true });
       await fs.writeFile(bgPath, entry.getData() as Buffer);
@@ -232,8 +279,10 @@ export async function importFromByaf(uploadPath: string, userId: string): Promis
   }
 
   for (const entry of zip.getEntries()) {
-    if (entry.entryName.startsWith('sprites/')) {
-      const spriteName = path.basename(entry.entryName);
+    if (entry.entryName.startsWith('sprites/') && !entry.isDirectory) {
+      const safeName = sanitizeZipEntryPath(entry.entryName);
+      if (!safeName || !safeName.startsWith('sprites/')) continue;
+      const spriteName = path.basename(safeName);
       const spritePath = path.join(paths.sprites, spriteName);
       await fs.mkdir(path.dirname(spritePath), { recursive: true });
       await fs.writeFile(spritePath, entry.getData() as Buffer);

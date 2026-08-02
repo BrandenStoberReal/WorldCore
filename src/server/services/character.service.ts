@@ -1,5 +1,5 @@
 import { db } from '@/server/db/client';
-import { characters, chats } from '@/server/db/schema';
+import { characters, chats, personas } from '@/server/db/schema';
 import { eq, asc, and } from 'drizzle-orm';
 import { getUserCharacterPath, getUserPath } from '@/server/storage/paths';
 import { writeFile, readFile, removeFile, copyFile, exists as fsExists } from '@/server/storage/fs';
@@ -336,6 +336,18 @@ export class CharacterService {
       throw new NotFoundError(`Character with id ${id}`);
     }
 
+    // Validate persona exists before binding (skip check for unbinding)
+    if (personaId !== null) {
+      const personaRow = await db
+        .select({ id: personas.id })
+        .from(personas)
+        .where(and(eq(personas.id, personaId), eq(personas.userId, userId)))
+        .limit(1);
+      if (personaRow.length === 0) {
+        throw new NotFoundError(`Persona with id ${personaId}`);
+      }
+    }
+
     await db
       .update(characters)
       .set({ boundPersonaId: personaId })
@@ -670,8 +682,15 @@ export class CharacterService {
       parsed.name = 'Unknown';
     }
 
-    const fileName = `${parsed.name.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
-    const destPath = path.join(getUserCharacterPath(userId), fileName);
+    const baseName = parsed.name.replace(/[^a-zA-Z0-9]/g, '_');
+    let fileName = `${baseName}.png`;
+    let destPath = path.join(getUserCharacterPath(userId), fileName);
+    let counter = 1;
+    while (await fsExists(destPath)) {
+      fileName = `${baseName}_${counter}.png`;
+      destPath = path.join(getUserCharacterPath(userId), fileName);
+      counter++;
+    }
 
     const now = Date.now();
     parsed.modification_date = now;

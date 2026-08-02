@@ -5,9 +5,22 @@ import { importCharacter } from '@/server/importers/character.importer';
 import { exportCharacter, type ExportFormat } from '@/server/exporters/character.exporter';
 import { characterFolderService } from '@/server/services/character-folder.service';
 import { getUserCharacterPath } from '@/server/storage/paths';
+import { removeFile } from '@/server/storage/fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { CharacterCreateInput } from '@/shared/types/character';
+
+const MAX_IMPORT_SIZE = 50 * 1024 * 1024; // 50MB
+const ALLOWED_IMPORT_EXTENSIONS = new Set([
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.json',
+  '.yaml',
+  '.yml',
+  '.zip',
+]);
 
 export const characterRoutes = {
   create: errorGuard(
@@ -190,12 +203,41 @@ export const characterRoutes = {
         );
       }
 
+      const ext = path.extname(file.name).toLowerCase();
+      if (!ALLOWED_IMPORT_EXTENSIONS.has(ext)) {
+        return Response.json(
+          {
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: `Unsupported file type: ${ext || '(none)'}. Use .png, .jpg, .json, .yaml, or .zip`,
+            },
+          },
+          { status: 400 },
+        );
+      }
+
+      if (file.size > MAX_IMPORT_SIZE) {
+        return Response.json(
+          {
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max ${MAX_IMPORT_SIZE / 1024 / 1024}MB)`,
+            },
+          },
+          { status: 400 },
+        );
+      }
+
       const buffer = Buffer.from(await file.arrayBuffer());
       const tempPath = `/tmp/WorldCore_import_${Date.now()}_${randomUUID()}`;
       await Bun.write(tempPath, buffer);
 
-      const id = await importCharacter(tempPath, file.name, userId);
-      return Response.json({ ok: true, id });
+      try {
+        const id = await importCharacter(tempPath, file.name, userId);
+        return Response.json({ ok: true, id });
+      } finally {
+        await removeFile(tempPath).catch(() => {});
+      }
     }),
   ),
 
