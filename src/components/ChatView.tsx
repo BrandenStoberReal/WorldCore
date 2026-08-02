@@ -398,12 +398,17 @@ export function ChatView({ characterId }: ChatViewProps) {
       addMessage(userMsg);
       await appendMessageMutation.mutateAsync({ fileId: activeChatId, message: userMsg });
 
-      const allMessages = [...messages, userMsg];
+      const allMessages = [...useChatStore.getState().messages, userMsg];
+
+      const maxContext = genStore.max_context ?? 8192;
+      const tokenPadding = 1024;
 
       const promptBuildResult = await apiPost<{
         messages: Array<{ role: string; content: string; name?: string }>;
         tokenCount: number;
         stopStrings?: string[];
+        needsSummarization?: boolean;
+        messagesToSummarize?: ChatMessageType[];
       }>('/prompt-builder/build', {
         characterId: characterId,
         messages: allMessages,
@@ -414,9 +419,49 @@ export function ChatView({ characterId }: ChatViewProps) {
         instruct: textOptions?.instruct,
         reasoning: reasoningSettings,
         context: textOptions?.context,
+        maxContext,
+        tokenPadding,
       });
 
-      const promptMessages = promptBuildResult.messages;
+      let promptMessages = promptBuildResult.messages;
+
+      if (promptBuildResult.needsSummarization && promptBuildResult.messagesToSummarize) {
+        try {
+          const summarizeResult = await apiPost<{
+            summary: string;
+            summarizedCount: number;
+            keptCount: number;
+          }>('/summarize', {
+            messages: promptBuildResult.messagesToSummarize,
+            charName: character.name,
+            userName: userName,
+          });
+
+          if (summarizeResult?.summary) {
+            const rebuiltResult = await apiPost<{
+              messages: Array<{ role: string; content: string; name?: string }>;
+              tokenCount: number;
+              stopStrings?: string[];
+            }>('/prompt-builder/build', {
+              characterId: characterId,
+              messages: allMessages,
+              userName: userName,
+              includeExamples: true,
+              systemPromptOverride: textOptions?.systemPromptOverride,
+              jailbreakPromptOverride: textOptions?.jailbreakPromptOverride,
+              instruct: textOptions?.instruct,
+              reasoning: reasoningSettings,
+              context: textOptions?.context,
+              maxContext,
+              tokenPadding,
+              summary: summarizeResult.summary,
+            });
+            promptMessages = rebuiltResult.messages;
+          }
+        } catch (err) {
+          console.warn('[ChatView] Summarization failed, using truncated context:', err);
+        }
+      }
 
       const source = (settings?.chat_completion_source as string) || 'openai';
       const model = (settings?.chat_completion_model as string) || 'gpt-3.5-turbo';
@@ -527,13 +572,6 @@ export function ChatView({ characterId }: ChatViewProps) {
           if (textOptions?.instruct?.enabled && textOptions.instruct.outputSequence) {
             flatPrompt += textOptions.instruct.outputSequence;
           }
-          console.log('=== TEXT COMPLETION REQUEST ===');
-          console.log('PROMPT:\n' + flatPrompt);
-          console.log('GEN PARAMS:', JSON.stringify(genParams, null, 2));
-          console.log('INSTRUCT:', JSON.stringify(textOptions?.instruct, null, 2));
-          console.log('REASONING:', JSON.stringify(reasoningSettings, null, 2));
-          console.log('STOP:', genParams.stop);
-          console.log('=== END REQUEST ===');
           generator = streamTextCompletion({
             text_completion_source: textCompletionSource(source),
             model: genStore.model || model,
@@ -687,16 +725,17 @@ export function ChatView({ characterId }: ChatViewProps) {
     if (!character) return;
     const oldChatId = activeChatId;
     clearChat();
-    if (oldChatId) {
-      apiPost('/chats/delete', { fileId: oldChatId })
-        .then(() => queryClient.invalidateQueries({ queryKey: ['/api/v1/chats/get'] }))
-        .catch((e) => {
-          console.error('Failed to delete old chat session:', e);
-        });
-    }
-    setTimeout(() => {
-      createChatMutation.mutate(character.name);
-    }, 100);
+    createChatMutation.mutate(character.name, {
+      onSuccess: () => {
+        if (oldChatId) {
+          apiPost('/chats/delete', { fileId: oldChatId })
+            .then(() => queryClient.invalidateQueries({ queryKey: ['/api/v1/chats/get'] }))
+            .catch((e) => {
+              console.error('Failed to delete old chat session:', e);
+            });
+        }
+      },
+    });
   }, [character, clearChat, createChatMutation, activeChatId, queryClient]);
 
   const handleCopyMessage = useCallback((text: string) => {
@@ -761,7 +800,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       if (index < 0 || index >= messages.length) return;
 
       const userName = resolvedPersona.name;
-      const truncatedMessages = messages.slice(0, index);
+      const truncatedMessages = useChatStore.getState().messages.slice(0, index);
 
       setIsGenerating(true);
       emit('generation_started', { characterId });
@@ -834,6 +873,74 @@ export function ChatView({ characterId }: ChatViewProps) {
       }
       genParams.stop = mergedStop.length > 0 ? mergedStop : undefined;
 
+      const maxContext = genStore.max_context ?? 8192;
+      const tokenPadding = 1024;
+
+      const promptBuildResult = await apiPost<{
+        messages: Array<{ role: string; content: string; name?: string }>;
+        tokenCount: number;
+        stopStrings?: string[];
+        needsSummarization?: boolean;
+        messagesToSummarize?: ChatMessageType[];
+      }>('/prompt-builder/build', {
+        characterId: characterId,
+        messages: truncatedMessages,
+        userName: userName,
+        includeExamples: true,
+        systemPromptOverride: textOptions?.systemPromptOverride,
+        jailbreakPromptOverride: textOptions?.jailbreakPromptOverride,
+        instruct: textOptions?.instruct,
+        reasoning: reasoningSettings,
+        context: textOptions?.context,
+        maxContext,
+        tokenPadding,
+      });
+
+      let promptMessages = promptBuildResult.messages;
+
+      if (promptBuildResult.needsSummarization && promptBuildResult.messagesToSummarize) {
+        try {
+          const summarizeResult = await apiPost<{
+            summary: string;
+            summarizedCount: number;
+            keptCount: number;
+          }>('/summarize', {
+            messages: promptBuildResult.messagesToSummarize,
+            charName: character.name,
+            userName: userName,
+          });
+
+          if (summarizeResult?.summary) {
+            const rebuiltResult = await apiPost<{
+              messages: Array<{ role: string; content: string; name?: string }>;
+              tokenCount: number;
+              stopStrings?: string[];
+            }>('/prompt-builder/build', {
+              characterId: characterId,
+              messages: truncatedMessages,
+              userName: userName,
+              includeExamples: true,
+              systemPromptOverride: textOptions?.systemPromptOverride,
+              jailbreakPromptOverride: textOptions?.jailbreakPromptOverride,
+              instruct: textOptions?.instruct,
+              reasoning: reasoningSettings,
+              context: textOptions?.context,
+              maxContext,
+              tokenPadding,
+              summary: summarizeResult.summary,
+            });
+            promptMessages = rebuiltResult.messages;
+          }
+        } catch {}
+      }
+
+      if (promptBuildResult.stopStrings?.length) {
+        for (const stopString of promptBuildResult.stopStrings) {
+          if (stopString && !mergedStop.includes(stopString)) mergedStop.push(stopString);
+        }
+      }
+      genParams.stop = mergedStop.length > 0 ? mergedStop : undefined;
+
       let fullContent = '';
       fullContentRef.current = '';
       const startReplyWith = textOptions?.startReplyWith ?? '';
@@ -842,11 +949,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         const interceptorRequest: StreamChatRequest = {
           chat_completion_source: (settings?.chat_completion_source as string) || 'openai',
           model: genStore.model || (settings?.chat_completion_model as string) || 'gpt-3.5-turbo',
-          messages: truncatedMessages.map((m) => ({
-            role: m.is_user ? 'user' : 'assistant',
-            content: m.mes,
-            name: m.name,
-          })),
+          messages: promptMessages,
           reverse_proxy: (settings?.reverse_proxy as string) || undefined,
           ...genParams,
         };
@@ -879,10 +982,6 @@ export function ChatView({ characterId }: ChatViewProps) {
             ...genParams,
           });
         } else {
-          console.log('=== REGENERATE CHAT REQUEST ===');
-          console.log('MESSAGES:', JSON.stringify(interceptedRequest.messages, null, 2));
-          console.log('GEN PARAMS:', JSON.stringify(genParams, null, 2));
-          console.log('=== END REGENERATE ===');
           generator = streamChat(interceptedRequest);
         }
 

@@ -5,7 +5,14 @@ import { db } from '@/server/db/client';
 import { chats } from '@/server/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { getUserChatPath, getUserGroupChatPath } from '@/server/storage/paths';
-import { readJsonl, writeJsonl, appendJsonlLine } from '@/server/storage/jsonl';
+import {
+  readJsonl,
+  writeJsonl,
+  appendJsonlLine,
+  readFirstLine,
+  readLastLine,
+  readJsonlStream,
+} from '@/server/storage/jsonl';
 import { listFiles, removeFile, exists } from '@/server/storage/fs';
 import { assertValidFileId } from '@/server/util/ids';
 import type {
@@ -51,6 +58,7 @@ export class ChatService {
   }
 
   async getMessages(userId: string, fileId: string): Promise<ChatMessage[]> {
+    assertValidFileId(fileId);
     const chatDir = getUserChatPath(userId);
     const filePath = path.join(chatDir, `${fileId}.jsonl`);
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
@@ -58,6 +66,7 @@ export class ChatService {
   }
 
   async getMetadata(userId: string, fileId: string): Promise<ChatMetadata | null> {
+    assertValidFileId(fileId);
     const chatDir = getUserChatPath(userId);
     const filePath = path.join(chatDir, `${fileId}.jsonl`);
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
@@ -120,11 +129,14 @@ export class ChatService {
 
   async rename(userId: string, fileId: string, newName: string): Promise<void> {
     assertValidFileId(fileId);
+    if (!newName || newName.length > 200) {
+      throw new Error('Invalid character name: must be 1-200 characters');
+    }
     const chatDir = getUserChatPath(userId);
     const filePath = path.join(chatDir, `${fileId}.jsonl`);
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
     const metadata = allLines[0] as ChatMetadata;
-    metadata.character_name = newName;
+    metadata.character_name = newName.trim();
     await writeJsonl<ChatMetadata | ChatMessage>(filePath, [
       metadata,
       ...(allLines.slice(1) as ChatMessage[]),
@@ -162,22 +174,36 @@ export class ChatService {
       const fileId = path.basename(file, '.jsonl');
       const filePath = path.join(chatDir, file);
       const stat = await fs.stat(filePath);
-      const metadata = await this.getMetadata(userId, fileId);
+      const firstLine = await readFirstLine(filePath);
+      if (!firstLine) continue;
 
-      if (metadata && metadata.character_name === characterName) {
-        const messages = await this.getMessages(userId, fileId);
-        const lastMsg = messages[messages.length - 1];
-
-        results.push({
-          file_id: fileId,
-          file_name: file,
-          file_size: stat.size,
-          chat_items: messages,
-          mes: lastMsg?.mes?.slice(0, 100) || '',
-          last_mes: lastMsg?.send_date || new Date(stat.mtimeMs).toISOString(),
-          chat_metadata: metadata,
-        });
+      let metadata: ChatMetadata;
+      try {
+        metadata = JSON.parse(firstLine) as ChatMetadata;
+      } catch {
+        continue;
       }
+
+      if (metadata.character_name !== characterName) continue;
+
+      const lastLine = await readLastLine(filePath);
+      let lastMsg: ChatMessage | undefined;
+      if (lastLine) {
+        try {
+          const parsed = JSON.parse(lastLine) as ChatMetadata | ChatMessage;
+          if ('mes' in parsed) lastMsg = parsed as ChatMessage;
+        } catch {}
+      }
+
+      results.push({
+        file_id: fileId,
+        file_name: file,
+        file_size: stat.size,
+        chat_items: [],
+        mes: lastMsg?.mes?.slice(0, 100) || '',
+        last_mes: lastMsg?.send_date || new Date(stat.mtimeMs).toISOString(),
+        chat_metadata: metadata,
+      });
     }
 
     return results.sort((a, b) => {
@@ -196,18 +222,32 @@ export class ChatService {
       const fileId = path.basename(file, '.jsonl');
       const filePath = path.join(chatDir, file);
       const stat = await fs.stat(filePath);
-      const messages = await this.getMessages(userId, fileId);
-      const metadata = await this.getMetadata(userId, fileId);
-      const lastMsg = messages[messages.length - 1];
+      const firstLine = await readFirstLine(filePath);
+
+      let metadata: ChatMetadata | undefined;
+      if (firstLine) {
+        try {
+          metadata = JSON.parse(firstLine) as ChatMetadata;
+        } catch {}
+      }
+
+      const lastLine = await readLastLine(filePath);
+      let lastMsg: ChatMessage | undefined;
+      if (lastLine) {
+        try {
+          const parsed = JSON.parse(lastLine) as ChatMetadata | ChatMessage;
+          if ('mes' in parsed) lastMsg = parsed as ChatMessage;
+        } catch {}
+      }
 
       results.push({
         file_id: fileId,
         file_name: file,
         file_size: stat.size,
-        chat_items: messages,
+        chat_items: [],
         mes: lastMsg?.mes?.slice(0, 100) || '',
         last_mes: lastMsg?.send_date || new Date(stat.mtimeMs).toISOString(),
-        chat_metadata: metadata || undefined,
+        chat_metadata: metadata,
       });
     }
 
@@ -226,15 +266,18 @@ export class ChatService {
 
     for (const file of files) {
       const fileId = path.basename(file, '.jsonl');
-      const messages = await this.getMessages(userId, fileId);
+      const filePath = path.join(chatDir, file);
+      const stream = await readJsonlStream<ChatMetadata | ChatMessage>(filePath);
 
-      const match = messages.find((m) => m.mes.toLowerCase().includes(lowerQuery));
-      if (match) {
-        results.push({
-          file_id: fileId,
-          file_name: file,
-          match: match.mes.slice(0, 200),
-        });
+      for await (const record of stream) {
+        if ('mes' in record && (record as ChatMessage).mes.toLowerCase().includes(lowerQuery)) {
+          results.push({
+            file_id: fileId,
+            file_name: file,
+            match: (record as ChatMessage).mes.slice(0, 200),
+          });
+          break;
+        }
       }
     }
 
@@ -310,7 +353,12 @@ export class ChatService {
     return fileId;
   }
 
-  async saveGroupMessage(userId: string, groupId: string, message: ChatMessage): Promise<void> {
+  async saveGroupMessage(
+    userId: string,
+    groupId: string,
+    message: ChatMessage,
+    userName: string = 'User',
+  ): Promise<void> {
     const groupChat = await db
       .select()
       .from(chats)
@@ -325,7 +373,7 @@ export class ChatService {
       const filePath = path.join(groupChatDir, fileName);
 
       const metadata: ChatMetadata = {
-        user_name: 'User',
+        user_name: userName,
         character_name: `Group: ${groupId}`,
       };
       (metadata as Record<string, unknown>).group = groupId;
@@ -421,7 +469,7 @@ export class ChatService {
         lastMessage: lastMsg?.mes?.slice(0, 100) || '',
         lastMesDate: Date.now(),
       })
-      .where(eq(chats.fileId, fileId));
+      .where(and(eq(chats.fileId, fileId), eq(chats.userId, userId)));
   }
 }
 
