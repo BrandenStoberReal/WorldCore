@@ -20,12 +20,14 @@ describe('renderMarkdown', () => {
 
   it('renders **bold** as <strong>', () => {
     const html = render(renderMarkdown('**bold**'));
-    expect(html).toContain('<strong>bold</strong>');
+    expect(html).toContain('<strong');
+    expect(html).toContain('bold</strong>');
   });
 
   it('renders *italic* as <em>', () => {
     const html = render(renderMarkdown('*italic*'));
-    expect(html).toContain('<em>italic</em>');
+    expect(html).toContain('<em');
+    expect(html).toContain('italic</em>');
   });
 
   it('does NOT italicize * text * with whitespace inside markers', () => {
@@ -36,7 +38,8 @@ describe('renderMarkdown', () => {
 
   it('renders _italic_ at word boundary as <em>', () => {
     const html = render(renderMarkdown('_italic_'));
-    expect(html).toContain('<em>italic</em>');
+    expect(html).toContain('<em');
+    expect(html).toContain('italic</em>');
   });
 
   it('does NOT italicize foo_bar_baz (literalMidWordUnderscores)', () => {
@@ -47,7 +50,8 @@ describe('renderMarkdown', () => {
 
   it('renders __bold__ at word boundary as <strong>', () => {
     const html = render(renderMarkdown('__bold__'));
-    expect(html).toContain('<strong>bold</strong>');
+    expect(html).toContain('<strong');
+    expect(html).toContain('bold</strong>');
   });
 
   it('renders inline code as <code>', () => {
@@ -117,8 +121,9 @@ describe('renderMarkdown', () => {
 
   it('renders nested **bold *italic* bold** correctly', () => {
     const html = render(renderMarkdown('**bold *italic* bold**'));
-    expect(html).toContain('<strong>');
-    expect(html).toContain('<em>italic</em>');
+    expect(html).toContain('<strong');
+    expect(html).toContain('<em');
+    expect(html).toContain('italic</em>');
   });
 
   it('renders unclosed **bold as literal asterisks', () => {
@@ -142,8 +147,10 @@ describe('renderMarkdown', () => {
 
   it('renders mixed emphasis correctly', () => {
     const html = render(renderMarkdown('*narration* says **important** things'));
-    expect(html).toContain('<em>narration</em>');
-    expect(html).toContain('<strong>important</strong>');
+    expect(html).toContain('<em');
+    expect(html).toContain('narration</em>');
+    expect(html).toContain('<strong');
+    expect(html).toContain('important</strong>');
     expect(html).toContain('says');
     expect(html).toContain('things');
   });
@@ -159,13 +166,15 @@ describe('renderMarkdown', () => {
       const html = render(renderMarkdown('**bold text', { highlightOpeningTags: true }));
       expect(html).toContain('md-opening-tag');
       expect(html).toContain('**');
-      expect(html).toContain('<strong>bold text</strong>');
+      expect(html).toContain('<strong');
+      expect(html).toContain('bold text</strong>');
     });
 
     it('renders unclosed *italic with opening tag marker', () => {
       const html = render(renderMarkdown('*italic text', { highlightOpeningTags: true }));
       expect(html).toContain('md-opening-tag');
-      expect(html).toContain('<em>italic text</em>');
+      expect(html).toContain('<em');
+      expect(html).toContain('italic text</em>');
     });
 
     it('renders unclosed `code with opening tag marker', () => {
@@ -183,7 +192,8 @@ describe('renderMarkdown', () => {
     it('renders closed **bold** normally with highlighting enabled', () => {
       const html = render(renderMarkdown('**bold text**', { highlightOpeningTags: true }));
       expect(html).not.toContain('md-opening-tag');
-      expect(html).toContain('<strong>bold text</strong>');
+      expect(html).toContain('<strong');
+      expect(html).toContain('bold text</strong>');
     });
 
     it('renders closed `code` normally with highlighting enabled', () => {
@@ -210,13 +220,15 @@ describe('renderMarkdown', () => {
   it('renders emphasis inside dialogue quotes', () => {
     const html = render(renderMarkdown('"You didn\'t need to say it like *that*!"'));
     expect(html).toContain('var(--dialogue)');
-    expect(html).toContain('<em>that</em>');
+    expect(html).toContain('<em');
+    expect(html).toContain('that</em>');
   });
 
   it('renders curly quotes with dialogue color and nested emphasis', () => {
     const html = render(renderMarkdown('\u201cHello *world*\u201d'));
     expect(html).toContain('var(--dialogue)');
-    expect(html).toContain('<em>world</em>');
+    expect(html).toContain('<em');
+    expect(html).toContain('world</em>');
   });
 
   it('highlights unclosed opening quote when highlightOpeningTags is true', () => {

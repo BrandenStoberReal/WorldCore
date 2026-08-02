@@ -350,13 +350,15 @@ function renderInlineTokens(
         continue;
       }
       if (highlight) {
+        const rest = text.slice(pos + 1);
         pushToken(
           tokens,
           <span key={`q${pos}`} style={{ color: 'var(--dialogue)' }}>
             {qChar}
+            {renderInlineTokens(rest, fences, codes, depth, highlight)}
           </span>,
         );
-        pos++;
+        pos = text.length;
         continue;
       }
     }
@@ -367,7 +369,7 @@ function renderInlineTokens(
     pos = nextSpecial;
   }
 
-  if (tokens.length === 0) return '';
+  if (tokens.length === 0) return null;
   if (tokens.length === 1) return tokens[0];
   // Return array directly — React supports array returns from components.
   return tokens;
@@ -427,7 +429,6 @@ interface InlineCodeMatch {
 
 function tryMatchInlineCode(text: string, pos: number, highlight: boolean): InlineCodeMatch | null {
   if (text.charCodeAt(pos) !== 0x60) return null;
-  if (!highlight) return null;
 
   const closeIdx = text.indexOf('`', pos + 1);
   if (closeIdx !== -1 && closeIdx > pos + 1) return null;
@@ -437,15 +438,19 @@ function tryMatchInlineCode(text: string, pos: number, highlight: boolean): Inli
   const rest = text.slice(pos + 1, end);
   if (rest.length === 0) return null;
 
-  return {
-    node: (
-      <span key={`uch${pos}`}>
-        <span className="md-opening-tag">{'`'}</span>
-        <code>{rest}</code>
-      </span>
-    ),
-    end,
-  };
+  if (highlight) {
+    return {
+      node: (
+        <span key={`uch${pos}`}>
+          <span className="md-opening-tag">{'`'}</span>
+          <code>{rest}</code>
+        </span>
+      ),
+      end,
+    };
+  }
+
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -472,7 +477,7 @@ function tryMatchEmphasis(
     if (isValidEmphContent(inner)) {
       return {
         node: (
-          <strong key={`b${pos}`}>
+          <strong key={`b${pos}`} data-depth={depth}>
             {renderInlineTokens(inner, fences, codes, depth + 1, false)}
           </strong>
         ),
@@ -488,7 +493,7 @@ function tryMatchEmphasis(
         node: (
           <span key={`bh${pos}`}>
             <span className="md-opening-tag">{'**'}</span>
-            <strong>{renderInlineTokens(content, fences, codes, depth + 1, false)}</strong>
+            <strong data-depth={depth}>{renderInlineTokens(content, fences, codes, depth + 1, false)}</strong>
           </span>
         ),
         end: text.length,
@@ -498,12 +503,16 @@ function tryMatchEmphasis(
 
   // Priority 2: __bold__ at word boundary
   const boldUnder = matchDelim(text, pos, '__');
-  if (boldUnder !== null && isWordBoundaryBefore(text, pos)) {
+  if (
+    boldUnder !== null &&
+    isWordBoundaryBefore(text, pos) &&
+    isWordBoundaryAfter(text, boldUnder.contentEnd + 2)
+  ) {
     const inner = text.slice(boldUnder.contentStart, boldUnder.contentEnd);
     if (isValidEmphContent(inner)) {
       return {
         node: (
-          <strong key={`B${pos}`}>
+          <strong key={`B${pos}`} data-depth={depth}>
             {renderInlineTokens(inner, fences, codes, depth + 1, false)}
           </strong>
         ),
@@ -512,14 +521,19 @@ function tryMatchEmphasis(
     }
   }
   // Highlight unclosed __bold__ at word boundary
-  if (highlight && text.slice(pos, pos + 2) === '__' && isWordBoundaryBefore(text, pos)) {
+  if (
+    highlight &&
+    text.slice(pos, pos + 2) === '__' &&
+    isWordBoundaryBefore(text, pos) &&
+    isWordBoundaryAfter(text, pos + 2)
+  ) {
     const content = text.slice(pos + 2);
     if (content.length > 0 && isValidEmphContent(content)) {
       return {
         node: (
           <span key={`Bh${pos}`}>
             <span className="md-opening-tag">{'__'}</span>
-            <strong>{renderInlineTokens(content, fences, codes, depth + 1, false)}</strong>
+            <strong data-depth={depth}>{renderInlineTokens(content, fences, codes, depth + 1, false)}</strong>
           </span>
         ),
         end: text.length,
@@ -615,6 +629,13 @@ function isWordBoundaryBefore(text: string, pos: number): boolean {
   const prev = text[pos - 1];
   if (prev === undefined) return true;
   return /\s/.test(prev);
+}
+
+function isWordBoundaryAfter(text: string, pos: number): boolean {
+  if (pos >= text.length) return true;
+  const next = text[pos];
+  if (next === undefined) return true;
+  return /\s/.test(next) || /[.,!?;:)]/.test(next);
 }
 
 function isValidEmphContent(s: string): boolean {
