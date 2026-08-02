@@ -19,16 +19,20 @@ export function useResolvedPersona(
     queryFn: getDefaultPersona,
   });
 
+  const effectiveChatId = chatPersonaId ?? undefined;
+  const effectiveBoundId = characterBoundPersonaId ?? undefined;
+  const idsEqual = effectiveChatId != null && effectiveBoundId === effectiveChatId;
+
   const { data: chatPersona } = useQuery({
-    queryKey: ['/api/v1/personas/get', chatPersonaId],
-    queryFn: () => getPersona(chatPersonaId!),
-    enabled: chatPersonaId != null,
+    queryKey: ['/api/v1/personas/get', effectiveChatId],
+    queryFn: () => getPersona(effectiveChatId!),
+    enabled: effectiveChatId != null,
   });
 
   const { data: boundPersona } = useQuery({
-    queryKey: ['/api/v1/personas/get', characterBoundPersonaId],
-    queryFn: () => getPersona(characterBoundPersonaId!),
-    enabled: characterBoundPersonaId != null,
+    queryKey: ['/api/v1/personas/get', effectiveBoundId],
+    queryFn: () => getPersona(effectiveBoundId!),
+    enabled: effectiveBoundId != null && !idsEqual,
   });
 
   const persona = chatPersona ?? boundPersona ?? defaultPersona;

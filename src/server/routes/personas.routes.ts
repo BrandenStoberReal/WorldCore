@@ -1,12 +1,20 @@
 import { errorGuard } from '@/server/middleware/errorGuard';
 import { withUserId } from '@/server/middleware/withUserId';
 import { personaService } from '@/server/services/persona.service';
-import type { PersonaCreateInput, PersonaEditInput } from '@/shared/types/persona';
+import {
+  PersonaCreateInputSchema,
+  PersonaEditInputSchema,
+  PersonaSetAvatarInputSchema,
+} from '@/shared/schemas/persona';
+import { z } from 'zod';
+
+const IdSchema = z.object({ id: z.number() });
+const RenameSchema = z.object({ id: z.number(), name: z.string().min(1).max(100) });
 
 export const personaRoutes = {
   create: errorGuard(
     withUserId(async (req: Request, userId: string): Promise<Response> => {
-      const body = (await req.json()) as PersonaCreateInput;
+      const body = PersonaCreateInputSchema.parse(await req.json());
       const result = await personaService.create(body, userId);
       return Response.json({ ok: true, id: result.id });
     }),
@@ -14,8 +22,9 @@ export const personaRoutes = {
 
   edit: errorGuard(
     withUserId(async (req: Request, userId: string): Promise<Response> => {
-      const body = (await req.json()) as { id: number } & PersonaEditInput;
-      const { id, ...patch } = body;
+      const raw = await req.json();
+      const id = IdSchema.parse(raw).id;
+      const patch = PersonaEditInputSchema.parse(raw);
       await personaService.edit(id, userId, patch);
       return Response.json({ ok: true });
     }),
@@ -23,7 +32,7 @@ export const personaRoutes = {
 
   rename: errorGuard(
     withUserId(async (req: Request, userId: string): Promise<Response> => {
-      const body = (await req.json()) as { id: number; name: string };
+      const body = RenameSchema.parse(await req.json());
       await personaService.rename(body.id, userId, body.name);
       return Response.json({ ok: true });
     }),
@@ -31,7 +40,7 @@ export const personaRoutes = {
 
   setDefault: errorGuard(
     withUserId(async (req: Request, userId: string): Promise<Response> => {
-      const body = (await req.json()) as { id: number };
+      const body = IdSchema.parse(await req.json());
       await personaService.setDefault(body.id, userId);
       return Response.json({ ok: true });
     }),
@@ -39,7 +48,7 @@ export const personaRoutes = {
 
   setAvatar: errorGuard(
     withUserId(async (req: Request, userId: string): Promise<Response> => {
-      const body = (await req.json()) as { id: number; avatar: string };
+      const body = PersonaSetAvatarInputSchema.parse(await req.json());
       await personaService.setAvatar(body.id, userId, body.avatar);
       return Response.json({ ok: true });
     }),
@@ -47,7 +56,7 @@ export const personaRoutes = {
 
   delete: errorGuard(
     withUserId(async (req: Request, userId: string): Promise<Response> => {
-      const body = (await req.json()) as { id: number };
+      const body = IdSchema.parse(await req.json());
       await personaService.delete(body.id, userId);
       return Response.json({ ok: true });
     }),
@@ -55,7 +64,7 @@ export const personaRoutes = {
 
   get: errorGuard(
     withUserId(async (req: Request, userId: string): Promise<Response> => {
-      const body = (await req.json().catch(() => ({}))) as { id: number };
+      const body = IdSchema.parse(await req.json().catch(() => ({})));
       const result = await personaService.get(body.id, userId);
       return Response.json(result);
     }),

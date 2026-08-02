@@ -1,5 +1,5 @@
 import { db } from '@/server/db/client';
-import { personas } from '@/server/db/schema';
+import { personas, characters } from '@/server/db/schema';
 import { eq, and, desc, asc } from 'drizzle-orm';
 import { NotFoundError } from '@/server/errors';
 import type { Persona, PersonaCreateInput, PersonaEditInput } from '@/shared/types/persona';
@@ -75,13 +75,15 @@ export const personaService = {
 
   async setDefault(id: number, userId: string): Promise<void> {
     const rows = await db
-      .select({ id: personas.id })
+      .select({ id: personas.id, isDefault: personas.isDefault })
       .from(personas)
       .where(and(eq(personas.id, id), eq(personas.userId, userId)))
       .limit(1);
     if (rows.length === 0) {
       throw new NotFoundError(`Persona with id ${id}`);
     }
+
+    if (rows[0]!.isDefault) return;
 
     await db.transaction(async (tx) => {
       await tx.update(personas).set({ isDefault: false }).where(eq(personas.userId, userId));
@@ -167,6 +169,12 @@ export const personaService = {
       throw new Error('Cannot delete the default persona');
     }
 
-    await db.delete(personas).where(and(eq(personas.id, id), eq(personas.userId, userId)));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(characters)
+        .set({ boundPersonaId: null })
+        .where(and(eq(characters.boundPersonaId, id), eq(characters.userId, userId)));
+      await tx.delete(personas).where(and(eq(personas.id, id), eq(personas.userId, userId)));
+    });
   },
 };
