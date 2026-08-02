@@ -395,15 +395,38 @@ export async function* streamTextCompletion(
     return;
   }
 
-  const res = await fetch(`${BASE}/ai/1.1/api/openai/text/stream`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
+  const connectController = new AbortController();
+  const connectTimeout = setTimeout(() => connectController.abort(), 30_000);
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/ai/1.1/api/openai/text/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+      signal: connectController.signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('streamTextCompletion connection timed out after 30s');
+    }
+    throw err;
+  } finally {
+    clearTimeout(connectTimeout);
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => res.statusText);
     throw new Error(`streamTextCompletion SSE request failed (${res.status}): ${errText}`);
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    const data = (await res.json()) as { error?: { message?: string } };
+    if (data.error?.message) {
+      throw new Error(`streamTextCompletion upstream error: ${data.error.message}`);
+    }
+    throw new Error('streamTextCompletion received JSON instead of SSE stream');
   }
 
   if (!res.body) {
@@ -458,8 +481,8 @@ export async function* streamTextCompletion(
           } else {
             yield content;
           }
-        } catch {
-          // skip parse errors during streaming
+        } catch (err) {
+          console.warn('[streamTextCompletion] parse error:', err);
         }
       }
     }
@@ -515,15 +538,38 @@ export async function* streamChat(request: StreamChatRequest): AsyncGenerator<st
     return;
   }
 
-  const res = await fetch(`${BASE}/ai/1.1/api/openai/chat/stream`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
+  const connectController = new AbortController();
+  const connectTimeout = setTimeout(() => connectController.abort(), 30_000);
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/ai/1.1/api/openai/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+      signal: connectController.signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('streamChat connection timed out after 30s');
+    }
+    throw err;
+  } finally {
+    clearTimeout(connectTimeout);
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => res.statusText);
     throw new Error(`streamChat SSE request failed (${res.status}): ${errText}`);
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    const data = (await res.json()) as { error?: { message?: string } };
+    if (data.error?.message) {
+      throw new Error(`streamChat upstream error: ${data.error.message}`);
+    }
+    throw new Error('streamChat received JSON instead of SSE stream');
   }
 
   if (!res.body) {
@@ -553,8 +599,8 @@ export async function* streamChat(request: StreamChatRequest): AsyncGenerator<st
           const choices = parsed.choices as Array<{ delta?: { content?: string } }> | undefined;
           const content = choices?.[0]?.delta?.content;
           if (content) yield content;
-        } catch {
-          // skip parse errors during streaming
+        } catch (err) {
+          console.warn('[streamChat] parse error:', err);
         }
       }
     }

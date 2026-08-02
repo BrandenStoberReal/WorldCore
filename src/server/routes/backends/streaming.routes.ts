@@ -40,15 +40,23 @@ export const streamingRoutes = {
       stream: true,
     };
 
+    const response = await chatGenerateHandler(streamReq);
+
+    if (!response.ok) {
+      const errText = await response.clone().text().catch(() => '');
+      console.error(`[chatStream] upstream ${response.status}:`, errText.slice(0, 500));
+      return new Response(
+        JSON.stringify({ error: { code: 'UPSTREAM_ERROR', message: `Upstream error ${response.status}` } }),
+        { status: response.status, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+
     if (source === 'ollama') {
-      const response = await chatGenerateHandler(streamReq);
       const stream = await ollamaStreamToReadable(response);
       return new Response(stream, STREAM_INIT);
     }
 
-    const response = await chatGenerateHandler(streamReq);
     const stream = passthroughSSE(response);
-
     return new Response(stream, STREAM_INIT);
   }),
 
@@ -58,15 +66,13 @@ export const streamingRoutes = {
     console.log('[textStream] request:', JSON.stringify(parsed).slice(0, 500));
     const response = await textGenerateHandler(parsed as TextCompletionRequest);
     if (!response.ok) {
-      const errText = await response
-        .clone()
-        .text()
-        .catch(() => '');
+      const errText = await response.clone().text().catch(() => '');
       console.error(`[textStream] upstream ${response.status}:`, errText.slice(0, 500));
+      return new Response(
+        JSON.stringify({ error: { code: 'UPSTREAM_ERROR', message: `Upstream error ${response.status}` } }),
+        { status: response.status, headers: { 'Content-Type': 'application/json' } },
+      );
     }
-    return new Response(response.body, {
-      ...STREAM_INIT,
-      status: response.status,
-    });
+    return new Response(response.body, STREAM_INIT);
   }),
 };
