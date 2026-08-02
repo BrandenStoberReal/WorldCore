@@ -1,3 +1,4 @@
+import { timingSafeEqual as cryptoTimingSafeEqual } from 'node:crypto';
 import { generateCsrfToken } from './session';
 
 export { generateCsrfToken };
@@ -15,9 +16,5 @@ export function verifyCsrfToken(req: Request, sessionCsrfToken: string): boolean
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
-  let c = 0;
-  for (let i = 0; i < a.length; i++) {
-    c |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return c === 0;
+  return cryptoTimingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
 }

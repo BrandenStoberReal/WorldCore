@@ -88,14 +88,15 @@ export class PresetService {
 
   async get(category: PresetCategory, name: string): Promise<Preset | null> {
     const dir = CATEGORY_DIR_MAP[category]!;
-    const filePath = path.join(dir, `${name}.json`);
+    const safeName = this.sanitizeName(name);
+    const filePath = path.join(dir, `${safeName}.json`);
     try {
       const content = await Bun.file(filePath).text();
       const data = JSON.parse(content) as Record<string, unknown>;
       const dbRow = await db
         .select({ isDefault: presets.isDefault })
         .from(presets)
-        .where(and(eq(presets.category, category), eq(presets.name, name)))
+        .where(and(eq(presets.category, category), eq(presets.name, safeName)))
         .limit(1);
       const isDefault = dbRow[0]?.isDefault ?? false;
       return { category, data, isDefault } as Preset;
@@ -107,7 +108,7 @@ export class PresetService {
 
   async save(preset: Preset): Promise<void> {
     const dir = CATEGORY_DIR_MAP[preset.category]!;
-    const fileName = this.getFileName(preset);
+    const fileName = this.sanitizeName(this.getFileName(preset));
     const filePath = path.join(dir, `${fileName}.json`);
 
     const existing = await db
@@ -135,9 +136,10 @@ export class PresetService {
 
   async delete(category: PresetCategory, name: string): Promise<void> {
     const dir = CATEGORY_DIR_MAP[category]!;
-    const filePath = path.join(dir, `${name}.json`);
+    const safeName = this.sanitizeName(name);
+    const filePath = path.join(dir, `${safeName}.json`);
     await removeFile(filePath);
-    await db.delete(presets).where(and(eq(presets.category, category), eq(presets.name, name)));
+    await db.delete(presets).where(and(eq(presets.category, category), eq(presets.name, safeName)));
   }
 
   async importPreset(preset: Preset): Promise<void> {
@@ -158,7 +160,11 @@ export class PresetService {
 
   private getFileName(preset: Preset): string {
     const data = preset.data as Record<string, unknown>;
-    return (data.name as string) || 'unnamed';
+    return this.sanitizeName((data.name as string) || 'unnamed');
+  }
+
+  private sanitizeName(name: string): string {
+    return name.replace(/[^a-zA-Z0-9_-]/g, '_');
   }
 
   async seedDefaults(): Promise<void> {

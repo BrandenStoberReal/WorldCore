@@ -1,14 +1,22 @@
 import { describe, it, expect } from 'bun:test';
 import { secretsRoutes } from '@/server/routes/secrets.routes';
+import { signSession, generateCsrfToken } from '@/server/auth/session';
 import type { SecretKey } from '@/shared/types/secret';
 
 const testKey = 'openai_key' as SecretKey;
 const testExportKey = 'libre_url' as SecretKey;
 
+function adminRequest(url: string, init: RequestInit): Request {
+  const cookie = signSession({ userId: 'default-user', csrfToken: generateCsrfToken() });
+  const headers = new Headers(init.headers);
+  headers.set('Cookie', `WorldCore-session=${cookie}`);
+  return new Request(url, { ...init, headers });
+}
+
 describe('Secrets routes', () => {
   it('write returns ok and id', async () => {
     const res = await secretsRoutes.write(
-      new Request('http://localhost/api/v1/secrets/write', {
+      adminRequest('http://localhost/api/v1/secrets/write', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: testKey, value: 'sk-route-test' }),
@@ -22,7 +30,7 @@ describe('Secrets routes', () => {
 
   it('view returns masked data', async () => {
     const res = await secretsRoutes.view(
-      new Request('http://localhost/api/v1/secrets/view', {
+      adminRequest('http://localhost/api/v1/secrets/view', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: testKey }),
@@ -37,7 +45,7 @@ describe('Secrets routes', () => {
 
   it('view exportable key returns plain value', async () => {
     await secretsRoutes.write(
-      new Request('http://localhost/api/v1/secrets/write', {
+      adminRequest('http://localhost/api/v1/secrets/write', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -48,7 +56,7 @@ describe('Secrets routes', () => {
     );
 
     const res = await secretsRoutes.view(
-      new Request('http://localhost/api/v1/secrets/view', {
+      adminRequest('http://localhost/api/v1/secrets/view', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: testExportKey }),
@@ -62,7 +70,7 @@ describe('Secrets routes', () => {
 
   it('delete returns ok', async () => {
     const res = await secretsRoutes.delete(
-      new Request('http://localhost/api/v1/secrets/delete', {
+      adminRequest('http://localhost/api/v1/secrets/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: testKey }),

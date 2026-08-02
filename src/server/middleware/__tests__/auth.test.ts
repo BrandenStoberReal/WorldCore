@@ -37,10 +37,4 @@ describe('withAdmin', () => {
     const body = await res.json();
     expect(body.ok).toBe(true);
   });
-
-  // NOTE: getCurrentUser() is hardcoded to return DEFAULT_USER with role "admin".
-  // A non-admin 403 test would require mocking getCurrentUser(), which is not
-  // possible without a DI container or module mock. The 403 branch is structurally
-  // tested by code review — if getCurrentUser() ever returns a non-admin user,
-  // the guard will correctly return 403 FORBIDDEN.
 });

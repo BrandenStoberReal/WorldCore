@@ -1,4 +1,4 @@
-import { randomBytes, createHmac } from 'node:crypto';
+import { randomBytes, createHmac, timingSafeEqual as cryptoTimingSafeEqual } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { CACHE_ROOT } from '@/server/storage/paths';
@@ -56,11 +56,7 @@ export function verifySession(cookie: string): SessionPayload | null {
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
-  let c = 0;
-  for (let i = 0; i < a.length; i++) {
-    c |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return c === 0;
+  return cryptoTimingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
 }
 
 function parseCookie(cookieHeader: string | null): Record<string, string> {

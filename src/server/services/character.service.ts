@@ -12,13 +12,32 @@ import type {
   CharacterCreateInput,
   CharacterData,
 } from '@/shared/types/character';
-import { NotFoundError, ValidationError } from '@/server/errors';
+import { NotFoundError, ValidationError, ConflictError } from '@/server/errors';
 import * as yaml from 'yaml';
 import { Jimp } from 'jimp';
 
 const DEFAULT_SPEC = 'chara_card_v3';
 const DEFAULT_SPEC_VERSION = '3.0';
 const THUMBNAIL_WIDTH = 128;
+
+const ALLOWED_FIELDS = new Set([
+  'name',
+  'description',
+  'personality',
+  'scenario',
+  'first_mes',
+  'mes_example',
+  'creator_notes',
+  'system_prompt',
+  'post_history_instructions',
+  'tags',
+  'creator',
+  'character_version',
+  'alternate_greetings',
+  'spec',
+  'spec_version',
+  'data',
+]);
 
 async function generatePlaceholderPng(): Promise<Buffer> {
   const img = new Jimp({
@@ -150,6 +169,10 @@ export class CharacterService {
     const fileName = `${data.name.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
     const filePath = path.join(getUserCharacterPath(userId), fileName);
 
+    if (await fsExists(filePath)) {
+      throw new ConflictError(`Character "${data.name}" already exists`);
+    }
+
     let pngBuffer: Buffer;
     if (input.avatar && input.avatar.startsWith('data:image/')) {
       const base64Data = input.avatar.split(',')[1];
@@ -224,6 +247,10 @@ export class CharacterService {
     const userChars = getUserCharacterPath(userId);
     const oldFilePath = path.join(userChars, charRow.avatar);
     const newFilePath = path.join(userChars, newFileName);
+
+    if (newFilePath !== oldFilePath && (await fsExists(newFilePath))) {
+      throw new ConflictError(`Character "${newName}" already exists`);
+    }
 
     const jsonData = JSON.stringify(parsedData);
     await writeCharacterCard(oldFilePath, jsonData, newFilePath);
@@ -370,9 +397,10 @@ export class CharacterService {
     }
     const charRow = row[0]!;
     const parsedData = JSON.parse(charRow.jsonData) as Record<string, unknown> & CharacterData;
-    if (field !== 'creation_date' && field !== 'modification_date') {
-      parsedData[field as keyof CharacterData] = value as never;
+    if (!ALLOWED_FIELDS.has(field)) {
+      throw new ValidationError({ message: `Field "${field}" is not editable` });
     }
+    parsedData[field as keyof CharacterData] = value as never;
     parsedData.modification_date = Date.now();
 
     const filePath = path.join(getUserCharacterPath(userId), charRow.avatar);
@@ -404,6 +432,11 @@ export class CharacterService {
     const charRow = row[0]!;
     const parsedData = JSON.parse(charRow.jsonData) as Record<string, unknown> & CharacterData;
     const clientAttrs = { ...attrs };
+    for (const field of Object.keys(clientAttrs)) {
+      if (!ALLOWED_FIELDS.has(field)) {
+        throw new ValidationError({ message: `Field "${field}" is not editable` });
+      }
+    }
     delete clientAttrs.creation_date;
     delete clientAttrs.modification_date;
     const merged = { ...parsedData, ...clientAttrs } as CharacterData;

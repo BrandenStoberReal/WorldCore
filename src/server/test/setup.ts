@@ -22,6 +22,19 @@ migrate(testDb, {
   migrationsFolder: resolve(import.meta.dir, '../db/migrations'),
 });
 
+testDb
+  .insert(schema.users)
+  .values({
+    id: 'default-user',
+    handle: 'default-user',
+    name: 'Default User',
+    role: 'admin',
+    enabled: true,
+    createdAt: Date.now(),
+  })
+  .onConflictDoNothing()
+  .run();
+
 (globalThis as Record<string, unknown>).__WorldCore_db__ = testDb;
 
 // Cleanup temp data dir on process exit

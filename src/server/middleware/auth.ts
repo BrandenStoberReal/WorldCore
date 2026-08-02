@@ -1,11 +1,11 @@
 import { getSession } from '@/server/auth/session';
-import { getCurrentUser, DEFAULT_USER } from '@/server/auth/users';
+import { getUserById, resolveUserFromSession } from '@/server/auth/users';
 import type { RouteHandler } from '@/server/routes';
 import type { User } from '@/shared/types/user';
 
 export function setUserMiddleware(req: Request): void {
   const session = getSession(req);
-  (req as Request & { user: User }).user = session ? DEFAULT_USER : DEFAULT_USER;
+  (req as Request & { user: User }).user = resolveUserFromSession(session);
 }
 
 export function requireLoginMiddleware(
@@ -47,8 +47,8 @@ export function withAdmin(handler: RouteHandler): RouteHandler {
         { status: 401 },
       );
     }
-    const user = getCurrentUser();
-    if (!user || user.role !== 'admin') {
+    const dbUser = await getUserById(session.userId);
+    if (!dbUser || dbUser.role !== 'admin') {
       return Response.json(
         { error: { code: 'FORBIDDEN', message: 'Admin access required' } },
         { status: 403 },
