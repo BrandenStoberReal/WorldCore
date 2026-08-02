@@ -26,7 +26,7 @@ describe('SettingsService', () => {
     const id = await settingsService.makeSnapshot('restore-test');
     await settingsService.save({ theme: 'light', lang: 'fr' });
 
-    await settingsService.restoreSnapshot(id);
+    await settingsService.restoreSnapshot(id, 'default-user');
     const result = await settingsService.get();
     expect(result.theme).toBe('dark');
     expect(result.lang).toBe('en');
@@ -35,7 +35,7 @@ describe('SettingsService', () => {
   it('load snapshot returns data', async () => {
     await settingsService.save({ theme: 'ocean' });
     const id = await settingsService.makeSnapshot('load-test');
-    const data = await settingsService.loadSnapshot(id);
+    const data = await settingsService.loadSnapshot(id, 'default-user');
     expect(data.theme).toBe('ocean');
   });
 });

@@ -3,6 +3,7 @@ import { worldInfoService } from '@/server/services/worldinfo.service';
 import type { WorldInfoEntry } from '@/shared/types/worldinfo';
 
 describe('WorldInfoService', () => {
+  const TEST_USER = 'test-user';
   const createdFileIds: number[] = [];
 
   const makeEntry = (uid: string, key: string): WorldInfoEntry => ({
@@ -47,7 +48,7 @@ describe('WorldInfoService', () => {
   });
 
   const createWorldInfo = async (name: string, entries: WorldInfoEntry[]): Promise<number> => {
-    const fileId = await worldInfoService.create(name, entries);
+    const fileId = await worldInfoService.create(name, entries, TEST_USER);
     createdFileIds.push(fileId);
     return fileId;
   };
@@ -55,7 +56,7 @@ describe('WorldInfoService', () => {
   afterEach(async () => {
     for (const id of createdFileIds) {
       try {
-        await worldInfoService.delete(id);
+        await worldInfoService.delete(id, TEST_USER);
       } catch {
         // Already deleted
       }
@@ -73,7 +74,7 @@ describe('WorldInfoService', () => {
     const testName = 'Test Get WI';
     const entries = [makeEntry('e1', 'key1'), makeEntry('e2', 'key2')];
     const fileId = await createWorldInfo(testName, entries);
-    const wi = await worldInfoService.get(fileId);
+    const wi = await worldInfoService.get(fileId, TEST_USER);
     expect(wi).not.toBeNull();
     expect(wi!.name).toBe(testName);
     expect(Object.keys(wi!.entries).length).toBe(2);
@@ -81,7 +82,7 @@ describe('WorldInfoService', () => {
   });
 
   it('get returns null for non-existent file', async () => {
-    const wi = await worldInfoService.get(999999);
+    const wi = await worldInfoService.get(999999, TEST_USER);
     expect(wi).toBeNull();
   });
 
@@ -89,7 +90,7 @@ describe('WorldInfoService', () => {
     const testName = 'Test GetAll WI';
     const entries = [makeEntry('e1', 'key1'), makeEntry('e2', 'key2')];
     const fileId = await createWorldInfo(testName, entries);
-    const all = await worldInfoService.getAll();
+    const all = await worldInfoService.getAll(TEST_USER);
     const found = all.find((w) => w.id === fileId);
     expect(found).toBeDefined();
     expect(found!.name).toBe(testName);
@@ -100,8 +101,8 @@ describe('WorldInfoService', () => {
     const testName = 'Test AddEntry WI';
     const entries = [makeEntry('e1', 'key1')];
     const fileId = await createWorldInfo(testName, entries);
-    await worldInfoService.addEntry(fileId, makeEntry('e3', 'key3'));
-    const wi = await worldInfoService.get(fileId);
+    await worldInfoService.addEntry(fileId, makeEntry('e3', 'key3'), TEST_USER);
+    const wi = await worldInfoService.get(fileId, TEST_USER);
     expect(wi!.entries['e3']?.key).toBe('key3');
   });
 
@@ -109,7 +110,9 @@ describe('WorldInfoService', () => {
     const testName = 'Test AddEntryDup WI';
     const entries = [makeEntry('e1', 'key1')];
     const fileId = await createWorldInfo(testName, entries);
-    await expect(worldInfoService.addEntry(fileId, makeEntry('e1', 'dup'))).rejects.toThrow();
+    await expect(
+      worldInfoService.addEntry(fileId, makeEntry('e1', 'dup'), TEST_USER),
+    ).rejects.toThrow();
   });
 
   it('updateEntry modifies an existing entry', async () => {
@@ -118,8 +121,8 @@ describe('WorldInfoService', () => {
     const fileId = await createWorldInfo(testName, entries);
     const updatedEntry = makeEntry('e1', 'updated_key1');
     updatedEntry.content = 'Updated content';
-    await worldInfoService.updateEntry(fileId, 'e1', updatedEntry);
-    const wi = await worldInfoService.get(fileId);
+    await worldInfoService.updateEntry(fileId, 'e1', updatedEntry, TEST_USER);
+    const wi = await worldInfoService.get(fileId, TEST_USER);
     expect(wi!.entries['e1']?.key).toBe('updated_key1');
     expect(wi!.entries['e1']?.content).toBe('Updated content');
   });
@@ -129,7 +132,7 @@ describe('WorldInfoService', () => {
     const entries = [makeEntry('e1', 'key1')];
     const fileId = await createWorldInfo(testName, entries);
     await expect(
-      worldInfoService.updateEntry(fileId, 'nonexistent', makeEntry('x', 'x')),
+      worldInfoService.updateEntry(fileId, 'nonexistent', makeEntry('x', 'x'), TEST_USER),
     ).rejects.toThrow();
   });
 
@@ -137,8 +140,8 @@ describe('WorldInfoService', () => {
     const testName = 'Test DeleteEntry WI';
     const entries = [makeEntry('e1', 'key1'), makeEntry('e3', 'key3')];
     const fileId = await createWorldInfo(testName, entries);
-    await worldInfoService.deleteEntry(fileId, 'e3');
-    const wi = await worldInfoService.get(fileId);
+    await worldInfoService.deleteEntry(fileId, 'e3', TEST_USER);
+    const wi = await worldInfoService.get(fileId, TEST_USER);
     expect(wi!.entries['e3']).toBeUndefined();
   });
 
@@ -146,28 +149,28 @@ describe('WorldInfoService', () => {
     const testName = 'Test DeleteEntryNE WI';
     const entries = [makeEntry('e1', 'key1')];
     const fileId = await createWorldInfo(testName, entries);
-    await expect(worldInfoService.deleteEntry(fileId, 'e3')).rejects.toThrow();
+    await expect(worldInfoService.deleteEntry(fileId, 'e3', TEST_USER)).rejects.toThrow();
   });
 
   it('update modifies world info name', async () => {
     const testName = 'Test UpdateName WI';
     const entries = [makeEntry('e1', 'key1')];
     const fileId = await createWorldInfo(testName, entries);
-    await worldInfoService.update(fileId, { name: 'Updated Name' });
-    const wi = await worldInfoService.get(fileId);
+    await worldInfoService.update(fileId, { name: 'Updated Name' }, TEST_USER);
+    const wi = await worldInfoService.get(fileId, TEST_USER);
     expect(wi!.name).toBe('Updated Name');
   });
 
   it('delete removes the world info', async () => {
     const testName = 'Test Delete WI';
     const entries = [makeEntry('e1', 'key1')];
-    const fileId = await worldInfoService.create(testName, entries); // Don't track - we're testing delete
-    await worldInfoService.delete(fileId);
-    const wi = await worldInfoService.get(fileId);
+    const fileId = await worldInfoService.create(testName, entries, TEST_USER); // Don't track - we're testing delete
+    await worldInfoService.delete(fileId, TEST_USER);
+    const wi = await worldInfoService.get(fileId, TEST_USER);
     expect(wi).toBeNull();
   });
 
   it('delete throws for non-existent file', async () => {
-    await expect(worldInfoService.delete(999999)).rejects.toThrow();
+    await expect(worldInfoService.delete(999999, TEST_USER)).rejects.toThrow();
   });
 });

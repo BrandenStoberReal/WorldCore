@@ -1,5 +1,6 @@
 import { errorGuard } from '@/server/middleware/errorGuard';
 import { settingsService } from '@/server/services/settings.service';
+import { DEFAULT_USER } from '@/server/auth/users';
 
 export const settingsRoutes = {
   save: errorGuard(async (req: Request): Promise<Response> => {
@@ -20,7 +21,7 @@ export const settingsRoutes = {
 
   loadSnapshot: errorGuard(async (req: Request): Promise<Response> => {
     const body = (await req.json()) as { id: string };
-    const data = await settingsService.loadSnapshot(body.id);
+    const data = await settingsService.loadSnapshot(body.id, DEFAULT_USER.id);
     return Response.json(data);
   }),
 
@@ -32,7 +33,7 @@ export const settingsRoutes = {
 
   restoreSnapshot: errorGuard(async (req: Request): Promise<Response> => {
     const body = (await req.json()) as { id: string };
-    await settingsService.restoreSnapshot(body.id);
+    await settingsService.restoreSnapshot(body.id, DEFAULT_USER.id);
     return Response.json({ ok: true });
   }),
 };

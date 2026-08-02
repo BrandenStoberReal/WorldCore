@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { usersPublicRoutes } from '@/server/routes/users.public.routes';
 import { usersPrivateRoutes } from '@/server/routes/users.private.routes';
 import { usersAdminRoutes } from '@/server/routes/users.admin.routes';
+import { signSession, generateCsrfToken } from '@/server/auth/session';
 
 describe('Users public routes', () => {
   it('list returns default-user', async () => {
@@ -58,9 +59,17 @@ describe('Users private routes', () => {
 });
 
 describe('Users admin routes', () => {
+  function makeAdminCookie(): string {
+    return signSession({ userId: 'default-user', csrfToken: generateCsrfToken() });
+  }
+
   it('get returns default user', async () => {
+    const cookie = makeAdminCookie();
     const res = await usersAdminRoutes.get(
-      new Request('http://localhost/api/v1/admin/users/get', { method: 'POST' }),
+      new Request('http://localhost/api/v1/admin/users/get', {
+        method: 'POST',
+        headers: { Cookie: `WorldCore-session=${cookie}` },
+      }),
     );
     expect(res.status).toBe(200);
     const data = (await res.json()) as unknown[];
@@ -68,10 +77,14 @@ describe('Users admin routes', () => {
   });
 
   it('slugify produces slug', async () => {
+    const cookie = makeAdminCookie();
     const res = await usersAdminRoutes.slugify(
       new Request('http://localhost/api/v1/admin/users/slugify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `WorldCore-session=${cookie}`,
+        },
         body: JSON.stringify({ name: 'John Doe' }),
       }),
     );

@@ -6,11 +6,9 @@ import { eq, and } from 'drizzle-orm';
 import { paths } from '@/server/storage/paths';
 import { writeFile, readFile, removeFile, exists } from '@/server/storage/fs';
 import type { WorldInfo, WorldInfoEntry } from '@/shared/types/worldinfo';
-import { NotFoundError, ConflictError } from '@/server/errors';
+import { NotFoundError, ConflictError, ValidationError } from '@/server/errors';
 
 export class WorldInfoService {
-  private userId = 'default-user';
-
   private wiFilePath(fileName: string): string {
     return path.join(paths.worlds, fileName);
   }
@@ -106,7 +104,7 @@ export class WorldInfoService {
     };
   }
 
-  async create(name: string, entries: WorldInfoEntry[]): Promise<number> {
+  async create(name: string, entries: WorldInfoEntry[], userId: string): Promise<number> {
     const fileName = this.fileNameFromName(name);
     const filePath = this.wiFilePath(fileName);
 
@@ -131,7 +129,7 @@ export class WorldInfoService {
       .values({
         fileName,
         name,
-        userId: this.userId,
+        userId,
       })
       .returning();
 
@@ -147,11 +145,11 @@ export class WorldInfoService {
     return fileId;
   }
 
-  async get(fileId: number): Promise<WorldInfo | null> {
+  async get(fileId: number, userId: string): Promise<WorldInfo | null> {
     const fileRows = await db
       .select()
       .from(worldinfoFiles)
-      .where(eq(worldinfoFiles.id, fileId))
+      .where(and(eq(worldinfoFiles.id, fileId), eq(worldinfoFiles.userId, userId)))
       .limit(1);
 
     if (fileRows.length === 0) return null;
@@ -165,8 +163,8 @@ export class WorldInfoService {
     return JSON.parse(rawData) as WorldInfo;
   }
 
-  async getAll(): Promise<Array<{ id: number; name: string; entryCount: number }>> {
-    const files = await db.select().from(worldinfoFiles);
+  async getAll(userId: string): Promise<Array<{ id: number; name: string; entryCount: number }>> {
+    const files = await db.select().from(worldinfoFiles).where(eq(worldinfoFiles.userId, userId));
 
     const result: Array<{ id: number; name: string; entryCount: number }> = [];
     for (const file of files) {
@@ -185,11 +183,11 @@ export class WorldInfoService {
     return result;
   }
 
-  async update(fileId: number, data: Partial<WorldInfo>): Promise<void> {
+  async update(fileId: number, data: Partial<WorldInfo>, userId: string): Promise<void> {
     const fileRows = await db
       .select()
       .from(worldinfoFiles)
-      .where(eq(worldinfoFiles.id, fileId))
+      .where(and(eq(worldinfoFiles.id, fileId), eq(worldinfoFiles.userId, userId)))
       .limit(1);
 
     if (fileRows.length === 0) {
@@ -213,15 +211,18 @@ export class WorldInfoService {
     await writeFile(filePath, JSON.stringify(updatedData, null, 2));
 
     if (data.name !== undefined) {
-      await db.update(worldinfoFiles).set({ name: data.name }).where(eq(worldinfoFiles.id, fileId));
+      await db
+        .update(worldinfoFiles)
+        .set({ name: data.name })
+        .where(and(eq(worldinfoFiles.id, fileId), eq(worldinfoFiles.userId, userId)));
     }
   }
 
-  async delete(fileId: number): Promise<void> {
+  async delete(fileId: number, userId: string): Promise<void> {
     const fileRows = await db
       .select()
       .from(worldinfoFiles)
-      .where(eq(worldinfoFiles.id, fileId))
+      .where(and(eq(worldinfoFiles.id, fileId), eq(worldinfoFiles.userId, userId)))
       .limit(1);
 
     if (fileRows.length === 0) {
@@ -233,14 +234,16 @@ export class WorldInfoService {
 
     await removeFile(filePath);
     await db.delete(worldinfoEntries).where(eq(worldinfoEntries.fileId, fileId));
-    await db.delete(worldinfoFiles).where(eq(worldinfoFiles.id, fileId));
+    await db
+      .delete(worldinfoFiles)
+      .where(and(eq(worldinfoFiles.id, fileId), eq(worldinfoFiles.userId, userId)));
   }
 
-  async addEntry(fileId: number, entry: WorldInfoEntry): Promise<void> {
+  async addEntry(fileId: number, entry: WorldInfoEntry, userId: string): Promise<void> {
     const fileRows = await db
       .select()
       .from(worldinfoFiles)
-      .where(eq(worldinfoFiles.id, fileId))
+      .where(and(eq(worldinfoFiles.id, fileId), eq(worldinfoFiles.userId, userId)))
       .limit(1);
 
     if (fileRows.length === 0) {
@@ -265,11 +268,16 @@ export class WorldInfoService {
     });
   }
 
-  async updateEntry(fileId: number, uid: string, entry: WorldInfoEntry): Promise<void> {
+  async updateEntry(
+    fileId: number,
+    uid: string,
+    entry: WorldInfoEntry,
+    userId: string,
+  ): Promise<void> {
     const fileRows = await db
       .select()
       .from(worldinfoFiles)
-      .where(eq(worldinfoFiles.id, fileId))
+      .where(and(eq(worldinfoFiles.id, fileId), eq(worldinfoFiles.userId, userId)))
       .limit(1);
 
     if (fileRows.length === 0) {
@@ -294,11 +302,11 @@ export class WorldInfoService {
       .where(and(eq(worldinfoEntries.uid, uid), eq(worldinfoEntries.fileId, fileId)));
   }
 
-  async deleteEntry(fileId: number, uid: string): Promise<void> {
+  async deleteEntry(fileId: number, uid: string, userId: string): Promise<void> {
     const fileRows = await db
       .select()
       .from(worldinfoFiles)
-      .where(eq(worldinfoFiles.id, fileId))
+      .where(and(eq(worldinfoFiles.id, fileId), eq(worldinfoFiles.userId, userId)))
       .limit(1);
 
     if (fileRows.length === 0) {
@@ -322,7 +330,13 @@ export class WorldInfoService {
       .where(and(eq(worldinfoEntries.uid, uid), eq(worldinfoEntries.fileId, fileId)));
   }
 
-  async importWi(jsonPath: string): Promise<number> {
+  async importWi(jsonPath: string, userId: string): Promise<number> {
+    const resolved = path.resolve(jsonPath);
+    const worldsDir = path.resolve(paths.worlds);
+    if (!resolved.startsWith(worldsDir + path.sep) && resolved !== worldsDir) {
+      throw new ValidationError({ message: 'import path must be within worlds directory' });
+    }
+
     const rawData = await readFile(jsonPath, 'utf-8');
     const wiData = JSON.parse(rawData) as WorldInfo;
 
@@ -340,7 +354,7 @@ export class WorldInfoService {
       .values({
         fileName,
         name: wiData.name,
-        userId: this.userId,
+        userId,
       })
       .returning();
 
@@ -357,11 +371,11 @@ export class WorldInfoService {
     return fileId;
   }
 
-  async exportWi(fileId: number): Promise<{ data: Buffer; fileName: string }> {
+  async exportWi(fileId: number, userId: string): Promise<{ data: Buffer; fileName: string }> {
     const fileRows = await db
       .select()
       .from(worldinfoFiles)
-      .where(eq(worldinfoFiles.id, fileId))
+      .where(and(eq(worldinfoFiles.id, fileId), eq(worldinfoFiles.userId, userId)))
       .limit(1);
 
     if (fileRows.length === 0) {

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { db } from '@/server/db/client';
 import { settings, settingsSnapshots } from '@/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { writeFileAtomic, readFile, exists } from '@/server/storage/fs';
 import path from 'node:path';
 import { USER_ROOT } from '@/server/storage/paths';
@@ -77,11 +77,11 @@ export class SettingsService {
     return id;
   }
 
-  async loadSnapshot(id: string): Promise<Record<string, unknown>> {
+  async loadSnapshot(id: string, userId: string): Promise<Record<string, unknown>> {
     const row = await db
       .select()
       .from(settingsSnapshots)
-      .where(eq(settingsSnapshots.id, id))
+      .where(and(eq(settingsSnapshots.id, id), eq(settingsSnapshots.userId, userId)))
       .limit(1);
     if (row.length === 0) {
       throw new Error('Snapshot not found');
@@ -89,8 +89,8 @@ export class SettingsService {
     return row[0]!.data as Record<string, unknown>;
   }
 
-  async restoreSnapshot(id: string): Promise<void> {
-    const data = await this.loadSnapshot(id);
+  async restoreSnapshot(id: string, userId: string): Promise<void> {
+    const data = await this.loadSnapshot(id, userId);
     await this.save(data);
   }
 }

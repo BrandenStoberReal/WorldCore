@@ -138,7 +138,7 @@ async function verifyAutheliaToken(_baseUrl: string, _username: string): Promise
     });
     return resp.ok;
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -209,8 +209,12 @@ async function decodeIdToken(idToken: string): Promise<Record<string, unknown> |
     const parts = idToken.split('.');
     if (parts.length !== 3) return null;
 
-    const payload = forge.util.decode64(parts[1]!);
-    return JSON.parse(payload) as Record<string, unknown>;
+    const header = JSON.parse(forge.util.decode64(parts[0]!)) as { alg?: string };
+
+    if (!header.alg || header.alg.toLowerCase() === 'none') return null;
+
+    const payload = JSON.parse(forge.util.decode64(parts[1]!)) as Record<string, unknown>;
+    return payload;
   } catch {
     return null;
   }
