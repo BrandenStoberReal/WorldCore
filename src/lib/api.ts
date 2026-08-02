@@ -395,25 +395,11 @@ export async function* streamTextCompletion(
     return;
   }
 
-  const connectController = new AbortController();
-  const connectTimeout = setTimeout(() => connectController.abort(), 30_000);
-
-  let res: Response;
-  try {
-    res = await fetch(`${BASE}/ai/1.1/api/openai/text/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-      signal: connectController.signal,
-    });
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error('streamTextCompletion connection timed out after 30s');
-    }
-    throw err;
-  } finally {
-    clearTimeout(connectTimeout);
-  }
+  const res = await fetch(`${BASE}/ai/1.1/api/openai/text/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
 
   if (!res.ok) {
     const errText = await res.text().catch(() => res.statusText);
@@ -538,25 +524,11 @@ export async function* streamChat(request: StreamChatRequest): AsyncGenerator<st
     return;
   }
 
-  const connectController = new AbortController();
-  const connectTimeout = setTimeout(() => connectController.abort(), 30_000);
-
-  let res: Response;
-  try {
-    res = await fetch(`${BASE}/ai/1.1/api/openai/chat/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-      signal: connectController.signal,
-    });
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error('streamChat connection timed out after 30s');
-    }
-    throw err;
-  } finally {
-    clearTimeout(connectTimeout);
-  }
+  const res = await fetch(`${BASE}/ai/1.1/api/openai/chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
 
   if (!res.ok) {
     const errText = await res.text().catch(() => res.statusText);
