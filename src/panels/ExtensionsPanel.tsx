@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/Modal';
@@ -8,11 +8,6 @@ import {
   Download,
   RefreshCw,
   Plus,
-  Package,
-  User,
-  Calendar,
-  GitBranch,
-  Globe,
   Trash2,
   Search,
 } from 'lucide-react';
@@ -20,7 +15,6 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { InlineSection } from '@/components/drawers/InlineSection';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Badge } from '@/components/ui/badge';
 import { StatusToggle } from '@/components/ui/status-toggle';
 import { cn, surfaceCard, subtleEdge } from '@/lib/utils';
 import { apiGet, apiPost } from '@/lib/api';
@@ -168,96 +162,92 @@ export function ExtensionsPanel() {
         </div>
       </InlineSection>
 
-      <div className="grid gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {filtered?.map((ext, idx) => (
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {filtered?.map((ext) => (
           <Card
             key={ext.id}
             className={cn(
               surfaceCard,
               subtleEdge,
-              'group relative overflow-hidden rounded-md py-0 transition-all',
-              'hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_color-mix(in_oklch,var(--ember)_45%,transparent)]',
-              ext.enabled ? '' : 'opacity-55',
+              'group relative flex flex-col overflow-hidden rounded-md py-0 transition-all',
+              'hover:-translate-y-0.5 hover:shadow-[0_6px_20px_-8px_color-mix(in_oklch,var(--ember)_35%,transparent)]',
+              ext.enabled ? '' : 'opacity-50',
             )}
           >
-            {/* Top rail */}
-            <div className="bg-background/30 border-border/60 flex items-center justify-between border-b px-3 py-1.5">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="mono-tag text-muted-foreground/55 tabular-nums">
-                  {`#${String(idx + 1).padStart(3, '0')}`}
-                </span>
-                <Package className="text-ember/70 h-3 w-3 shrink-0" />
-                <span className="mono-tag text-ember/70 truncate">{ext.displayName || ext.id}</span>
-                {ext.scope === 'global' && (
-                  <Globe
-                    className="text-muted-foreground/60 h-3 w-3 shrink-0"
-                    aria-label="global"
-                  />
-                )}
+            <CardHeader className="px-3.5 pt-3 pb-0">
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="display-host text-foreground/90 min-w-0 truncate text-[14px] leading-tight">
+                  {ext.displayName || ext.id}
+                </CardTitle>
                 <StatusToggle
                   enabled={ext.enabled}
                   onToggle={() => toggleMutation.mutate({ id: ext.id, enable: !ext.enabled })}
                 />
               </div>
-            </div>
+              <div className="flex items-center gap-1.5">
+                <span className="mono-tag text-muted-foreground/45">v{ext.version}</span>
+                <span className="text-muted-foreground/25">·</span>
+                <span className="mono-tag text-muted-foreground/45 truncate">
+                  {ext.author || 'anon'}
+                </span>
+                {ext.scope === 'global' && (
+                  <>
+                    <span className="text-muted-foreground/25">·</span>
+                    <span className="mono-tag text-ember/60">global</span>
+                  </>
+                )}
+              </div>
+            </CardHeader>
 
-            <CardContent className="space-y-2 px-3 py-2">
-              <p className="text-foreground/80 line-clamp-2 text-[12px] leading-relaxed">
+            <CardContent className="flex flex-1 flex-col px-3.5 pt-1.5 pb-2.5">
+              <p className="text-muted-foreground/60 line-clamp-2 text-[11.5px] leading-snug">
                 {ext.description || (
-                  <span className="text-muted-foreground/40 italic">no description supplied</span>
+                  <span className="text-muted-foreground/30 italic">no description</span>
                 )}
               </p>
 
-              {/* Badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge label="VERSION" value={`v${ext.version}`} icon={GitBranch} />
-                <Badge label="AUTHOR" value={ext.author || 'anon'} icon={User} />
-                {ext.lastUpdatedAt && (
-                  <Badge
-                    label="UPDATED"
-                    value={new Date(ext.lastUpdatedAt).toLocaleDateString()}
-                    icon={Calendar}
-                  />
-                )}
-                <Badge label="SCOPE" value={ext.scope} icon={Globe} />
+              <div className="border-border/40 mt-auto flex items-center justify-between gap-1 border-t pt-2">
+                <span className="mono-tag text-muted-foreground/35 truncate">
+                  {ext.lastUpdatedAt
+                    ? new Date(ext.lastUpdatedAt).toLocaleDateString()
+                    : ''}
+                </span>
+                <div className="flex shrink-0 items-center gap-0.5">
+                  {ext.gitUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => updateMutation.mutate(ext.id)}
+                      disabled={updateMutation.isPending}
+                      className="text-muted-foreground/50 hover:text-ember h-6 px-1.5 text-[11px]"
+                    >
+                      <RefreshCw
+                        className={cn(
+                          'h-2.5 w-2.5',
+                          updateMutation.isPending &&
+                            updateMutation.variables === ext.id &&
+                            'animate-spin',
+                        )}
+                      />
+                      <span className="mono-tag">update</span>
+                    </Button>
+                  )}
+                  {ext.scope !== 'global' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground/50 hover:text-destructive h-6 px-1.5 text-[11px]"
+                      onClick={() => setUninstallId(ext.id)}
+                      disabled={uninstallMutation.isPending}
+                      aria-label="uninstall extension"
+                    >
+                      <Trash2 className="h-2.5 w-2.5" />
+                      <span className="mono-tag">remove</span>
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
-
-            {/* Action rail — always visible */}
-            <div className="border-border/60 divide-border/60 flex items-stretch divide-x border-t">
-              {ext.gitUrl && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => updateMutation.mutate(ext.id)}
-                  disabled={updateMutation.isPending}
-                  className="hover:bg-accent/40 hover:text-ember h-8 flex-1 justify-center rounded-none border-0 font-medium"
-                >
-                  <RefreshCw
-                    className={cn(
-                      'h-3 w-3',
-                      updateMutation.isPending &&
-                        updateMutation.variables === ext.id &&
-                        'animate-spin',
-                    )}
-                  />
-                  <span className="mono-tag">Update</span>
-                </Button>
-              )}
-              {ext.scope !== 'global' && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="hover:bg-destructive/10 hover:text-destructive h-8 flex-1 justify-center rounded-none border-0 font-medium"
-                  onClick={() => setUninstallId(ext.id)}
-                  disabled={uninstallMutation.isPending}
-                  aria-label="uninstall extension"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  <span className="mono-tag">Uninstall</span>
-                </Button>
-              )}
-            </div>
           </Card>
         ))}
       </div>
