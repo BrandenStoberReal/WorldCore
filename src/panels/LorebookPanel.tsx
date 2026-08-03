@@ -52,8 +52,19 @@ function createNewEntry(): CharacterBookEntry {
     priority: 10,
     enabled: true,
     case_sensitive: false,
+    matchWholeWords: false,
     position: 0,
+    depth: 0,
     use_regex: false,
+    probability: 1,
+    useProbability: false,
+    selectiveLogic: 0,
+    sticky: false,
+    stickyCount: 0,
+    cooldown: 0,
+    delay: 0,
+    excludeRecursion: false,
+    preventRecursion: false,
   };
 }
 
@@ -357,6 +368,11 @@ function EntryRow({
               checked={entry.use_regex}
               onChange={(v) => onUpdate({ use_regex: v })}
               label="Use Regex"
+            />
+            <Toggle
+              checked={entry.matchWholeWords}
+              onChange={(v) => onUpdate({ matchWholeWords: v })}
+              label="Match Whole Words"
             />
           </div>
 

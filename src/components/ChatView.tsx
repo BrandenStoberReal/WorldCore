@@ -218,6 +218,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         startReplyWith: to.startReplyWith,
         markdownEscapeStrings: to.markdownEscapeStrings,
         context: to.context,
+        tokenPadding: to.tokenPadding,
       };
     }
 
@@ -228,6 +229,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       startReplyWith: to.startReplyWith,
       markdownEscapeStrings: to.markdownEscapeStrings,
       context: to.context,
+      tokenPadding: to.tokenPadding,
     };
   }, [settings]);
 
@@ -259,8 +261,8 @@ export function ChatView({ characterId }: ChatViewProps) {
   }, [activeChatId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamingContent]);
+    messagesEndRef.current?.scrollIntoView({ behavior: isGenerating ? 'instant' : 'smooth' });
+  }, [messages, streamingContent, isGenerating]);
 
   const createChatMutation = useMutation({
     mutationFn: async (charName: string) => {
@@ -401,7 +403,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       const allMessages = [...useChatStore.getState().messages, userMsg];
 
       const maxContext = genStore.max_context ?? 8192;
-      const tokenPadding = 1024;
+      const tokenPadding = textOptions?.tokenPadding ?? 1024;
 
       const promptBuildResult = await apiPost<{
         messages: Array<{ role: string; content: string; name?: string }>;
@@ -421,6 +423,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         context: textOptions?.context,
         maxContext,
         tokenPadding,
+        chatId: activeChatId ?? undefined,
       });
 
       let promptMessages = promptBuildResult.messages;
@@ -455,6 +458,7 @@ export function ChatView({ characterId }: ChatViewProps) {
               maxContext,
               tokenPadding,
               summary: summarizeResult.summary,
+              chatId: activeChatId ?? undefined,
             });
             promptMessages = rebuiltResult.messages;
           }
@@ -874,7 +878,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       genParams.stop = mergedStop.length > 0 ? mergedStop : undefined;
 
       const maxContext = genStore.max_context ?? 8192;
-      const tokenPadding = 1024;
+      const tokenPadding = textOptions?.tokenPadding ?? 1024;
 
       const promptBuildResult = await apiPost<{
         messages: Array<{ role: string; content: string; name?: string }>;
@@ -894,6 +898,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         context: textOptions?.context,
         maxContext,
         tokenPadding,
+        chatId: activeChatId ?? undefined,
       });
 
       let promptMessages = promptBuildResult.messages;
@@ -928,6 +933,7 @@ export function ChatView({ characterId }: ChatViewProps) {
               maxContext,
               tokenPadding,
               summary: summarizeResult.summary,
+              chatId: activeChatId ?? undefined,
             });
             promptMessages = rebuiltResult.messages;
           }

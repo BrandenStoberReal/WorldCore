@@ -535,8 +535,11 @@
 }
 
 /* Rendered Markdown styling for chat messages — forge theme equivalent of SillyTavern's .mes_text rules */
-.mes_text em[data-depth="0"],
-.mes_text i[data-depth="0"] {
+.mes_text {
+  text-rendering: optimizeLegibility;
+}
+.mes_text em[data-depth='0'],
+.mes_text i[data-depth='0'] {
   color: var(--ember);
 }
 .mes_text em,

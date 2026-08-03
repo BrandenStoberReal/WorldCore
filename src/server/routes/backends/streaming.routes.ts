@@ -43,10 +43,15 @@ export const streamingRoutes = {
     const response = await chatGenerateHandler(streamReq);
 
     if (!response.ok) {
-      const errText = await response.clone().text().catch(() => '');
+      const errText = await response
+        .clone()
+        .text()
+        .catch(() => '');
       console.error(`[chatStream] upstream ${response.status}:`, errText.slice(0, 500));
       return new Response(
-        JSON.stringify({ error: { code: 'UPSTREAM_ERROR', message: `Upstream error ${response.status}` } }),
+        JSON.stringify({
+          error: { code: 'UPSTREAM_ERROR', message: `Upstream error ${response.status}` },
+        }),
         { status: response.status, headers: { 'Content-Type': 'application/json' } },
       );
     }
@@ -66,10 +71,15 @@ export const streamingRoutes = {
     console.log('[textStream] request:', JSON.stringify(parsed).slice(0, 500));
     const response = await textGenerateHandler(parsed as TextCompletionRequest);
     if (!response.ok) {
-      const errText = await response.clone().text().catch(() => '');
+      const errText = await response
+        .clone()
+        .text()
+        .catch(() => '');
       console.error(`[textStream] upstream ${response.status}:`, errText.slice(0, 500));
       return new Response(
-        JSON.stringify({ error: { code: 'UPSTREAM_ERROR', message: `Upstream error ${response.status}` } }),
+        JSON.stringify({
+          error: { code: 'UPSTREAM_ERROR', message: `Upstream error ${response.status}` },
+        }),
         { status: response.status, headers: { 'Content-Type': 'application/json' } },
       );
     }

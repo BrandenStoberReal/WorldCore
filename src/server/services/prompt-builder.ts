@@ -2,10 +2,11 @@ import type { CharacterData } from '@/shared/types/character';
 import type { ChatMessage } from '@/shared/types/chat';
 import type { ChatCompletionMessage } from '@/shared/types/backends/chatcompletions';
 import type { ContextSettings, InstructSettings } from '@/shared/types/text-options';
+import type { WorldInfoEntry } from '@/shared/types/worldinfo';
 import { TiktokenTokenizer } from '@/server/tokenizers/tiktoken';
 import { substituteMacros, type MacroContext } from '@/lib/macros';
 
-interface CharacterBookEntry {
+export interface CharacterBookEntry {
   id?: string | number;
   name: string;
   keys: string[];
@@ -18,9 +19,57 @@ interface CharacterBookEntry {
   priority: number;
   enabled: boolean;
   case_sensitive: boolean;
+  matchWholeWords: boolean;
   position: string | number;
+  depth?: number;
   use_regex: boolean;
+  probability: number;
+  useProbability: boolean;
+  selectiveLogic: number;
+  sticky: boolean;
+  stickyCount: number;
+  cooldown: number;
+  delay: number;
+  excludeRecursion: boolean;
+  preventRecursion: boolean;
   extensions?: Record<string, unknown>;
+}
+
+export function dbToCharacterBookEntry(entry: WorldInfoEntry): CharacterBookEntry {
+  const positionMap: Record<number, string | number> = {
+    0: 'before_char',
+    1: 'after_char',
+    2: "at_end as an author's note",
+    3: 'in-chat',
+    4: 'in-chat',
+  };
+  return {
+    id: entry.uid,
+    name: entry.comment || '',
+    keys: entry.key ? [entry.key] : [],
+    secondary_keys: entry.keysecondary ?? [],
+    comment: entry.comment ?? '',
+    content: entry.content ?? '',
+    constant: entry.constant ?? false,
+    selective: entry.selective ?? false,
+    insertion_order: entry.order ?? 0,
+    priority: 10,
+    enabled: !(entry.disable ?? false),
+    case_sensitive: entry.caseSensitive ?? false,
+    matchWholeWords: entry.matchWholeWords ?? false,
+    position: positionMap[entry.position as number] ?? 'before_char',
+    depth: entry.depth ?? 0,
+    use_regex: false,
+    probability: entry.probability ?? 1,
+    useProbability: entry.useProbability ?? false,
+    selectiveLogic: entry.selectiveLogic ?? 0,
+    sticky: entry.sticky ?? false,
+    stickyCount: 0,
+    cooldown: entry.cooldown ?? 0,
+    delay: entry.delay ?? 0,
+    excludeRecursion: entry.excludeRecursion ?? false,
+    preventRecursion: entry.preventRecursion ?? false,
+  };
 }
 
 export interface PromptBuilderParams {
@@ -32,6 +81,13 @@ export interface PromptBuilderParams {
   jailbreakPromptOverride?: string;
   includeExamples?: boolean;
   maxTokens?: number;
+  maxContext?: number;
+  tokenPadding?: number;
+  scanDepth?: number;
+  tokenBudget?: number;
+  chatId?: string;
+  chatMessageCount?: number;
+  entryStates?: Map<string, WiEntryState>;
   persona?: {
     name: string;
     description?: string;
@@ -48,12 +104,26 @@ export interface PromptBuilderParams {
   };
   instruct?: InstructSettings;
   context?: ContextSettings;
+  summary?: string;
+}
+
+export interface WiEntryState {
+  entryUid: string;
+  chatId: string;
+  activatedAtMessageIndex: number;
+  activationCount: number;
+  consecutiveMatches: number;
+  lastDeactivatedAt: number;
+  isActive: boolean;
 }
 
 export interface PromptBuilderResult {
   messages: ChatCompletionMessage[];
   tokenCount: number;
   stopStrings?: string[];
+  needsSummarization?: boolean;
+  messagesToSummarize?: ChatMessage[];
+  updatedEntryStates?: Map<string, WiEntryState>;
 }
 
 /**
@@ -81,6 +151,14 @@ export class PromptBuilder {
       jailbreakPromptOverride,
       includeExamples = true,
       maxTokens = 4096,
+      maxContext,
+      tokenPadding = 1024,
+      scanDepth = 10,
+      tokenBudget,
+      chatId,
+      chatMessageCount,
+      entryStates,
+      summary,
     } = params;
 
     const charName = character.name;
@@ -109,8 +187,18 @@ export class PromptBuilder {
     }
     const messagesArray: ChatCompletionMessage[] = [];
 
+    // Pre-compute activated world info entries once
+    const { activated: activatedWiEntries, updatedStates } = this.getActivatedEntries(
+      worldInfoEntries,
+      messages,
+      scanDepth,
+      entryStates,
+      chatId,
+      chatMessageCount ?? messages.length,
+    );
+
     // 1. Add World Info before character definitions
-    const worldInfoBefore = this.getWorldInfoBefore(worldInfoEntries, messages);
+    const worldInfoBefore = this.filterAndJoinWiEntries(activatedWiEntries, 'before_char', 0, tokenBudget);
     if (worldInfoBefore) {
       messagesArray.push({
         role: 'system',
@@ -169,7 +257,7 @@ export class PromptBuilder {
     }
 
     // 3. Add World Info after character definitions
-    const worldInfoAfter = this.getWorldInfoAfter(worldInfoEntries, messages);
+    const worldInfoAfter = this.filterAndJoinWiEntries(activatedWiEntries, 'after_char', 1, tokenBudget);
     if (worldInfoAfter) {
       messagesArray.push({
         role: 'system',
@@ -270,7 +358,23 @@ export class PromptBuilder {
 
     // 9. Add chat history
     const historyStartIdx = messagesArray.length;
-    const historyMessages = this.formatChatHistory(messages, charName, userName, macroCtx);
+    let historyMessages: ChatCompletionMessage[];
+
+    if (summary) {
+      historyMessages = [
+        {
+          role: 'system',
+          content: `[Previous conversation summary]\n${summary}`,
+        },
+        ...messages.slice(-10).map((msg) => ({
+          role: (msg.is_user ? 'user' : 'assistant') as 'user' | 'assistant',
+          content: substituteMacros(msg.mes, macroCtx),
+          name: msg.name,
+        })),
+      ];
+    } else {
+      historyMessages = this.formatChatHistory(messages, charName, userName, macroCtx);
+    }
     messagesArray.push(...historyMessages);
 
     // 9.1 inchat story_string placement
@@ -308,12 +412,29 @@ export class PromptBuilder {
       }
     }
 
+    // 9.5.1 Inject world info at_end as author's note
+    const worldInfoAuthorNote = this.filterAndJoinWiEntries(activatedWiEntries, "at_end as an author's note", undefined, tokenBudget);
+    if (worldInfoAuthorNote) {
+      messagesArray.push({
+        role: 'system',
+        content: substituteMacros(worldInfoAuthorNote, macroCtx),
+      });
+    }
+
+    // 9.5.2 Inject world info in-chat at specified depths
+    const worldInfoInChat = this.filterWiEntriesInChat(activatedWiEntries, tokenBudget);
+    for (const wiEntry of worldInfoInChat) {
+      const insertIdx = Math.max(historyStartIdx, messagesArray.length - wiEntry.depth);
+      messagesArray.splice(insertIdx, 0, {
+        role: 'system',
+        content: substituteMacros(wiEntry.content, macroCtx),
+      });
+    }
+
     // 9.6 Inject character depth_prompt at specified depth in chat history
     const depthPrompt = (character as Record<string, unknown>).extensions;
     const dp =
-      depthPrompt &&
-      typeof depthPrompt === 'object' &&
-      'depth_prompt' in depthPrompt
+      depthPrompt && typeof depthPrompt === 'object' && 'depth_prompt' in depthPrompt
         ? (depthPrompt as Record<string, unknown>).depth_prompt
         : null;
     if (
@@ -325,8 +446,7 @@ export class PromptBuilder {
     ) {
       const dpObj = dp as Record<string, unknown>;
       const dpDepth = typeof dpObj.depth === 'number' ? dpObj.depth : 4;
-      const dpRole =
-        dpObj.role === 'user' || dpObj.role === 'assistant' ? dpObj.role : 'system';
+      const dpRole = dpObj.role === 'user' || dpObj.role === 'assistant' ? dpObj.role : 'system';
       const dpContent = substituteMacros(dpObj.prompt as string, macroCtx);
       const insertIdx = Math.max(historyStartIdx, messagesArray.length - dpDepth);
       messagesArray.splice(insertIdx, 0, {
@@ -354,81 +474,339 @@ export class PromptBuilder {
 
     const tokenCount = this.countTokens(formattedMessages);
 
+    let needsSummarization = false;
+    let messagesToSummarize: ChatMessage[] | undefined;
+
+    if (maxContext && tokenCount > maxContext - tokenPadding && !summary && messages.length > 10) {
+      needsSummarization = true;
+      messagesToSummarize = messages.slice(0, messages.length - 10);
+    }
+
     return {
       messages: formattedMessages,
       tokenCount,
       stopStrings: stopStrings.length > 0 ? stopStrings : undefined,
+      needsSummarization,
+      messagesToSummarize,
+      updatedEntryStates: updatedStates,
     };
   }
 
-  /**
-   * Get World Info entries that should appear before character definitions.
-   * Matches SillyTavern's worldInfoBefore placement.
-   */
-  private getWorldInfoBefore(entries: CharacterBookEntry[], messages: ChatMessage[]): string {
-    const activatedEntries = this.getActivatedEntries(entries, messages);
-    const beforeEntries = activatedEntries.filter(
-      (entry) => entry.position === 'before_char' || entry.position === 0,
-    );
+  private filterAndJoinWiEntries(
+    entries: CharacterBookEntry[],
+    position: string | number,
+    numericPosition: number | undefined,
+    tokenBudget?: number,
+  ): string {
+    const filtered = entries.filter((entry) => {
+      if (typeof position === 'string') {
+        return entry.position === position;
+      }
+      return numericPosition !== undefined && entry.position === numericPosition;
+    });
 
-    if (beforeEntries.length === 0) return '';
+    if (filtered.length === 0) return '';
 
-    return beforeEntries
-      .sort((a, b) => a.insertion_order - b.insertion_order)
-      .map((entry) => entry.content)
-      .join('\n\n');
+    const sorted = filtered.sort((a, b) => a.insertion_order - b.insertion_order);
+    return this.joinEntriesWithBudget(sorted, tokenBudget);
   }
 
-  /**
-   * Get World Info entries that should appear after character definitions.
-   * Matches SillyTavern's worldInfoAfter placement.
-   */
-  private getWorldInfoAfter(entries: CharacterBookEntry[], messages: ChatMessage[]): string {
-    const activatedEntries = this.getActivatedEntries(entries, messages);
-    const afterEntries = activatedEntries.filter(
-      (entry) => entry.position === 'after_char' || entry.position === 1,
-    );
+  private filterWiEntriesInChat(
+    entries: CharacterBookEntry[],
+    tokenBudget?: number,
+  ): Array<{ content: string; depth: number }> {
+    const inChatEntries = entries.filter((entry) => entry.position === 'in-chat');
 
-    if (afterEntries.length === 0) return '';
+    if (inChatEntries.length === 0) return [];
 
-    return afterEntries
-      .sort((a, b) => a.insertion_order - b.insertion_order)
-      .map((entry) => entry.content)
-      .join('\n\n');
+    const sorted = inChatEntries.sort((a, b) => a.insertion_order - b.insertion_order);
+    const result: Array<{ content: string; depth: number }> = [];
+    let usedTokens = 0;
+
+    for (const entry of sorted) {
+      const entryTokens = this.tokenizer.countTokens(entry.content);
+      if (tokenBudget && usedTokens + entryTokens > tokenBudget) break;
+      usedTokens += entryTokens;
+      result.push({
+        content: entry.content,
+        depth: typeof entry.depth === 'number' ? entry.depth : 0,
+      });
+    }
+
+    return result;
   }
 
-  /**
-   * Get World Info entries that are activated by the current chat context.
-   * Scans messages for matching keys.
-   */
+  private joinEntriesWithBudget(entries: CharacterBookEntry[], tokenBudget?: number): string {
+    if (entries.length === 0) return '';
+
+    if (!tokenBudget) {
+      return entries.map((entry) => entry.content).join('\n\n');
+    }
+
+    const parts: string[] = [];
+    let usedTokens = 0;
+
+    for (const entry of entries) {
+      const entryTokens = this.tokenizer.countTokens(entry.content);
+      if (usedTokens + entryTokens > tokenBudget) break;
+      usedTokens += entryTokens;
+      parts.push(entry.content);
+    }
+
+    return parts.join('\n\n');
+  }
+
   private getActivatedEntries(
     entries: CharacterBookEntry[],
     messages: ChatMessage[],
-  ): CharacterBookEntry[] {
-    const scanDepth = 10;
+    scanDepth: number = 10,
+    entryStates?: Map<string, WiEntryState>,
+    chatId?: string,
+    chatMessageCount?: number,
+  ): { activated: CharacterBookEntry[]; updatedStates: Map<string, WiEntryState> } {
     const recentMessages = messages.slice(-scanDepth);
-    const chatText = recentMessages
-      .map((m) => m.mes)
-      .join('\n')
-      .toLowerCase();
+    const chatTextRaw = recentMessages.map((m) => m.mes).join('\n');
+    const chatTextLower = chatTextRaw.toLowerCase();
 
-    return entries.filter((entry) => {
+    const activated: CharacterBookEntry[] = [];
+    const activatedContents = new Set<string>();
+    const updatedStates = new Map<string, WiEntryState>();
+
+    const getEntryState = (entryUid: string): WiEntryState => {
+      const existing = entryStates?.get(entryUid);
+      if (existing) {
+        updatedStates.set(entryUid, { ...existing });
+        return updatedStates.get(entryUid)!;
+      }
+      const newState: WiEntryState = {
+        entryUid,
+        chatId: chatId ?? '',
+        activatedAtMessageIndex: 0,
+        activationCount: 0,
+        consecutiveMatches: 0,
+        lastDeactivatedAt: 0,
+        isActive: false,
+      };
+      updatedStates.set(entryUid, newState);
+      return newState;
+    };
+
+    const checkEntry = (entry: CharacterBookEntry, textRaw: string, textLower: string): boolean => {
       if (!entry.enabled) return false;
       if (entry.constant) return true;
 
       const keys = entry.keys;
       if (!keys || keys.length === 0) return false;
 
-      const keyMatch = keys.some((key) => {
-        if (!key) return false;
-        const keyLower = key.toLowerCase();
-        return entry.case_sensitive ? chatText.includes(keyLower) : chatText.includes(keyLower);
-      });
+      const primaryMatch = this.checkKeyMatch(
+        keys,
+        textRaw,
+        textLower,
+        entry.case_sensitive ?? false,
+        entry.matchWholeWords ?? false,
+        entry.use_regex ?? false,
+      );
 
-      if (!keyMatch) return false;
+      if (!primaryMatch) return false;
+
+      if (entry.selective && entry.secondary_keys && entry.secondary_keys.length > 0) {
+        const secondaryKeys = entry.secondary_keys;
+        const secondaryLogic = entry.selectiveLogic ?? 0;
+
+        if (secondaryLogic === 0) {
+          const secondaryMatch = this.checkKeyMatch(
+            secondaryKeys,
+            textRaw,
+            textLower,
+            entry.case_sensitive ?? false,
+            entry.matchWholeWords ?? false,
+            entry.use_regex ?? false,
+          );
+          if (!secondaryMatch) return false;
+        } else {
+          const allSecondaryMatch = secondaryKeys.every((key) =>
+            this.checkKeyMatch(
+              [key],
+              textRaw,
+              textLower,
+              entry.case_sensitive ?? false,
+              entry.matchWholeWords ?? false,
+              entry.use_regex ?? false,
+            ),
+          );
+          if (!allSecondaryMatch) return false;
+        }
+      }
 
       return true;
+    };
+
+    const processEntry = (entry: CharacterBookEntry) => {
+      if (activatedContents.has(entry.content)) return;
+
+      const entryUid = String(entry.id ?? entry.name ?? entry.content.slice(0, 50));
+      const state = getEntryState(entryUid);
+      const currentMessageIndex = chatMessageCount ?? messages.length;
+
+      if (state.isActive) {
+        if (entry.sticky) {
+          activated.push(entry);
+          activatedContents.add(entry.content);
+          return;
+        }
+        state.isActive = false;
+        state.lastDeactivatedAt = currentMessageIndex;
+      }
+
+      if (entry.cooldown > 0 && state.lastDeactivatedAt > 0) {
+        const messagesSinceDeactivation = currentMessageIndex - state.lastDeactivatedAt;
+        if (messagesSinceDeactivation < entry.cooldown) {
+          state.consecutiveMatches = 0;
+          return;
+        }
+      }
+
+      if (entry.useProbability && entry.probability < 1) {
+        if (Math.random() >= entry.probability) {
+          state.consecutiveMatches = 0;
+          return;
+        }
+      }
+
+      const entryDepth = typeof entry.depth === 'number' && entry.depth > 0 ? entry.depth : scanDepth;
+      const entryMessages = messages.slice(-entryDepth);
+      const entryTextRaw = entryMessages.map((m) => m.mes).join('\n');
+      const entryTextLower = entryTextRaw.toLowerCase();
+
+      if (checkEntry(entry, entryTextRaw, entryTextLower)) {
+        state.consecutiveMatches++;
+
+        if (entry.delay > 0 && state.consecutiveMatches < entry.delay) {
+          return;
+        }
+
+        activated.push(entry);
+        activatedContents.add(entry.content);
+        state.isActive = true;
+        state.activatedAtMessageIndex = currentMessageIndex;
+        state.activationCount++;
+      } else {
+        state.consecutiveMatches = 0;
+      }
+    };
+
+    for (const entry of entries) {
+      if (entry.excludeRecursion) {
+        processEntry(entry);
+      }
+    }
+
+    let previousSize = -1;
+    while (activated.length !== previousSize) {
+      previousSize = activated.length;
+
+      for (const entry of entries) {
+        if (entry.preventRecursion) continue;
+        if (activatedContents.has(entry.content)) continue;
+
+        const entryDepth = typeof entry.depth === 'number' && entry.depth > 0 ? entry.depth : scanDepth;
+        const entryMessages = messages.slice(-entryDepth);
+        const entryTextRaw = entryMessages.map((m) => m.mes).join('\n');
+        const entryTextLower = entryTextRaw.toLowerCase();
+
+        const allTextRaw = entryTextRaw + '\n' + [...activatedContents].join('\n');
+        const allTextLower = allTextRaw.toLowerCase();
+
+        const entryUid = String(entry.id ?? entry.name ?? entry.content.slice(0, 50));
+        const state = getEntryState(entryUid);
+        const currentMessageIndex = chatMessageCount ?? messages.length;
+
+        if (state.isActive) {
+          if (entry.sticky) {
+            activated.push(entry);
+            activatedContents.add(entry.content);
+            continue;
+          }
+          state.isActive = false;
+          state.lastDeactivatedAt = currentMessageIndex;
+        }
+
+        if (entry.cooldown > 0 && state.lastDeactivatedAt > 0) {
+          const messagesSinceDeactivation = currentMessageIndex - state.lastDeactivatedAt;
+          if (messagesSinceDeactivation < entry.cooldown) {
+            state.consecutiveMatches = 0;
+            continue;
+          }
+        }
+
+        if (entry.useProbability && entry.probability < 1) {
+          if (Math.random() >= entry.probability) {
+            state.consecutiveMatches = 0;
+            continue;
+          }
+        }
+
+        if (checkEntry(entry, allTextRaw, allTextLower)) {
+          state.consecutiveMatches++;
+
+          if (entry.delay > 0 && state.consecutiveMatches < entry.delay) {
+            continue;
+          }
+
+          activated.push(entry);
+          activatedContents.add(entry.content);
+          state.isActive = true;
+          state.activatedAtMessageIndex = currentMessageIndex;
+          state.activationCount++;
+        } else {
+          state.consecutiveMatches = 0;
+        }
+      }
+    }
+
+    return { activated, updatedStates };
+  }
+
+  private checkKeyMatch(
+    keys: string[],
+    chatTextRaw: string,
+    chatTextLower: string,
+    caseSensitive: boolean,
+    matchWholeWords: boolean,
+    useRegex: boolean,
+  ): boolean {
+    return keys.some((key) => {
+      if (!key) return false;
+
+      if (useRegex) {
+        try {
+          const flags = caseSensitive ? '' : 'i';
+          const regex = new RegExp(key, flags);
+          return regex.test(chatTextRaw);
+        } catch {
+          return false;
+        }
+      }
+
+      if (caseSensitive) {
+        if (matchWholeWords) {
+          const regex = new RegExp(`\\b${this.escapeRegex(key)}\\b`);
+          return regex.test(chatTextRaw);
+        }
+        return chatTextRaw.includes(key);
+      }
+
+      const keyLower = key.toLowerCase();
+      if (matchWholeWords) {
+        const regex = new RegExp(`\\b${this.escapeRegex(keyLower)}\\b`);
+        return regex.test(chatTextLower);
+      }
+      return chatTextLower.includes(keyLower);
     });
+  }
+
+  private escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   /**
@@ -467,9 +845,7 @@ export class PromptBuilder {
       if (bi > 0 && messages.length > 0) {
         messages.push({
           role: 'system',
-          content: exampleSeparator
-            ? substituteMacros(exampleSeparator, macroCtx)
-            : '---',
+          content: exampleSeparator ? substituteMacros(exampleSeparator, macroCtx) : '---',
         });
       }
       const lines = block.trim().split('\n');
@@ -597,7 +973,6 @@ export class PromptBuilder {
     };
     let rendered = this.evalHandlebars(template, ctx);
     rendered = rendered.replace(/\{\{trim\}\}/gi, '').trimEnd();
-    rendered = substituteMacros(rendered, macroCtx);
     rendered = substituteMacros(rendered, macroCtx);
     return rendered;
   }

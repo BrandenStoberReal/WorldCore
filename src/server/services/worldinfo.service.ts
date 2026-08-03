@@ -7,6 +7,7 @@ import { paths } from '@/server/storage/paths';
 import { writeFile, readFile, removeFile, exists } from '@/server/storage/fs';
 import type { WorldInfo, WorldInfoEntry } from '@/shared/types/worldinfo';
 import { NotFoundError, ConflictError, ValidationError } from '@/server/errors';
+import { dbToCharacterBookEntry, type CharacterBookEntry } from '@/server/services/prompt-builder';
 
 export class WorldInfoService {
   private wiFilePath(fileName: string): string {
@@ -215,6 +216,18 @@ export class WorldInfoService {
         .update(worldinfoFiles)
         .set({ name: data.name })
         .where(and(eq(worldinfoFiles.id, fileId), eq(worldinfoFiles.userId, userId)));
+    }
+
+    if (data.entries !== undefined) {
+      await db.delete(worldinfoEntries).where(eq(worldinfoEntries.fileId, fileId));
+
+      const entries = Object.values(data.entries) as WorldInfoEntry[];
+      for (const entry of entries) {
+        await db.insert(worldinfoEntries).values({
+          ...this.entryToDb(entry),
+          fileId,
+        });
+      }
     }
   }
 

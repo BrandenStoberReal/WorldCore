@@ -24,7 +24,9 @@ function safeJsonParse(raw: string, context: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      throw new Error(`${context}: Expected a JSON object, got ${Array.isArray(parsed) ? 'array' : typeof parsed}`);
+      throw new Error(
+        `${context}: Expected a JSON object, got ${Array.isArray(parsed) ? 'array' : typeof parsed}`,
+      );
     }
     return parsed as Record<string, unknown>;
   } catch (err) {
@@ -157,7 +159,9 @@ export async function importFromYaml(uploadPath: string, userId: string): Promis
   try {
     parsed = parse(content);
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      throw new Error(`Expected a YAML object, got ${Array.isArray(parsed) ? 'array' : typeof parsed}`);
+      throw new Error(
+        `Expected a YAML object, got ${Array.isArray(parsed) ? 'array' : typeof parsed}`,
+      );
     }
   } catch (err) {
     if (err instanceof Error) {

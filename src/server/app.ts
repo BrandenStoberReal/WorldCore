@@ -109,8 +109,8 @@ async function handleRequest(req: Request): Promise<Response> {
       headers: {
         'Content-Type': 'text/html',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
         ...securityHeaders,
       },
       status: 404,
@@ -122,8 +122,8 @@ async function handleRequest(req: Request): Promise<Response> {
       headers: {
         'Content-Type': resolveMimeType(safePath),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
         ...securityHeaders,
       },
     });
@@ -133,8 +133,8 @@ async function handleRequest(req: Request): Promise<Response> {
     headers: {
       'Content-Type': 'text/html',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
+      Pragma: 'no-cache',
+      Expires: '0',
       ...securityHeaders,
     },
   });

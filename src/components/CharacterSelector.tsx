@@ -528,8 +528,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
           className="max-w-sm"
         >
           <p className="text-muted-foreground mt-2 text-[12px]">
-            Add tags to {selectedIds.size} selected characters. Separate multiple tags with
-            commas.
+            Add tags to {selectedIds.size} selected characters. Separate multiple tags with commas.
           </p>
           <input
             type="text"

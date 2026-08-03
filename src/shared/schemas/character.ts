@@ -40,6 +40,7 @@ export const CharacterBookEntrySchema = z.object({
   priority: z.number().default(10),
   enabled: z.boolean().default(true),
   case_sensitive: z.boolean().default(false),
+  matchWholeWords: z.boolean().default(false),
   position: z
     .union([
       z.literal('before_char'),
@@ -49,7 +50,17 @@ export const CharacterBookEntrySchema = z.object({
       z.number(),
     ])
     .default(0),
+  depth: z.number().int().default(0),
   use_regex: z.boolean().default(false),
+  probability: z.number().default(1),
+  useProbability: z.boolean().default(false),
+  selectiveLogic: z.number().int().default(0),
+  sticky: z.boolean().default(false),
+  stickyCount: z.number().int().default(0),
+  cooldown: z.number().int().default(0),
+  delay: z.number().int().default(0),
+  excludeRecursion: z.boolean().default(false),
+  preventRecursion: z.boolean().default(false),
   extensions: z.record(z.unknown()).optional(),
 });
 

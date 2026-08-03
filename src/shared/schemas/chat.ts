@@ -19,6 +19,8 @@ export const ChatMessageSchema = z
     send_date: z.string().datetime().optional(),
     mes: z.string(),
     thinking: z.string().optional(),
+    summary: z.string().optional(),
+    summaryMessageCount: z.number().optional(),
     extra: z
       .object({
         name2: z.string().optional(),

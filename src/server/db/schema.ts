@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, blob } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, blob, index } from 'drizzle-orm/sqlite-core';
 
 export const characters = sqliteTable('characters', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -80,7 +80,9 @@ export const worldinfoFiles = sqliteTable('worldinfo_files', {
   fileName: text('file_name').notNull().unique(),
   name: text('name').notNull().default(''),
   userId: text('user_id').notNull().default('default-user'),
-});
+}, (table) => [
+  index('worldinfo_files_user_id_idx').on(table.userId),
+]);
 
 export const worldinfoEntries = sqliteTable('worldinfo_entries', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -133,7 +135,28 @@ export const worldinfoEntries = sqliteTable('worldinfo_entries', {
   matchCreatorNotes: integer('match_creator_notes', { mode: 'boolean' }).notNull().default(false),
   ignoreBudget: integer('ignore_budget', { mode: 'boolean' }).notNull().default(false),
   extensions: text('extensions', { mode: 'json' }).$type<Record<string, unknown>>().default({}),
-});
+}, (table) => [
+  index('worldinfo_entries_file_id_idx').on(table.fileId),
+  index('worldinfo_entries_uid_idx').on(table.uid),
+  index('worldinfo_entries_file_id_uid_idx').on(table.fileId, table.uid),
+]);
+
+export const worldinfoEntryStates = sqliteTable('worldinfo_entry_states', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  chatId: text('chat_id').notNull(),
+  entryUid: text('entry_uid').notNull(),
+  entryFileId: integer('entry_file_id').references(() => worldinfoFiles.id, { onDelete: 'cascade' }),
+  activatedAtMessageIndex: integer('activated_at_message_index').notNull().default(0),
+  activationCount: integer('activation_count').notNull().default(0),
+  consecutiveMatches: integer('consecutive_matches').notNull().default(0),
+  lastDeactivatedAt: integer('last_deactivated_at').notNull().default(0),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(false),
+  userId: text('user_id').notNull().default('default-user'),
+}, (table) => [
+  index('worldinfo_entry_states_chat_id_idx').on(table.chatId),
+  index('worldinfo_entry_states_entry_uid_idx').on(table.entryUid),
+  index('worldinfo_entry_states_chat_id_entry_uid_idx').on(table.chatId, table.entryUid),
+]);
 
 export const presets = sqliteTable('presets', {
   id: integer('id').primaryKey({ autoIncrement: true }),

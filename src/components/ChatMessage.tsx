@@ -265,8 +265,8 @@ export const ChatMessage = memo(function ChatMessage({
       <div className="group/message relative">
         <div
           className={cn(
-            'mes_text relative rounded-md px-4 py-3 text-[13.5px] leading-relaxed break-words',
-            isUser ? 'bg-ember/5 shadow-sm' : 'bg-card/40 text-foreground/90 shadow-xs',
+            'mes_text relative rounded-md px-4 py-3 text-sm leading-relaxed break-words',
+            isUser ? 'bg-ember/5 shadow-sm' : 'bg-card/40 text-foreground shadow-xs',
           )}
         >
           {isEditing ? (

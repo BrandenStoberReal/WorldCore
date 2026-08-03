@@ -41,6 +41,7 @@ import { modelsRoutes } from './models.routes';
 import { vectorsRoutes } from './vectors.routes';
 import { ssoRoutes } from './sso.routes';
 import { promptBuilderRoutes } from './prompt-builder.routes';
+import { summarizeRoutes } from './summarize.routes';
 import { SHARED_CONST } from '@/shared/constants';
 
 const PREFIX = SHARED_CONST.API_VERSION_PREFIX;
@@ -131,6 +132,9 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
 
   // === Prompt Builder ===
   routes[`${PREFIX}/prompt-builder/build`] = promptBuilderRoutes.build;
+
+  // === Summarization ===
+  routes[`${PREFIX}/summarize`] = summarizeRoutes.summarize;
 
   // === Chats (T10) ===
   routes[`${PREFIX}/chats/save`] = chatsRoutes.save;

@@ -493,7 +493,9 @@ function tryMatchEmphasis(
         node: (
           <span key={`bh${pos}`}>
             <span className="md-opening-tag">{'**'}</span>
-            <strong data-depth={depth}>{renderInlineTokens(content, fences, codes, depth + 1, false)}</strong>
+            <strong data-depth={depth}>
+              {renderInlineTokens(content, fences, codes, depth + 1, false)}
+            </strong>
           </span>
         ),
         end: text.length,
@@ -533,7 +535,9 @@ function tryMatchEmphasis(
         node: (
           <span key={`Bh${pos}`}>
             <span className="md-opening-tag">{'__'}</span>
-            <strong data-depth={depth}>{renderInlineTokens(content, fences, codes, depth + 1, false)}</strong>
+            <strong data-depth={depth}>
+              {renderInlineTokens(content, fences, codes, depth + 1, false)}
+            </strong>
           </span>
         ),
         end: text.length,
@@ -547,7 +551,11 @@ function tryMatchEmphasis(
     const inner = text.slice(italStar.contentStart, italStar.contentEnd);
     if (isValidEmphContent(inner)) {
       return {
-        node: <em key={`i${pos}`} data-depth={depth}>{renderInlineTokens(inner, fences, codes, depth + 1, false)}</em>,
+        node: (
+          <em key={`i${pos}`} data-depth={depth}>
+            {renderInlineTokens(inner, fences, codes, depth + 1, false)}
+          </em>
+        ),
         end: italStar.contentEnd + 1,
       };
     }
@@ -560,7 +568,9 @@ function tryMatchEmphasis(
         node: (
           <span key={`ih${pos}`}>
             <span className="md-opening-tag">{'*'}</span>
-            <em data-depth={depth}>{renderInlineTokens(content, fences, codes, depth + 1, false)}</em>
+            <em data-depth={depth}>
+              {renderInlineTokens(content, fences, codes, depth + 1, false)}
+            </em>
           </span>
         ),
         end: text.length,
@@ -574,7 +584,11 @@ function tryMatchEmphasis(
     const inner = text.slice(italUnder.contentStart, italUnder.contentEnd);
     if (isValidEmphContent(inner)) {
       return {
-        node: <em key={`I${pos}`} data-depth={depth}>{renderInlineTokens(inner, fences, codes, depth + 1, false)}</em>,
+        node: (
+          <em key={`I${pos}`} data-depth={depth}>
+            {renderInlineTokens(inner, fences, codes, depth + 1, false)}
+          </em>
+        ),
         end: italUnder.contentEnd + 1,
       };
     }
@@ -587,7 +601,9 @@ function tryMatchEmphasis(
         node: (
           <span key={`Ih${pos}`}>
             <span className="md-opening-tag">{'_'}</span>
-            <em data-depth={depth}>{renderInlineTokens(content, fences, codes, depth + 1, false)}</em>
+            <em data-depth={depth}>
+              {renderInlineTokens(content, fences, codes, depth + 1, false)}
+            </em>
           </span>
         ),
         end: text.length,
