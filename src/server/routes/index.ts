@@ -42,6 +42,7 @@ import { vectorsRoutes } from './vectors.routes';
 import { ssoRoutes } from './sso.routes';
 import { promptBuilderRoutes } from './prompt-builder.routes';
 import { summarizeRoutes } from './summarize.routes';
+import { serverConfigRoutes } from './server-config.routes';
 import { SHARED_CONST } from '@/shared/constants';
 
 const PREFIX = SHARED_CONST.API_VERSION_PREFIX;
@@ -191,6 +192,10 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/settings/load-snapshot`] = settingsRoutes.loadSnapshot;
   routes[`${PREFIX}/settings/make-snapshot`] = settingsRoutes.makeSnapshot;
   routes[`${PREFIX}/settings/restore-snapshot`] = settingsRoutes.restoreSnapshot;
+
+  // === Server Config ===
+  routes[`${PREFIX}/server-config/get`] = serverConfigRoutes.get;
+  routes[`${PREFIX}/server-config/update`] = serverConfigRoutes.update;
 
   // === Tokenizers (T18) ===
   routes[`${PREFIX}/tokenizers/count`] = tokenizersRoutes.count;

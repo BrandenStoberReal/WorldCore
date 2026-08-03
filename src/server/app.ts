@@ -1,6 +1,6 @@
 import { serve, type Server } from 'bun';
 import path from 'node:path';
-import { isOnboardingNeeded } from './config';
+import { isOnboardingNeeded, loadAppConfig } from './config';
 import { buildApiRoutes } from './routes';
 import { safePathWithin } from './util/safePath';
 import { securityHeaders } from './errors';
@@ -14,7 +14,12 @@ log.info('boot', 'Starting WorldCore...');
 const needsOnboarding = isOnboardingNeeded();
 
 const PORT = Number(process.env.PORT ?? 3000);
-const HOST = process.env.HOST ?? '127.0.0.1';
+const HOST =
+  process.env.HOST ??
+  (() => {
+    const appConfig = loadAppConfig();
+    return appConfig?.host ?? '127.0.0.1';
+  })();
 log.info('boot', `Config: port=${PORT} host=${HOST} onboarding=${needsOnboarding}`);
 
 const distDir = path.join(process.cwd(), 'dist');

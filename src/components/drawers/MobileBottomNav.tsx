@@ -1,5 +1,22 @@
-import { MessageSquare, Pencil, BookMarked, Zap, Users, Settings, Compass } from 'lucide-react';
-import { useNavStore, type SectionId } from '@/lib/navStore';
+import { useEffect, useState } from 'react';
+import {
+  MessageSquare,
+  Pencil,
+  BookMarked,
+  Zap,
+  Users,
+  Compass,
+  Ellipsis,
+  Settings,
+  Plug,
+  FileText,
+  UserCircle,
+  BookOpen,
+  Puzzle,
+  Palette,
+  X,
+} from 'lucide-react';
+import { useNavStore, type SectionId, type TopDrawerId } from '@/lib/navStore';
 import { useChatStore } from '@/lib/stores';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +32,12 @@ interface NavItem {
   requiresCharacter?: boolean;
 }
 
+interface MoreItem {
+  id: TopDrawerId;
+  icon: React.ReactNode;
+  label: string;
+}
+
 const NAV_ITEMS: NavItem[] = [
   { id: 'chats', icon: <MessageSquare size={20} />, label: 'Chats', requiresCharacter: true },
   { id: 'character-editor', icon: <Pencil size={20} />, label: 'Editor', requiresCharacter: true },
@@ -24,12 +47,35 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'character-browser', icon: <Compass size={20} />, label: 'Browse' },
 ];
 
+/** Top-drawer items accessible from the More sheet — mirrors NavRail's drawer row. */
+const MORE_ITEMS: MoreItem[] = [
+  { id: 'worldinfo', icon: <BookOpen size={18} />, label: 'World Info' },
+  { id: 'extensions', icon: <Puzzle size={18} />, label: 'Extensions' },
+  { id: 'connections', icon: <Plug size={18} />, label: 'Connections' },
+  { id: 'textoptions', icon: <FileText size={18} />, label: 'Text Options' },
+  { id: 'personas', icon: <UserCircle size={18} />, label: 'Personas' },
+  { id: 'ui-settings', icon: <Palette size={18} />, label: 'UI Settings' },
+  { id: 'settings', icon: <Settings size={18} />, label: 'Settings' },
+];
+
 export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBottomNavProps) {
   const sectionId = useNavStore((s) => s.sectionId);
   const openSection = useNavStore((s) => s.openSection);
   const charactersOpen = useNavStore((s) => s.charactersOpen);
   const toggleCharacters = useNavStore((s) => s.toggleCharacters);
+  const topDrawer = useNavStore((s) => s.topDrawer);
+  const openTopDrawer = useNavStore((s) => s.openTopDrawer);
   const activeCharacterId = useChatStore((s) => s.activeCharacterId);
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMoreOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [moreOpen]);
 
   const handleItemClick = (item: NavItem) => {
     if (item.id === 'generation') {
@@ -41,6 +87,11 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBo
     }
   };
 
+  const handleMoreItemClick = (id: TopDrawerId) => {
+    setMoreOpen(false);
+    openTopDrawer(id);
+  };
+
   const isActive = (item: NavItem) => {
     if (item.id === 'generation') return genSidebarOpen;
     if (item.id === 'characters') return charactersOpen;
@@ -48,7 +99,76 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBo
   };
 
   return (
-    <nav className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/80 safe-area-bottom border-t backdrop-blur-md">
+    <nav className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/80 safe-area-bottom relative border-t backdrop-blur-md">
+      {moreOpen && (
+        <>
+          {/* Backdrop — dims and dismisses on tap */}
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            onClick={() => setMoreOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* More menu bottom sheet */}
+          <div
+            role="menu"
+            aria-label="More options"
+            className="border-border bg-popover text-popover-foreground animate-in fade-in slide-in-from-bottom-2 absolute right-2 bottom-full left-2 z-50 mb-2 overflow-hidden rounded-xl border shadow-lg duration-200"
+          >
+            <div aria-hidden className="bg-border mx-auto mt-2 h-1 w-10 rounded-full" />
+
+            <div className="flex items-center justify-between px-4 pt-2 pb-1">
+              <span className="mono-tag text-ember">{`> more`}</span>
+              <button
+                type="button"
+                onClick={() => setMoreOpen(false)}
+                className="touch-target text-muted-foreground hover:text-ember flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+                aria-label="Close more menu"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto pb-2">
+              {MORE_ITEMS.map((item) => {
+                const active = topDrawer === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => handleMoreItemClick(item.id)}
+                    className={cn(
+                      'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors',
+                      active
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-foreground hover:bg-accent/50 hover:text-accent-foreground',
+                    )}
+                    aria-current={active ? 'true' : undefined}
+                  >
+                    <span
+                      className={cn(
+                        'shrink-0',
+                        active ? 'text-accent-foreground' : 'text-muted-foreground',
+                      )}
+                      aria-hidden
+                    >
+                      {item.icon}
+                    </span>
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="border-border/60 bg-background/40 flex items-center justify-between border-t px-4 py-2">
+              <span className="mono-tag text-muted-foreground/40">{`{ more }`}</span>
+              <span className="mono-tag text-ember/40">⌑</span>
+            </div>
+          </div>
+        </>
+      )}
+
       <div className="flex items-center justify-around px-2 py-1">
         {NAV_ITEMS.filter((item) => !item.requiresCharacter || activeCharacterId !== null).map(
           (item) => (
@@ -74,6 +194,22 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBo
             </button>
           ),
         )}
+
+        {/* More menu trigger */}
+        <button
+          type="button"
+          onClick={() => setMoreOpen((open) => !open)}
+          className={cn(
+            'touch-target relative flex flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-2 transition-colors',
+            moreOpen ? 'text-ember' : 'text-muted-foreground hover:text-foreground',
+          )}
+          aria-label="More options"
+          aria-expanded={moreOpen}
+          aria-haspopup="menu"
+        >
+          <Ellipsis size={20} />
+          <span className="text-[10px] font-medium">More</span>
+        </button>
       </div>
     </nav>
   );

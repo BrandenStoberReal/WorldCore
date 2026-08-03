@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { StatusToggle } from '@/components/ui/status-toggle';
 import { GenerationSlider } from '@/components/GenerationSlider';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Search, FileX } from 'lucide-react';
+import { Search, FileX, Globe, AlertTriangle } from 'lucide-react';
 import { cn, surfaceCard } from '@/lib/utils';
-import { apiPost } from '@/lib/api';
+import { apiPost, getServerConfig, updateServerConfig } from '@/lib/api';
 import { useAppStore } from '@/lib/stores';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert } from '@/components/ui/alert';
@@ -62,6 +62,18 @@ export function SettingsPanel() {
     deleted: number;
     skipped: number;
   } | null>(null);
+
+  const serverConfigQuery = useQuery({
+    queryKey: ['/api/v1/server-config/get'],
+    queryFn: getServerConfig,
+  });
+
+  const serverConfigMutation = useMutation({
+    mutationFn: updateServerConfig,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/server-config/get'] });
+    },
+  });
 
   /* ── Scan query (manual trigger only) ── */
   const scanQuery = useQuery<ReconcileListResponse>({
@@ -169,6 +181,71 @@ export function SettingsPanel() {
               description="0 = instant, 100 = slowest with fade-in per drip."
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Network Access card ── */}
+      <Card className={cn(surfaceCard, 'relative overflow-hidden rounded-md')}>
+        <CardHeader className="px-4 pt-4 pb-3">
+          <div className="flex items-center gap-2">
+            <Globe className="text-ember h-4 w-4" />
+            <CardTitle className="display-host text-[15px] leading-tight">Network Access</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 px-4 pb-4">
+          {serverConfigQuery.isLoading ? (
+            <LoadingSpinner size="sm" label="loading..." />
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-0.5">
+                  <span className="display-host text-foreground/85 text-[13px] font-medium">
+                    Allow network access
+                  </span>
+                  <span className="text-muted-foreground/60 text-[11px]">
+                    Listen on 0.0.0.0 to access from other devices on your network (mobile, tablet).
+                  </span>
+                </div>
+                <StatusToggle
+                  enabled={serverConfigQuery.data?.host === '0.0.0.0'}
+                  onToggle={() => {
+                    const newHost =
+                      serverConfigQuery.data?.host === '0.0.0.0' ? '127.0.0.1' : '0.0.0.0';
+                    serverConfigMutation.mutate(newHost);
+                  }}
+                />
+              </div>
+
+              {serverConfigQuery.data?.host === '0.0.0.0' && (
+                <Alert variant="warning" title="Network access enabled">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <div>
+                      <p className="text-[12px]">
+                        Your server is accessible from any device on your network. Make sure your
+                        firewall is configured appropriately.
+                      </p>
+                      <p className="text-muted-foreground mt-1 text-[11px]">
+                        Changes take effect after server restart.
+                      </p>
+                    </div>
+                  </div>
+                </Alert>
+              )}
+
+              {serverConfigMutation.isSuccess && (
+                <Alert variant="success" title="Setting saved">
+                  {serverConfigMutation.data.message}
+                </Alert>
+              )}
+
+              {serverConfigMutation.isError && (
+                <Alert variant="error" title="Failed to update">
+                  {serverConfigMutation.error.message}
+                </Alert>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 

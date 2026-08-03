@@ -430,6 +430,14 @@
     pointer-events: auto;
   }
 
+  @media (max-width: 767px) {
+    .drawer-top {
+      top: 0;
+      padding-top: env(safe-area-inset-top, 0px);
+      border-radius: 0 0 16px 16px;
+    }
+  }
+
   .drawer-characters {
     @apply shrink-0 overflow-y-auto;
     width: var(--sidebar-width-characters, 390px);
@@ -680,6 +688,13 @@
   .rounded-mobile {
     @media (max-width: 767px) {
       border-radius: 12px;
+    }
+  }
+
+  /* Prevent iOS zoom on input focus — iOS zooms when font-size < 16px */
+  .text-mobile-base {
+    @media (max-width: 767px) {
+      font-size: 16px !important;
     }
   }
 

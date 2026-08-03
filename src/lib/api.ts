@@ -693,3 +693,11 @@ export async function runGenerationInterceptors(
 
   return aborted ? null : request;
 }
+
+export async function getServerConfig(): Promise<{ host: string }> {
+  return await apiGet<{ host: string }>('/server-config/get');
+}
+
+export async function updateServerConfig(host: string): Promise<{ ok: boolean; message: string }> {
+  return await apiPost<{ ok: boolean; message: string }>('/server-config/update', { host });
+}

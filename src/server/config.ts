@@ -36,6 +36,8 @@ export interface AppConfig {
   backend: BackendType;
   /** MongoDB connection URI — only when backend = 'mongodb'. */
   mongodbUri?: string;
+  /** Host to listen on. '0.0.0.0' enables network access for mobile devices. */
+  host?: string;
   createdAt: number;
 }
 

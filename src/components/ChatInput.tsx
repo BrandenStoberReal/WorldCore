@@ -4,6 +4,7 @@ import { Send, Loader2 } from 'lucide-react';
 import { cn, surfaceCard, ambientGlow } from '@/lib/utils';
 import { apiPost } from '@/lib/api';
 import { ExtensionSlot } from '@/lib/extensionSlots';
+import { useScrollInputIntoView } from '@/hooks/useVirtualKeyboard';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -21,6 +22,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
   const [tokenLoading, setTokenLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useScrollInputIntoView(textareaRef);
 
   const fetchTokenCount = useCallback(async (text: string) => {
     if (!text.trim()) {
@@ -120,7 +122,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
                 isGenerating ? 'generating...' : 'type a message... (⏎ send, ⇧⏎ newline)'
               }
               rows={1}
-              className="placeholder:text-muted-foreground/50 flex max-h-40 min-h-9 flex-1 resize-none bg-transparent font-mono text-[13.5px] leading-relaxed outline-none disabled:opacity-50"
+              className="placeholder:text-muted-foreground/50 text-mobile-base flex max-h-40 min-h-9 flex-1 resize-none bg-transparent font-mono text-[13.5px] leading-relaxed outline-none disabled:opacity-50"
               disabled={disabled && !isGenerating}
             />
             <div className="mono-tag text-muted-foreground/60 shrink-0 text-sm tabular-nums">

@@ -21,22 +21,30 @@ export function GenerationPanel({ closed, onToggle }: GenerationPanelProps) {
               onClick={onToggle}
               aria-hidden="true"
             />
-            <div className="absolute inset-y-0 right-0 w-full max-w-sm">
-              <div className="bg-background h-full overflow-y-auto shadow-xl">
-                <div className="flex items-center justify-between border-b px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Zap className="text-ember h-4 w-4" strokeWidth={2} />
-                    <span className="font-medium">Generation Settings</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={onToggle}
-                    className="hover:bg-muted rounded-lg p-2 transition-colors"
-                    aria-label="Close generation settings"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+            <div
+              className="bg-background absolute right-0 bottom-0 left-0 mx-auto flex max-h-[90vh] flex-col rounded-t-2xl shadow-xl"
+              role="dialog"
+              aria-label="Generation settings"
+            >
+              {/* Drag handle */}
+              <div aria-hidden className="bg-border mx-auto mt-2 h-1 w-10 shrink-0 rounded-full" />
+
+              <div className="flex shrink-0 items-center justify-between border-b px-4 pt-2 pb-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="text-ember h-4 w-4" strokeWidth={2} />
+                  <span className="font-medium">Generation Settings</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={onToggle}
+                  className="touch-target hover:bg-muted rounded-lg p-2 transition-colors"
+                  aria-label="Close generation settings"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="scroll-mobile pb-safe overflow-y-auto">
                 <GenerationSidebar mode="drawer" onToggle={onToggle} />
               </div>
             </div>
