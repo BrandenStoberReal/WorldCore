@@ -1379,7 +1379,7 @@ export function TextOptionsPanel() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <Label className="text-[13px] font-medium">Prefix</Label>
                   <Textarea

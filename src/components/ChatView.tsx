@@ -88,6 +88,8 @@ export function ChatView({ characterId }: ChatViewProps) {
   const genStore = useGenerationStore();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
   const abortRef = useRef<AbortController | null>(null);
   const fullContentRef = useRef('');
   const isRegeneratingRef = useRef(false);
@@ -260,8 +262,18 @@ export function ChatView({ characterId }: ChatViewProps) {
     localModificationsRef.current = false;
   }, [activeChatId]);
 
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    // Consider "near bottom" if within 100px of the bottom
+    isNearBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+  }, []);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: isGenerating ? 'instant' : 'smooth' });
+    if (isNearBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: isGenerating ? 'instant' : 'smooth' });
+    }
   }, [messages, streamingContent, isGenerating]);
 
   const createChatMutation = useMutation({
@@ -1214,7 +1226,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       </header>
 
       {/* Messages stream */}
-      <div className="relative flex-1 overflow-y-auto">
+      <div ref={scrollContainerRef} onScroll={handleScroll} className="relative flex-1 overflow-y-auto scroll-mobile">
         <div className="relative mx-auto max-w-6xl space-y-4 px-6 py-4 sm:px-10">
           {displayMessages.map((msg, i) => (
             <ChatMessage

@@ -376,7 +376,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
         </div>
 
         {/* List rail */}
-        <div className="flex-1 overflow-y-auto py-1">
+        <div className="flex-1 overflow-y-auto scroll-mobile py-1">
           {isLoading ? (
             <LoadingSpinner size="sm" label="loading characters" className="py-8" />
           ) : sorted && sorted.length === 0 ? (
@@ -583,7 +583,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
       {infoLoading || !infoCharacter ? (
         <LoadingSpinner size="sm" label="loading character" className="flex-1" />
       ) : (
-        <div className="flex flex-1 flex-col overflow-y-auto px-3 py-3">
+        <div className="flex flex-1 flex-col overflow-y-auto scroll-mobile px-3 py-3">
           {/* Avatar + Name */}
           <div className="flex flex-col items-center gap-2.5 pb-3">
             <div className="border-border bg-accent/40 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border">

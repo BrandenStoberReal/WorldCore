@@ -282,8 +282,8 @@ export const ChatMessage = memo(function ChatMessage({
           )}
         </div>
 
-        {/* Action buttons — appear on hover */}
-        <div className="absolute -top-2 right-2 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/message:opacity-100">
+        {/* Action buttons — appear on hover, always visible on touch devices */}
+        <div className="message-actions absolute -top-2 right-2 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/message:opacity-100">
           <button
             type="button"
             onClick={() => {
@@ -291,10 +291,10 @@ export const ChatMessage = memo(function ChatMessage({
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
-            className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
+            className="touch-target bg-background/80 hover:bg-accent/50 border-border/60 flex h-10 w-10 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
             title="Copy message"
           >
-            {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+            {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
           </button>
 
           {onEdit && (
@@ -308,10 +308,10 @@ export const ChatMessage = memo(function ChatMessage({
                   setIsEditing(true);
                 }
               }}
-              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
+              className="touch-target bg-background/80 hover:bg-accent/50 border-border/60 flex h-10 w-10 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
               title={isEditing ? 'Save edit' : 'Edit message'}
             >
-              <Pencil className="h-3 w-3" />
+              <Pencil className="h-4 w-4" />
             </button>
           )}
 
@@ -319,10 +319,10 @@ export const ChatMessage = memo(function ChatMessage({
             <button
               type="button"
               onClick={() => onRegenerate(index)}
-              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-6 w-6 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
+              className="touch-target bg-background/80 hover:bg-accent/50 border-border/60 flex h-10 w-10 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
               title="Regenerate response"
             >
-              <RotateCcw className="h-3 w-3" />
+              <RotateCcw className="h-4 w-4" />
             </button>
           )}
 
@@ -330,10 +330,10 @@ export const ChatMessage = memo(function ChatMessage({
             <button
               type="button"
               onClick={() => onDelete(index)}
-              className="bg-background/80 hover:bg-destructive/10 hover:text-destructive border-border/60 flex h-6 w-6 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
+              className="touch-target bg-background/80 hover:bg-destructive/10 hover:text-destructive border-border/60 flex h-10 w-10 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
               title="Delete message"
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 className="h-4 w-4" />
             </button>
           )}
         </div>

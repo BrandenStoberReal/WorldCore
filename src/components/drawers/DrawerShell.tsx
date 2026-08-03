@@ -131,7 +131,7 @@ export function DrawerShell() {
   const TopPanel = CurrentTopPanel ?? lastTopPanelRef.current;
 
   return (
-    <div data-drawer-shell className="bg-background flex h-screen flex-col overflow-hidden">
+    <div data-drawer-shell className="bg-background flex h-screen flex-col overflow-hidden" style={{ minHeight: '100dvh' }}>
       <DragDropOverlay />
       <NavRail />
 

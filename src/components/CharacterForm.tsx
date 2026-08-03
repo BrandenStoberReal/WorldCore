@@ -1148,7 +1148,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
 
             <CollapsibleCard title="Depth Prompt">
               <CollapsibleField label="Depth Prompt">
-                <div className="grid grid-cols-[5rem_1fr_8rem] items-end gap-2">
+                <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-[5rem_1fr_8rem]">
                   <div className="space-y-1.5">
                     <Label className="text-muted-foreground/50 text-[11px]">Depth</Label>
                     <Input

@@ -29,10 +29,15 @@ export function DrawerSlot({ direction, open, children }: DrawerSlotProps) {
 
       const touch = e.changedTouches[0];
       const startX = (e.currentTarget as HTMLElement).dataset.startX;
-      if (!startX || !touch) return;
+      const startY = (e.currentTarget as HTMLElement).dataset.startY;
+      if (!startX || !startY || !touch) return;
 
       const deltaX = touch.clientX - parseInt(startX, 10);
+      const deltaY = touch.clientY - parseInt(startY, 10);
       const threshold = 50;
+
+      // Only trigger close if horizontal swipe is dominant (prevents accidental close during vertical scroll)
+      if (Math.abs(deltaX) < Math.abs(deltaY)) return;
 
       if (direction === 'characters' && deltaX > threshold) {
         handleClose();
@@ -47,6 +52,7 @@ export function DrawerSlot({ direction, open, children }: DrawerSlotProps) {
     const touch = e.touches[0];
     if (touch) {
       (e.currentTarget as HTMLElement).dataset.startX = String(touch.clientX);
+      (e.currentTarget as HTMLElement).dataset.startY = String(touch.clientY);
     }
   }, []);
 

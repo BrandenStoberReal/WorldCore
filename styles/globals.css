@@ -229,11 +229,14 @@
 
   html {
     @apply bg-background;
+    /* Eliminate 300ms tap delay on touch devices */
+    touch-action: manipulation;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     min-height: 100vh;
+    min-height: 100dvh; /* iOS Safari: dynamic viewport height excludes chrome */
     position: relative;
     margin: 0;
   }
@@ -408,6 +411,7 @@
     left: 0;
     right: 0;
     max-height: 100vh;
+    max-height: 100dvh;
     z-index: 20;
     overflow-y: auto;
     overflow-x: hidden;
@@ -597,6 +601,13 @@
 
 /* Mobile-first responsive utilities */
 @layer utilities {
+  /* Always show message action buttons on touch devices (no hover available) */
+  @media (pointer: coarse) {
+    .message-actions {
+      opacity: 1 !important;
+    }
+  }
+
   /* Touch-friendly minimum target size */
   .touch-target {
     min-height: var(--touch-target-min);
@@ -705,6 +716,7 @@
       inset: 0;
       width: 100vw;
       height: 100vh;
+      height: 100dvh;
       max-width: none;
       border-radius: 0;
     }
