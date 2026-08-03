@@ -500,7 +500,7 @@ export async function seedPreinstalledGlobalExtensions(): Promise<void> {
       gitUrl: null,
       branch: null,
       scope: 'global',
-      enabled: true,
+      enabled: parsed.enabledByDefault,
       settings: {},
       manifestCache: parsed,
       installedAt: timestamp,

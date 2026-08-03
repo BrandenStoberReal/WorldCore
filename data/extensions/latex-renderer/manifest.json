@@ -1,0 +1,13 @@
+{
+  "id": "latex-renderer",
+  "displayName": "LaTeX Renderer",
+  "version": "1.0.0",
+  "author": "WorldCore",
+  "description": "Renders LaTeX math expressions in chat messages using KaTeX. Supports both inline ($...$) and display ($$...$$) math.",
+  "js": "index.tsx",
+  "css": "styles.css",
+  "loadingOrder": 51,
+  "enabledByDefault": false,
+  "dependencies": [],
+  "peerDependencies": []
+}

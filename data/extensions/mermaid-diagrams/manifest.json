@@ -1,0 +1,13 @@
+{
+  "id": "mermaid-diagrams",
+  "displayName": "Mermaid Diagrams",
+  "version": "1.0.0",
+  "author": "WorldCore",
+  "description": "Renders Mermaid diagrams in chat messages. Wrap code blocks with ```mermaid to display flowcharts, sequence diagrams, and more.",
+  "js": "index.tsx",
+  "css": "styles.css",
+  "loadingOrder": 50,
+  "enabledByDefault": false,
+  "dependencies": [],
+  "peerDependencies": []
+}

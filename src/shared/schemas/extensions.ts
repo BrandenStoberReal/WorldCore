@@ -13,6 +13,7 @@ export const ManifestSchema = z.object({
   homepage: z.string().url().optional(),
   dependencies: z.array(z.string()).default([]),
   peerDependencies: z.array(z.string()).default([]),
+  enabledByDefault: z.boolean().default(false),
 });
 
 export const InstallExtensionSchema = z.object({

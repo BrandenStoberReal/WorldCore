@@ -1,0 +1,22 @@
+.mermaid-rendered {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: var(--background, #1a1a2e);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.mermaid-rendered svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-error {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--muted-foreground, #888);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
