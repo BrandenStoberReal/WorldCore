@@ -79,7 +79,6 @@ const DRAWER_ITEMS: NavItem[] = [
 ];
 
 export function NavRail() {
-  const alwaysShowViewportNavbar = useNavStore((s) => s.alwaysShowViewportNavbar);
   const topDrawer = useNavStore((s) => s.topDrawer);
   const activeCharacterId = useChatStore((s) => s.activeCharacterId);
   const { isMobile } = useBreakpoint();
@@ -94,7 +93,6 @@ export function NavRail() {
       data-topbar
       className={cn(
         'border-border bg-background z-10 flex flex-shrink-0 flex-col border-b',
-        !alwaysShowViewportNavbar && 'group/nav',
       )}
     >
       {/* Top row: drawer-based nav items */}
@@ -126,9 +124,7 @@ export function NavRail() {
           'bg-muted/30 z-10 flex items-center justify-center gap-1 border-t-2 px-2.5 transition-all duration-200',
           drawerOpen
             ? 'h-0 overflow-hidden border-transparent opacity-0'
-            : alwaysShowViewportNavbar
-              ? 'border-border/60 h-9 py-1 opacity-100'
-              : 'group-hover/nav:border-border/60 h-0 overflow-hidden border-transparent opacity-0 group-hover/nav:h-9 group-hover/nav:py-1 group-hover/nav:opacity-100',
+            : 'border-border/60 h-9 py-1 opacity-100',
         )}
       >
         {SECTION_ITEMS.filter((item) => !item.requiresCharacter || activeCharacterId !== null).map(

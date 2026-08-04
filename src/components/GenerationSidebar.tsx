@@ -296,7 +296,8 @@ const SAMPLER_LABELS: Record<string, string> = {
 export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: GenerationSidebarProps) {
   const store = useGenerationStore();
   const { mode } = store;
-  const { streamingEnabled, setStreamingEnabled } = useAppStore();
+  const { streamingEnabled, setStreamingEnabled, smoothStreaming, setSmoothStreaming } =
+    useAppStore();
   const [presetStatus, setPresetStatus] = useState<PresetStatus>('idle');
   const [presetMessage, setPresetMessage] = useState<string>('');
   const [saveName, setSaveName] = useState('');
@@ -1548,6 +1549,17 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   )}
                 />
               </button>
+            </div>
+            <div className={cn('space-y-2', !streamingEnabled && 'pointer-events-none opacity-50')}>
+              <GenerationSlider
+                label="Smooth streaming"
+                value={smoothStreaming}
+                min={0}
+                max={100}
+                step={1}
+                onChange={(v) => setSmoothStreaming(v)}
+                description="0 = instant, 100 = slowest with fade-in per drip."
+              />
             </div>
             {mode === 'text' && (
               <>

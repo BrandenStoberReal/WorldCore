@@ -43,7 +43,6 @@ function persist(state: NavState) {
       JSON.stringify({
         charactersOpen: state.charactersOpen,
         genSidebarOpen: state.genSidebarOpen,
-        alwaysShowViewportNavbar: state.alwaysShowViewportNavbar,
       }),
     );
   } catch {
@@ -59,7 +58,6 @@ export interface NavState {
   genSidebarOpen: boolean;
   inlineDrawers: Record<string, boolean>;
   connected: boolean;
-  alwaysShowViewportNavbar: boolean;
   setConnected: (next: boolean) => void;
   openSection: (id: SectionId) => void;
   openTopDrawer: (id: TopDrawerId) => void;
@@ -68,7 +66,6 @@ export interface NavState {
   closeCharacters: () => void;
   toggleGenSidebar: () => void;
   toggleInline: (panelId: string, sectionId: string) => void;
-  setAlwaysShowViewportNavbar: (value: boolean) => void;
 }
 
 const persisted = loadPersisted();
@@ -81,7 +78,6 @@ export const useNavStore = create<NavState>((set, get) => ({
   genSidebarOpen: persisted.genSidebarOpen ?? true,
   inlineDrawers: {},
   connected: false,
-  alwaysShowViewportNavbar: persisted.alwaysShowViewportNavbar ?? false,
   setConnected: (next) => set({ connected: next }),
   openSection: (id) => {
     set({ sectionId: id, topDrawer: null, prevSectionId: null });
@@ -143,11 +139,4 @@ export const useNavStore = create<NavState>((set, get) => ({
         inlineDrawers: { ...state.inlineDrawers, [key]: !state.inlineDrawers[key] },
       };
     }),
-  setAlwaysShowViewportNavbar: (value) => {
-    set((state) => {
-      const next = { alwaysShowViewportNavbar: value };
-      persist({ ...state, ...next });
-      return next;
-    });
-  },
 }));

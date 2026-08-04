@@ -158,6 +158,22 @@ export function ChatView({ characterId }: ChatViewProps) {
   const scheduleDripRef = useRef(scheduleDrip);
   scheduleDripRef.current = scheduleDrip;
 
+  // When the browser tab is backgrounded, setTimeout gets throttled to ~1s.
+  // On refocus, flush any accumulated drip text immediately and scroll to
+  // bottom so the user sees the latest content without a jarring delay.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        flushDrip();
+        if (isNearBottomRef.current) {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [flushDrip]);
+
   const { data: character, isLoading: charLoading } = useQuery<CharacterWithId>({
     queryKey: ['/api/v1/characters/get', characterId],
     queryFn: async () => {

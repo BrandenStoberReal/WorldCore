@@ -46,7 +46,9 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkTagOpen, setBulkTagOpen] = useState(false);
   const [bulkTagValue, setBulkTagValue] = useState('');
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   const openSection = useNavStore((s) => s.openSection);
   const activeCharacterId = useChatStore((s) => s.activeCharacterId);
@@ -388,7 +390,49 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
               }
             />
           ) : (
-            <ul className="space-y-px">
+            <ul
+              ref={listRef}
+              className="space-y-px"
+              onKeyDown={(e) => {
+                if (!sorted || sorted.length === 0) return;
+
+                const count = sorted.length;
+                let newIndex = focusedIndex;
+
+                switch (e.key) {
+                  case 'ArrowDown':
+                    e.preventDefault();
+                    newIndex = focusedIndex < count - 1 ? focusedIndex + 1 : 0;
+                    break;
+                  case 'ArrowUp':
+                    e.preventDefault();
+                    newIndex = focusedIndex > 0 ? focusedIndex - 1 : count - 1;
+                    break;
+                  case 'Home':
+                    e.preventDefault();
+                    newIndex = 0;
+                    break;
+                  case 'End':
+                    e.preventDefault();
+                    newIndex = count - 1;
+                    break;
+                  case 'Enter':
+                  case ' ':
+                    if (focusedIndex >= 0 && focusedIndex < count) {
+                      e.preventDefault();
+                      const char = sorted[focusedIndex];
+                      if (char) handleSelect(char.id);
+                    }
+                    return;
+                  default:
+                    return;
+                }
+
+                setFocusedIndex(newIndex);
+                const buttons = listRef.current?.querySelectorAll<HTMLButtonElement>('li > button');
+                buttons?.[newIndex]?.focus();
+              }}
+            >
               {sorted?.map((char, idx) => {
                 const active = selectedId === char.id;
                 const isSelected = selectedIds.has(char.id);
@@ -396,6 +440,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
                   <li key={char.id}>
                     <button
                       onClick={() => handleSelect(char.id)}
+                      onFocus={() => setFocusedIndex(idx)}
                       className={cn(
                         'group relative flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-all duration-150 hover:scale-[1.01]',
                         active ? 'bg-accent/40 ember-pulse' : 'hover:bg-accent/30',

@@ -22,6 +22,7 @@ export function useKeyboardShortcuts() {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const isCtrl = e.ctrlKey || e.metaKey;
+      const isShift = e.shiftKey;
       const isAlt = e.altKey;
       const target = e.target as HTMLElement;
       const isInput =
@@ -42,6 +43,36 @@ export function useKeyboardShortcuts() {
       if (isCtrl && e.key === 'g') {
         e.preventDefault();
         toggleGenSidebar();
+        return;
+      }
+
+      if (isCtrl && e.key === 'e') {
+        e.preventDefault();
+        openSection('character-editor');
+        return;
+      }
+
+      if (isCtrl && e.key === 'l') {
+        e.preventDefault();
+        openSection('lorebook');
+        return;
+      }
+
+      if (isCtrl && e.key === ',') {
+        e.preventDefault();
+        openSection('settings');
+        return;
+      }
+
+      if (isCtrl && isShift && e.key === 'N') {
+        e.preventDefault();
+        openSection('characters');
+        return;
+      }
+
+      if (isCtrl && e.key === '/') {
+        e.preventDefault();
+        openSection('character-browser');
         return;
       }
 

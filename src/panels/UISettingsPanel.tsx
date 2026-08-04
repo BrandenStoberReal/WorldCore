@@ -1,4 +1,3 @@
-import { useNavStore } from '@/lib/navStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils';
@@ -44,9 +43,6 @@ function Toggle({
 }
 
 export function UISettingsPanel() {
-  const alwaysShowViewportNavbar = useNavStore((s) => s.alwaysShowViewportNavbar);
-  const setAlwaysShowViewportNavbar = useNavStore((s) => s.setAlwaysShowViewportNavbar);
-
   return (
     <div data-panel="ui-settings" className="section-rhythm relative isolate">
       <PageHeader
@@ -56,22 +52,6 @@ export function UISettingsPanel() {
       />
 
       <div className="space-y-4">
-        <Card className="gap-4 py-4">
-          <CardHeader className="px-4">
-            <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
-              Navigation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 px-4">
-            <Toggle
-              checked={alwaysShowViewportNavbar}
-              onChange={setAlwaysShowViewportNavbar}
-              label="Always show viewport navbar"
-              description="Keep the bottom navigation bar visible at all times"
-            />
-          </CardContent>
-        </Card>
-
         <Card className="gap-4 py-4">
           <CardHeader className="px-4">
             <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
