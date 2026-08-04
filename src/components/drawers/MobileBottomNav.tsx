@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 interface MobileBottomNavProps {
   genSidebarOpen: boolean;
   onToggleGenSidebar: () => void;
+  position?: 'top' | 'bottom';
 }
 
 interface NavItem {
@@ -58,7 +59,7 @@ const MORE_ITEMS: MoreItem[] = [
   { id: 'settings', icon: <Settings size={18} />, label: 'Settings' },
 ];
 
-export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBottomNavProps) {
+export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar, position = 'bottom' }: MobileBottomNavProps) {
   const sectionId = useNavStore((s) => s.sectionId);
   const openSection = useNavStore((s) => s.openSection);
   const charactersOpen = useNavStore((s) => s.charactersOpen);
@@ -67,6 +68,7 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBo
   const openTopDrawer = useNavStore((s) => s.openTopDrawer);
   const activeCharacterId = useChatStore((s) => s.activeCharacterId);
   const [moreOpen, setMoreOpen] = useState(false);
+  const isTop = position === 'top';
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -99,7 +101,10 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBo
   };
 
   return (
-    <nav className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/80 safe-area-bottom relative border-t backdrop-blur-md">
+    <nav className={cn(
+      'border-border bg-background/95 supports-[backdrop-filter]:bg-background/80 relative backdrop-blur-md',
+      isTop ? 'safe-area-top border-b' : 'safe-area-bottom border-t',
+    )}>
       {moreOpen && (
         <>
           {/* Backdrop — dims and dismisses on tap */}
@@ -113,7 +118,12 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar }: MobileBo
           <div
             role="menu"
             aria-label="More options"
-            className="border-border bg-popover text-popover-foreground animate-in fade-in slide-in-from-bottom-2 absolute right-2 bottom-full left-2 z-50 mb-2 overflow-hidden rounded-xl border shadow-lg duration-200"
+            className={cn(
+              'border-border bg-popover text-popover-foreground animate-in fade-in absolute right-2 left-2 z-50 overflow-hidden rounded-xl border shadow-lg duration-200',
+              isTop
+                ? 'slide-in-from-top-2 top-full mt-2'
+                : 'slide-in-from-bottom-2 bottom-full mb-2',
+            )}
           >
             <div aria-hidden className="bg-border mx-auto mt-2 h-1 w-10 rounded-full" />
 

@@ -13,6 +13,7 @@ import {
 import { emit } from '@/lib/extensionEventBus';
 
 export type Theme = 'light' | 'dark' | 'system';
+export type MobileNavPosition = 'top' | 'bottom';
 
 export interface User {
   id: string;
@@ -37,6 +38,8 @@ export interface AppStore {
   smoothStreaming: number; // 0-100 slider; 0=instant, 100=slowest with fade-in
   setStreamingEnabled: (enabled: boolean) => void;
   setSmoothStreaming: (value: number) => void;
+  mobileNavPosition: MobileNavPosition;
+  setMobileNavPosition: (position: MobileNavPosition) => void;
   user: User | null;
   setUser: (user: User | null) => void;
   initUser: () => Promise<void>;
@@ -64,6 +67,11 @@ export const useAppStore = create<AppStore>((set) => ({
     const clamped = Math.max(0, Math.min(100, Math.round(value)));
     set({ smoothStreaming: clamped });
     void saveSettingsPatch({ smoothStreaming: clamped }).catch(() => {});
+  },
+  mobileNavPosition: 'bottom',
+  setMobileNavPosition: (position) => {
+    set({ mobileNavPosition: position });
+    void saveSettingsPatch({ mobileNavPosition: position }).catch(() => {});
   },
   user: null,
   setUser: (user) => set({ user }),
@@ -96,6 +104,9 @@ export const useAppStore = create<AppStore>((set) => ({
           set({
             smoothStreaming: Math.max(0, Math.min(100, Math.round(settings.smoothStreaming))),
           });
+        }
+        if (settings.mobileNavPosition === 'top' || settings.mobileNavPosition === 'bottom') {
+          set({ mobileNavPosition: settings.mobileNavPosition });
         }
       }
     } catch {

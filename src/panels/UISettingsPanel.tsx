@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/stores';
 
 function Toggle({
   checked,
@@ -43,6 +44,9 @@ function Toggle({
 }
 
 export function UISettingsPanel() {
+  const mobileNavPosition = useAppStore((s) => s.mobileNavPosition);
+  const setMobileNavPosition = useAppStore((s) => s.setMobileNavPosition);
+
   return (
     <div data-panel="ui-settings" className="section-rhythm relative isolate">
       <PageHeader
@@ -52,6 +56,22 @@ export function UISettingsPanel() {
       />
 
       <div className="space-y-4">
+        <Card className="gap-4 py-4">
+          <CardHeader className="px-4">
+            <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
+              Navigation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4">
+            <Toggle
+              checked={mobileNavPosition === 'top'}
+              onChange={(v) => setMobileNavPosition(v ? 'top' : 'bottom')}
+              label="Mobile nav at top"
+              description="Position the mobile navigation bar at the top instead of the bottom"
+            />
+          </CardContent>
+        </Card>
+
         <Card className="gap-4 py-4">
           <CardHeader className="px-4">
             <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">

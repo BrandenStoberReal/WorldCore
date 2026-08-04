@@ -6,7 +6,7 @@ import { CenterPageHost } from './CenterPageHost';
 import { MobileBottomNav } from './MobileBottomNav';
 import { DeviceGuard } from '@/components/Responsive';
 import { useNavStore } from '@/lib/navStore';
-import { useChatStore } from '@/lib/stores';
+import { useChatStore, useAppStore } from '@/lib/stores';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { CharacterSelector } from '@/components/CharacterSelector';
 import { DragDropOverlay } from '@/components/DragDropOverlay';
@@ -145,6 +145,7 @@ export function DrawerShell() {
   const genSidebarOpen = useNavStore((s) => s.genSidebarOpen);
   const toggleGenSidebar = useNavStore((s) => s.toggleGenSidebar);
   const charactersOpen = useNavStore((s) => s.charactersOpen);
+  const mobileNavPosition = useAppStore((s) => s.mobileNavPosition);
   const { isMobile } = useBreakpoint();
 
   useEffect(() => {
@@ -186,6 +187,13 @@ export function DrawerShell() {
         <ExtensionPanelSlot target="top-drawer" />
       </DrawerSlot>
 
+      {/* Mobile top navigation */}
+      {mobileNavPosition === 'top' && (
+        <DeviceGuard mobile>
+          <MobileBottomNav genSidebarOpen={genSidebarOpen} onToggleGenSidebar={toggleGenSidebar} position="top" />
+        </DeviceGuard>
+      )}
+
       <div
         className={cn(
           'relative flex-1 overflow-hidden',
@@ -202,9 +210,11 @@ export function DrawerShell() {
       </div>
 
       {/* Mobile bottom navigation */}
-      <DeviceGuard mobile>
-        <MobileBottomNav genSidebarOpen={genSidebarOpen} onToggleGenSidebar={toggleGenSidebar} />
-      </DeviceGuard>
+      {mobileNavPosition === 'bottom' && (
+        <DeviceGuard mobile>
+          <MobileBottomNav genSidebarOpen={genSidebarOpen} onToggleGenSidebar={toggleGenSidebar} position="bottom" />
+        </DeviceGuard>
+      )}
       </div>
     </PrefetchContext.Provider>
   );
