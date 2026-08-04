@@ -4,6 +4,7 @@ import { DrawerSlot } from './DrawerSlot';
 import { NavRail } from './NavRail';
 import { CenterPageHost } from './CenterPageHost';
 import { MobileBottomNav } from './MobileBottomNav';
+import { DeviceGuard } from '@/components/Responsive';
 import { useNavStore } from '@/lib/navStore';
 import { useChatStore } from '@/lib/stores';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -191,19 +192,19 @@ export function DrawerShell() {
           isMobile ? 'flex flex-col' : 'flex flex-row',
         )}
       >
-        {!isMobile && (
+        <DeviceGuard desktop>
           <Suspense fallback={null}>
             <GenerationPanel closed={!genSidebarOpen} onToggle={toggleGenSidebar} />
           </Suspense>
-        )}
+        </DeviceGuard>
         <CenterPageHost />
         <CharactersPanel />
       </div>
 
       {/* Mobile bottom navigation */}
-      {isMobile && (
+      <DeviceGuard mobile>
         <MobileBottomNav genSidebarOpen={genSidebarOpen} onToggleGenSidebar={toggleGenSidebar} />
-      )}
+      </DeviceGuard>
       </div>
     </PrefetchContext.Provider>
   );
