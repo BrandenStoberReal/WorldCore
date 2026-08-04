@@ -1508,3 +1508,5 @@ export function TextOptionsPanel() {
     </div>
   );
 }
+
+export default TextOptionsPanel;

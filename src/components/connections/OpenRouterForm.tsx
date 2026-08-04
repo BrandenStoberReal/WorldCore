@@ -332,3 +332,5 @@ export function OpenRouterForm({ config, onConfigChange, className }: OpenRouter
     </div>
   );
 }
+
+export default OpenRouterForm;

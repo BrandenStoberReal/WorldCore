@@ -227,8 +227,15 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
   }, [selectedId, sidebarMode]);
 
   /* ── derived list data ── */
-  const filtered = characters?.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
-  const sorted = filtered?.slice().sort((a, b) => a.name.localeCompare(b.name));
+  const searchLower = search.toLowerCase();
+  const filtered = useMemo(
+    () => characters?.filter((c) => c.name.toLowerCase().includes(searchLower)),
+    [characters, searchLower],
+  );
+  const sorted = useMemo(
+    () => filtered?.slice().sort((a, b) => a.name.localeCompare(b.name)),
+    [filtered],
+  );
 
   const infoTokens = useMemo(() => {
     if (!infoCharacter) return 0;
@@ -489,6 +496,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
                             src={`/api/v1/characters/thumbnail?id=${char.id}`}
                             alt={char.name}
                             className="h-7 w-7 rounded-full object-cover"
+                            loading="lazy"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}

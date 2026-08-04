@@ -15,7 +15,9 @@ function LogoMark() {
 }
 
 export function TopBar() {
-  const { user, theme, setTheme } = useAppStore();
+  const user = useAppStore((s) => s.user);
+  const theme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
 
   const themeNext: 'light' | 'dark' | 'system' = theme === 'dark' ? 'light' : 'dark';
 

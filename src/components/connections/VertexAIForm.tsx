@@ -300,3 +300,5 @@ export function VertexAIForm({ config, onConfigChange, className }: VertexAIForm
     </div>
   );
 }
+
+export default VertexAIForm;

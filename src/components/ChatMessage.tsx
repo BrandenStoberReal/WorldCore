@@ -104,18 +104,32 @@ export const ChatMessage = memo(function ChatMessage({
 
   const initial = msg.name && msg.name.length > 0 ? msg.name[0]!.toUpperCase() : '?';
 
-  const macroContext = {
-    userName,
-    characterName,
-    description,
-    personality,
-    scenario,
-    first_mes,
-    mes_example,
-    creator_notes,
-    system_prompt,
-    post_history_instructions,
-  } satisfies MacroContext;
+  const macroContext = useMemo(
+    () => ({
+      userName,
+      characterName,
+      description,
+      personality,
+      scenario,
+      first_mes,
+      mes_example,
+      creator_notes,
+      system_prompt,
+      post_history_instructions,
+    }),
+    [
+      userName,
+      characterName,
+      description,
+      personality,
+      scenario,
+      first_mes,
+      mes_example,
+      creator_notes,
+      system_prompt,
+      post_history_instructions,
+    ],
+  ) satisfies MacroContext;
 
   const processedText = useMemo(
     () => substituteMacros(msg.mes, macroContext),
@@ -173,6 +187,7 @@ export const ChatMessage = memo(function ChatMessage({
                   src={userAvatar}
                   alt={msg.name}
                   className="h-6 w-6 rounded-full object-cover"
+                  loading="lazy"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
@@ -185,6 +200,7 @@ export const ChatMessage = memo(function ChatMessage({
                 src={characterAvatar}
                 alt={msg.name}
                 className="h-6 w-6 rounded-full object-cover"
+                loading="lazy"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}

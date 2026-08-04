@@ -511,3 +511,5 @@ function ToggleRow({
     </button>
   );
 }
+
+export default WorldInfoPanel;

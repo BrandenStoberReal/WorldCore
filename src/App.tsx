@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { DrawerShell } from '@/components/drawers/DrawerShell';
-import { Onboarding } from '@/components/Onboarding';
 import { Toaster } from '@/components/ui/sonner';
 import { useAppStore } from '@/lib/stores';
 import { apiFetch, checkOnboardingStatus, getSettings } from '@/lib/api';
@@ -10,6 +9,8 @@ import { useNavStore } from '@/lib/navStore';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useExtensionBootloader } from '@/hooks/useExtensionBootloader';
 import '@/index.css';
+
+const Onboarding = lazy(() => import('@/components/Onboarding'));
 
 export function App() {
   const [onboardingNeeded, setOnboardingNeeded] = useState<boolean | null>(null);
@@ -68,7 +69,11 @@ export function App() {
 
   let content: React.ReactNode = null;
   if (onboardingNeeded === true) {
-    content = <Onboarding onComplete={() => window.location.reload()} />;
+    content = (
+      <Suspense fallback={null}>
+        <Onboarding onComplete={() => window.location.reload()} />
+      </Suspense>
+    );
   } else if (onboardingNeeded === false) {
     content = <DrawerShell />;
   }

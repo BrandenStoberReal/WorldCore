@@ -1,3 +1,4 @@
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2 } from 'lucide-react';
 import { cn, surfaceCard, subtleEdge } from '@/lib/utils';
@@ -11,7 +12,7 @@ interface CharacterCardProps {
   onDelete: (id: number) => void;
 }
 
-export function CharacterCard({
+export const CharacterCard = React.memo(function CharacterCard({
   character,
   index = 0,
   onSelect,
@@ -50,6 +51,7 @@ export function CharacterCard({
               src={avatarUrl}
               alt={character.name}
               className="h-11 w-11 rounded-full object-cover"
+              loading="lazy"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
@@ -138,4 +140,4 @@ export function CharacterCard({
       </div>
     </article>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, blob, index } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, blob, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const characters = sqliteTable('characters', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -21,7 +21,9 @@ export const characters = sqliteTable('characters', {
   boundPersonaId: integer('bound_persona_id').references(() => personas.id, {
     onDelete: 'set null',
   }),
-});
+}, (table) => [
+  index('characters_user_id_idx').on(table.userId),
+]);
 
 export const personas = sqliteTable('personas', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -35,7 +37,9 @@ export const personas = sqliteTable('personas', {
   userId: text('user_id').notNull().default('default-user'),
   dateAdded: integer('date_added').notNull(),
   dateModified: integer('date_modified').notNull(),
-});
+}, (table) => [
+  index('personas_user_id_idx').on(table.userId),
+]);
 
 export const chats = sqliteTable('chats', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -48,7 +52,11 @@ export const chats = sqliteTable('chats', {
   lastMessage: text('last_message'),
   lastMesDate: integer('last_mes_date'),
   userId: text('user_id').notNull().default('default-user'),
-});
+}, (table) => [
+  index('chats_user_id_idx').on(table.userId),
+  index('chats_character_id_idx').on(table.characterId),
+  index('chats_group_id_idx').on(table.groupId),
+]);
 
 export const groups = sqliteTable('groups', {
   id: text('id').primaryKey(),
@@ -73,7 +81,9 @@ export const groups = sqliteTable('groups', {
   dateLastChat: integer('date_last_chat').notNull().default(0),
   chatSize: integer('chat_size').notNull().default(0),
   userId: text('user_id').notNull().default('default-user'),
-});
+}, (table) => [
+  index('groups_user_id_idx').on(table.userId),
+]);
 
 export const worldinfoFiles = sqliteTable('worldinfo_files', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -155,7 +165,7 @@ export const worldinfoEntryStates = sqliteTable('worldinfo_entry_states', {
 }, (table) => [
   index('worldinfo_entry_states_chat_id_idx').on(table.chatId),
   index('worldinfo_entry_states_entry_uid_idx').on(table.entryUid),
-  index('worldinfo_entry_states_chat_id_entry_uid_idx').on(table.chatId, table.entryUid),
+  uniqueIndex('worldinfo_entry_states_chat_id_entry_uid_idx').on(table.chatId, table.entryUid),
 ]);
 
 export const presets = sqliteTable('presets', {
@@ -165,7 +175,9 @@ export const presets = sqliteTable('presets', {
   data: text('data', { mode: 'json' }).$type<Record<string, unknown>>().notNull().default({}),
   isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
   userId: text('user_id').notNull().default('default-user'),
-});
+}, (table) => [
+  index('presets_user_id_idx').on(table.userId),
+]);
 
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -189,7 +201,9 @@ export const secrets = sqliteTable('secrets', {
   label: text('label').notNull().default(''),
   active: integer('active', { mode: 'boolean' }).notNull().default(true),
   userId: text('user_id').notNull().default('default-user'),
-});
+}, (table) => [
+  index('secrets_user_id_idx').on(table.userId),
+]);
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -208,14 +222,18 @@ export const stats = sqliteTable('stats', {
   key: text('key').notNull(),
   value: text('value').notNull(),
   updatedAt: integer('updated_at').notNull(),
-});
+}, (table) => [
+  index('stats_user_id_idx').on(table.userId),
+]);
 
 export const themes = sqliteTable('themes', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull().unique(),
   data: text('data', { mode: 'json' }).$type<Record<string, unknown>>().notNull().default({}),
   userId: text('user_id').notNull().default('default-user'),
-});
+}, (table) => [
+  index('themes_user_id_idx').on(table.userId),
+]);
 
 export const imageMetadata = sqliteTable('image_metadata', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -226,14 +244,18 @@ export const imageMetadata = sqliteTable('image_metadata', {
   size: integer('size'),
   mimeType: text('mime_type'),
   userId: text('user_id').notNull().default('default-user'),
-});
+}, (table) => [
+  index('image_metadata_user_id_idx').on(table.userId),
+]);
 
 export const quickReplies = sqliteTable('quick_replies', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   data: text('data', { mode: 'json' }).$type<Record<string, unknown>>().notNull().default({}),
   userId: text('user_id').notNull().default('default-user'),
-});
+}, (table) => [
+  index('quick_replies_user_id_idx').on(table.userId),
+]);
 
 export const movingUiState = sqliteTable('moving_ui_state', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -251,7 +273,9 @@ export const files = sqliteTable('files', {
   folder: text('folder').notNull(),
   userId: text('user_id').notNull().default('default-user'),
   uploadedAt: integer('uploaded_at').notNull(),
-});
+}, (table) => [
+  index('files_user_id_idx').on(table.userId),
+]);
 
 export const vectorStores = sqliteTable('vector_stores', {
   id: text('id').primaryKey(),
@@ -259,7 +283,9 @@ export const vectorStores = sqliteTable('vector_stores', {
   vector: blob('vector', { mode: 'buffer' }).notNull(),
   metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>().default({}),
   userId: text('user_id').notNull().default('default-user'),
-});
+}, (table) => [
+  index('vector_stores_user_id_idx').on(table.userId),
+]);
 
 export const connectionProfiles = sqliteTable('connection_profiles', {
   id: text('id').primaryKey(),
@@ -288,4 +314,6 @@ export const extensions = sqliteTable('extensions', {
   installedAt: text('installed_at'),
   lastUpdatedAt: text('last_updated_at'),
   userId: text('user_id').notNull().default('default-user'),
-});
+}, (table) => [
+  index('extensions_user_id_idx').on(table.userId),
+]);

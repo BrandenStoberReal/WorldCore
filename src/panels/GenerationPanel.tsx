@@ -78,3 +78,5 @@ export function GenerationPanel({ closed, onToggle }: GenerationPanelProps) {
     </div>
   );
 }
+
+export default GenerationPanel;

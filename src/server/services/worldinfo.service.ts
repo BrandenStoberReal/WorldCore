@@ -2,7 +2,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { db } from '@/server/db/client';
 import { worldinfoFiles, worldinfoEntries } from '@/server/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, count } from 'drizzle-orm';
 import { paths } from '@/server/storage/paths';
 import { writeFile, readFile, removeFile, exists } from '@/server/storage/fs';
 import type { WorldInfo, WorldInfoEntry } from '@/shared/types/worldinfo';
@@ -136,11 +136,13 @@ export class WorldInfoService {
 
     const fileId = Number(fileResult[0]!.id);
 
-    for (const entry of entries) {
-      await db.insert(worldinfoEntries).values({
-        ...this.entryToDb(entry),
-        fileId,
-      });
+    if (entries.length > 0) {
+      await db.insert(worldinfoEntries).values(
+        entries.map((entry) => ({
+          ...this.entryToDb(entry),
+          fileId,
+        })),
+      );
     }
 
     return fileId;
@@ -165,23 +167,22 @@ export class WorldInfoService {
   }
 
   async getAll(userId: string): Promise<Array<{ id: number; name: string; entryCount: number }>> {
-    const files = await db.select().from(worldinfoFiles).where(eq(worldinfoFiles.userId, userId));
+    const filesWithCounts = await db
+      .select({
+        id: worldinfoFiles.id,
+        name: worldinfoFiles.name,
+        entryCount: count(worldinfoEntries.id),
+      })
+      .from(worldinfoFiles)
+      .leftJoin(worldinfoEntries, eq(worldinfoFiles.id, worldinfoEntries.fileId))
+      .where(eq(worldinfoFiles.userId, userId))
+      .groupBy(worldinfoFiles.id);
 
-    const result: Array<{ id: number; name: string; entryCount: number }> = [];
-    for (const file of files) {
-      const entries = await db
-        .select()
-        .from(worldinfoEntries)
-        .where(eq(worldinfoEntries.fileId, Number(file.id)));
-
-      result.push({
-        id: Number(file.id),
-        name: file.name,
-        entryCount: entries.length,
-      });
-    }
-
-    return result;
+    return filesWithCounts.map((row) => ({
+      id: Number(row.id),
+      name: row.name,
+      entryCount: Number(row.entryCount),
+    }));
   }
 
   async update(fileId: number, data: Partial<WorldInfo>, userId: string): Promise<void> {
@@ -222,11 +223,13 @@ export class WorldInfoService {
       await db.delete(worldinfoEntries).where(eq(worldinfoEntries.fileId, fileId));
 
       const entries = Object.values(data.entries) as WorldInfoEntry[];
-      for (const entry of entries) {
-        await db.insert(worldinfoEntries).values({
-          ...this.entryToDb(entry),
-          fileId,
-        });
+      if (entries.length > 0) {
+        await db.insert(worldinfoEntries).values(
+          entries.map((entry) => ({
+            ...this.entryToDb(entry),
+            fileId,
+          })),
+        );
       }
     }
   }
@@ -374,11 +377,13 @@ export class WorldInfoService {
     const fileId = Number(fileResult[0]!.id);
 
     const entries = Object.values(wiData.entries) as WorldInfoEntry[];
-    for (const entry of entries) {
-      await db.insert(worldinfoEntries).values({
-        ...this.entryToDb(entry),
-        fileId,
-      });
+    if (entries.length > 0) {
+      await db.insert(worldinfoEntries).values(
+        entries.map((entry) => ({
+          ...this.entryToDb(entry),
+          fileId,
+        })),
+      );
     }
 
     return fileId;

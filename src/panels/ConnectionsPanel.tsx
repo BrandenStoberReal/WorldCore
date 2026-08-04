@@ -304,3 +304,5 @@ export function ConnectionsPanel() {
     </div>
   );
 }
+
+export default ConnectionsPanel;

@@ -6,7 +6,7 @@ import { worldInfoService } from '@/server/services/worldinfo.service';
 import { personaService } from '@/server/services/persona.service';
 import { db } from '@/server/db/client';
 import { worldinfoEntryStates } from '@/server/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import type { ChatMessage } from '@/shared/types/chat';
 import {
   ContextSettingsSchema,
@@ -72,37 +72,33 @@ async function saveEntryStates(
   states: Map<string, WiEntryState>,
   userId: string,
 ): Promise<void> {
-  for (const [entryUid, state] of states) {
-    const existing = await db
-      .select()
-      .from(worldinfoEntryStates)
-      .where(and(eq(worldinfoEntryStates.chatId, chatId), eq(worldinfoEntryStates.entryUid, entryUid)))
-      .limit(1);
+  if (states.size === 0) return;
 
-    if (existing.length > 0) {
-      await db
-        .update(worldinfoEntryStates)
-        .set({
-          activatedAtMessageIndex: state.activatedAtMessageIndex,
-          activationCount: state.activationCount,
-          consecutiveMatches: state.consecutiveMatches,
-          lastDeactivatedAt: state.lastDeactivatedAt,
-          isActive: state.isActive,
-        })
-        .where(and(eq(worldinfoEntryStates.chatId, chatId), eq(worldinfoEntryStates.entryUid, entryUid)));
-    } else {
-      await db.insert(worldinfoEntryStates).values({
-        chatId,
-        entryUid,
-        activatedAtMessageIndex: state.activatedAtMessageIndex,
-        activationCount: state.activationCount,
-        consecutiveMatches: state.consecutiveMatches,
-        lastDeactivatedAt: state.lastDeactivatedAt,
-        isActive: state.isActive,
-        userId,
-      });
-    }
-  }
+  const entries = Array.from(states.entries()).map(([entryUid, state]) => ({
+    chatId,
+    entryUid,
+    userId,
+    activatedAtMessageIndex: state.activatedAtMessageIndex,
+    activationCount: state.activationCount,
+    consecutiveMatches: state.consecutiveMatches,
+    lastDeactivatedAt: state.lastDeactivatedAt,
+    isActive: state.isActive,
+  }));
+
+  await db
+    .insert(worldinfoEntryStates)
+    .values(entries)
+    .onConflictDoUpdate({
+      target: [worldinfoEntryStates.chatId, worldinfoEntryStates.entryUid],
+      set: {
+        userId: sql`excluded.user_id`,
+        activatedAtMessageIndex: sql`excluded.activated_at_message_index`,
+        activationCount: sql`excluded.activation_count`,
+        consecutiveMatches: sql`excluded.consecutive_matches`,
+        lastDeactivatedAt: sql`excluded.last_deactivated_at`,
+        isActive: sql`excluded.is_active`,
+      },
+    });
 }
 
 export const promptBuilderRoutes = {
@@ -190,28 +186,6 @@ export const promptBuilderRoutes = {
       if (parsed.chatId && result.updatedEntryStates) {
         await saveEntryStates(parsed.chatId, result.updatedEntryStates, userId);
       }
-
-      console.log('=== PROMPT BUILDER RESULT ===');
-      console.log(
-        'INSTRUCT (merged):',
-        JSON.stringify(
-          parsed.instruct ? { ...TextOptionsDefaults.instruct, ...parsed.instruct } : undefined,
-          null,
-          2,
-        ),
-      );
-      console.log(
-        'CONTEXT (merged):',
-        JSON.stringify(
-          parsed.context ? { ...TextOptionsDefaults.context, ...parsed.context } : undefined,
-          null,
-          2,
-        ),
-      );
-      console.log('MESSAGES COUNT:', result.messages.length);
-      console.log('MESSAGES:', JSON.stringify(result.messages, null, 2));
-      console.log('STOP STRINGS:', result.stopStrings);
-      console.log('=== END PROMPT BUILDER ===');
 
       return new Response(JSON.stringify(result), {
         headers: { 'Content-Type': 'application/json' },

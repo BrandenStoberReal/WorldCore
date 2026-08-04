@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, lazy, Suspense } from 'react';
 import { Eye, EyeOff, MessageSquare, Plug, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,13 +16,14 @@ import {
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { OnlineStatus } from '@/components/connections/OnlineStatus';
 import { ReverseProxySection } from '@/components/connections/ReverseProxySection';
-import { AzureOpenAIForm } from '@/components/connections/AzureOpenAIForm';
-import { VertexAIForm } from '@/components/connections/VertexAIForm';
-import { OpenRouterForm } from '@/components/connections/OpenRouterForm';
 import { ModelSelector } from '@/components/connections/ModelSelector';
 import { writeSecret } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { ConnectionProfile } from '@/shared/schemas/connection-profile';
+
+const AzureOpenAIForm = lazy(() => import('@/components/connections/AzureOpenAIForm'));
+const VertexAIForm = lazy(() => import('@/components/connections/VertexAIForm'));
+const OpenRouterForm = lazy(() => import('@/components/connections/OpenRouterForm'));
 
 /* ── Types ── */
 
@@ -424,13 +425,13 @@ function ProviderFormArea({
 }) {
   // Complex providers with dedicated forms
   if (source === 'azure_openai') {
-    return <AzureOpenAIForm />;
+    return <Suspense fallback={null}><AzureOpenAIForm /></Suspense>;
   }
   if (source === 'vertexai') {
-    return <VertexAIForm />;
+    return <Suspense fallback={null}><VertexAIForm /></Suspense>;
   }
   if (source === 'openrouter') {
-    return <OpenRouterForm />;
+    return <Suspense fallback={null}><OpenRouterForm /></Suspense>;
   }
 
   // All other sources use the simple provider form

@@ -69,9 +69,13 @@ export class ChatService {
     assertValidFileId(fileId);
     const chatDir = getUserChatPath(userId);
     const filePath = path.join(chatDir, `${fileId}.jsonl`);
-    const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
-    if (allLines.length === 0) return null;
-    return allLines[0] as ChatMetadata;
+    const firstLine = await readFirstLine(filePath);
+    if (!firstLine) return null;
+    try {
+      return JSON.parse(firstLine) as ChatMetadata;
+    } catch {
+      return null;
+    }
   }
 
   async appendMessage(userId: string, fileId: string, message: ChatMessage): Promise<void> {
@@ -80,7 +84,18 @@ export class ChatService {
     const filePath = path.join(chatDir, `${fileId}.jsonl`);
     message.send_date = message.send_date || new Date().toISOString();
     await appendJsonlLine(filePath, message);
-    await this.updateChatStats(userId, fileId);
+
+    const current = await db
+      .select({ messageCount: chats.messageCount })
+      .from(chats)
+      .where(and(eq(chats.fileId, fileId), eq(chats.userId, userId)))
+      .limit(1);
+    const incrementalCount = (current[0]?.messageCount ?? 0) + 1;
+
+    await this.updateChatStats(userId, fileId, {
+      incrementalCount,
+      lastMessage: message.mes?.slice(0, 100) || '',
+    });
   }
 
   async deleteMessage(userId: string, fileId: string, messageIndex: number): Promise<void> {
@@ -395,7 +410,18 @@ export class ChatService {
       const groupChatDir = getUserGroupChatPath(userId);
       const filePath = path.join(groupChatDir, `${existing.fileId}.jsonl`);
       await appendJsonlLine(filePath, message);
-      await this.updateChatStats(userId, existing.fileId);
+
+      const current = await db
+        .select({ messageCount: chats.messageCount })
+        .from(chats)
+        .where(and(eq(chats.fileId, existing.fileId), eq(chats.userId, userId)))
+        .limit(1);
+      const incrementalCount = (current[0]?.messageCount ?? 0) + 1;
+
+      await this.updateChatStats(userId, existing.fileId, {
+        incrementalCount,
+        lastMessage: message.mes?.slice(0, 100) || '',
+      });
     }
   }
 
@@ -408,21 +434,34 @@ export class ChatService {
       const fileId = path.basename(file, '.jsonl');
       const filePath = path.join(groupChatDir, file);
       const stat = await fs.stat(filePath);
-      const metadata = await this.getMetadataFromPath(filePath);
+      const firstLine = await readFirstLine(filePath);
+
+      let metadata: ChatMetadata | undefined;
+      if (firstLine) {
+        try {
+          metadata = JSON.parse(firstLine) as ChatMetadata;
+        } catch {}
+      }
 
       if (
         metadata &&
         typeof (metadata as Record<string, unknown>).group === 'string' &&
         (metadata as Record<string, unknown>).group === groupId
       ) {
-        const messages = await this.getMessagesFromPath(filePath);
-        const lastMsg = messages[messages.length - 1];
+        const lastLine = await readLastLine(filePath);
+        let lastMsg: ChatMessage | undefined;
+        if (lastLine) {
+          try {
+            const parsed = JSON.parse(lastLine) as ChatMetadata | ChatMessage;
+            if ('mes' in parsed) lastMsg = parsed as ChatMessage;
+          } catch {}
+        }
 
         results.push({
           file_id: fileId,
           file_name: file,
           file_size: stat.size,
-          chat_items: messages,
+          chat_items: [],
           mes: lastMsg?.mes?.slice(0, 100) || '',
           last_mes: lastMsg?.send_date || new Date(stat.mtimeMs).toISOString(),
           chat_metadata: metadata,
@@ -433,18 +472,16 @@ export class ChatService {
     return results;
   }
 
-  private async getMetadataFromPath(filePath: string): Promise<ChatMetadata | null> {
-    const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
-    if (allLines.length === 0) return null;
-    return allLines[0] as ChatMetadata;
-  }
-
   private async getMessagesFromPath(filePath: string): Promise<ChatMessage[]> {
     const allLines = await readJsonl<ChatMetadata | ChatMessage>(filePath);
     return allLines.slice(1) as ChatMessage[];
   }
 
-  private async updateChatStats(userId: string, fileId: string): Promise<void> {
+  private async updateChatStats(
+    userId: string,
+    fileId: string,
+    opts?: { incrementalCount?: number; lastMessage?: string },
+  ): Promise<void> {
     const chatDir = getUserChatPath(userId);
     const groupChatDir = getUserGroupChatPath(userId);
 
@@ -458,15 +495,26 @@ export class ChatService {
     if (!filePath) return;
 
     const stat = await fs.stat(filePath);
-    const msgs = await this.getMessagesFromPath(filePath);
-    const lastMsg = msgs[msgs.length - 1];
+
+    let messageCount: number;
+    let lastMessage: string;
+
+    if (opts?.incrementalCount !== undefined && opts?.lastMessage !== undefined) {
+      messageCount = opts.incrementalCount;
+      lastMessage = opts.lastMessage;
+    } else {
+      const msgs = await this.getMessagesFromPath(filePath);
+      messageCount = msgs.length;
+      const lastMsg = msgs[msgs.length - 1];
+      lastMessage = lastMsg?.mes?.slice(0, 100) || '';
+    }
 
     await db
       .update(chats)
       .set({
         fileSize: stat.size,
-        messageCount: msgs.length,
-        lastMessage: lastMsg?.mes?.slice(0, 100) || '',
+        messageCount,
+        lastMessage,
         lastMesDate: Date.now(),
       })
       .where(and(eq(chats.fileId, fileId), eq(chats.userId, userId)));

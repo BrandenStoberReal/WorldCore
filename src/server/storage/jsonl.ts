@@ -21,16 +21,22 @@ export async function writeJsonl<T>(filePath: string, records: T[]): Promise<voi
 
 export async function appendJsonlLine<T>(filePath: string, record: T): Promise<void> {
   const line = JSON.stringify(record);
+  const dir = path.dirname(filePath);
+  await fs.mkdir(dir, { recursive: true });
+
+  // writeJsonl emits records joined by '\n' with no trailing newline, so when
+  // appending to a non-empty file we must prepend '\n'. Use stat (O(1)) to check
+  // file size — no fd open/read/close needed.
+  let prefix = '\n';
   try {
-    const existing = await fs.readFile(filePath, 'utf-8');
-    if (existing.length > 0) {
-      await writeFileAtomic(filePath, existing + '\n' + line);
-    } else {
-      await writeFileAtomic(filePath, line);
-    }
+    const { size } = await fs.stat(filePath);
+    if (size === 0) prefix = '';
   } catch {
-    await writeFileAtomic(filePath, line);
+    // File does not exist yet — nothing to prepend.
+    prefix = '';
   }
+
+  await fs.appendFile(filePath, prefix + line, 'utf-8');
 }
 
 export async function readFirstLine(filePath: string): Promise<string | null> {
@@ -43,32 +49,30 @@ export async function readFirstLine(filePath: string): Promise<string | null> {
 }
 
 export async function readLastLine(filePath: string): Promise<string | null> {
-  let fd: Awaited<ReturnType<typeof fs.open>> | null = null;
+  const CHUNK_SIZE = 4096;
   try {
-    fd = await fs.open(filePath, 'r');
-    const statResult = await fd.stat();
-    if (statResult.size === 0) {
-      return null;
-    }
-    let offset = statResult.size - 1;
-    let lastLine = '';
-    while (offset >= 0) {
-      const buf = Buffer.alloc(1);
-      const readResult = await fd.read(buf, 0, 1, offset);
-      if (readResult.bytesRead === 0) {
-        break;
+    const file = Bun.file(filePath);
+    const fileSize = file.size;
+    if (fileSize === 0) return null;
+
+    let pos = fileSize;
+    let tail = '';
+
+    while (pos > 0) {
+      const readSize = Math.min(CHUNK_SIZE, pos);
+      pos -= readSize;
+      const slice = await file.slice(pos, pos + readSize).arrayBuffer();
+      tail = Buffer.from(slice).toString('utf-8') + tail;
+
+      if (tail.indexOf('\n') !== -1) {
+        const lastNl = tail.lastIndexOf('\n');
+        return tail.slice(lastNl + 1).trimEnd() || null;
       }
-      if (buf[0] === 10) {
-        break;
-      }
-      lastLine = String.fromCharCode(buf[0]!) + lastLine;
-      offset--;
     }
-    return lastLine || null;
+
+    return tail.trimEnd() || null;
   } catch {
     return null;
-  } finally {
-    await fd?.close();
   }
 }
 

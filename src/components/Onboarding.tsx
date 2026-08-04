@@ -270,3 +270,5 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
     </div>
   );
 }
+
+export default Onboarding;

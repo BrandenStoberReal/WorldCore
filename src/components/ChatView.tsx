@@ -63,29 +63,30 @@ interface SettingsData {
 
 export function ChatView({ characterId }: ChatViewProps) {
   const queryClient = useQueryClient();
-  const {
-    activeChatId,
-    messages,
-    isGenerating,
-    streamingContent,
-    streamingThinking,
-    isThinkingStream,
-    setActiveChat,
-    setMessages,
-    addMessage,
-    removeMessage,
-    setStreamingContent,
-    setStreamingThinking,
-    setIsThinkingStream,
-    appendStreamingContent,
-    startStreaming,
-    commitStreaming,
-    setIsGenerating,
-    clearChat,
-    streamingSendDate,
-  } = useChatStore();
+  const activeChatId = useChatStore((s) => s.activeChatId);
+  const messages = useChatStore((s) => s.messages);
+  const isGenerating = useChatStore((s) => s.isGenerating);
+  const streamingContent = useChatStore((s) => s.streamingContent);
+  const streamingThinking = useChatStore((s) => s.streamingThinking);
+  const isThinkingStream = useChatStore((s) => s.isThinkingStream);
+  const streamingSendDate = useChatStore((s) => s.streamingSendDate);
+  const setActiveChat = useChatStore((s) => s.setActiveChat);
+  const setMessages = useChatStore((s) => s.setMessages);
+  const addMessage = useChatStore((s) => s.addMessage);
+  const removeMessage = useChatStore((s) => s.removeMessage);
+  const setStreamingContent = useChatStore((s) => s.setStreamingContent);
+  const setStreamingThinking = useChatStore((s) => s.setStreamingThinking);
+  const setIsThinkingStream = useChatStore((s) => s.setIsThinkingStream);
+  const appendStreamingContent = useChatStore((s) => s.appendStreamingContent);
+  const startStreaming = useChatStore((s) => s.startStreaming);
+  const commitStreaming = useChatStore((s) => s.commitStreaming);
+  const setIsGenerating = useChatStore((s) => s.setIsGenerating);
+  const clearChat = useChatStore((s) => s.clearChat);
 
-  const genStore = useGenerationStore();
+  const genMaxContext = useGenerationStore((s) => s.max_context);
+  const genStop = useGenerationStore((s) => s.stop);
+  const genModel = useGenerationStore((s) => s.model);
+  const genMode = useGenerationStore((s) => s.mode);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -100,7 +101,8 @@ export function ChatView({ characterId }: ChatViewProps) {
   // sync effect doesn't overwrite our local state with stale server data.
   const localModificationsRef = useRef(false);
 
-  const { streamingEnabled, smoothStreaming } = useAppStore();
+  const streamingEnabled = useAppStore((s) => s.streamingEnabled);
+  const smoothStreaming = useAppStore((s) => s.smoothStreaming);
 
   // Drip buffer state: pending chunks waiting to be released to the UI at a
   // pace determined by `smoothStreaming`. 0 = no pacing (release immediately).
@@ -430,7 +432,7 @@ export function ChatView({ characterId }: ChatViewProps) {
 
       const allMessages = [...useChatStore.getState().messages, userMsg];
 
-      const maxContext = genStore.max_context ?? 8192;
+      const maxContext = genMaxContext ?? 8192;
       const tokenPadding = textOptions?.tokenPadding ?? 1024;
 
       const promptBuildResult = await apiPost<{
@@ -517,7 +519,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       };
       for (const key of PARAM_KEYS) {
         if (key === 'mode' || key === 'preset') continue;
-        const val = genStore[key];
+        const val = useGenerationStore.getState()[key];
         if (typeof val === 'function') continue;
         if (key === 'stop') {
           genParams.stop = (val as string[]).length > 0 ? val : undefined;
@@ -532,7 +534,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       // partial stop-token fragments leak into the rendered text as garbled
       // fragments like "s *Amalia Amalaia". Mirrors SillyTavern's
       // getInstructStoppingSequences (public/scripts/instruct-mode.js:301).
-      const mergedStop = [...genStore.stop];
+      const mergedStop = [...genStop];
       const charName = character.name;
       const instructStops = getInstructStoppingSequences(textOptions?.instruct, {
         userName,
@@ -580,7 +582,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       try {
         const interceptorRequest: StreamChatRequest = {
           chat_completion_source: source,
-          model: genStore.model || model,
+          model: genModel || model,
           messages: promptMessages,
           reverse_proxy: reverseProxy,
           ...genParams,
@@ -595,7 +597,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         }
 
         let generator: AsyncGenerator<string>;
-        if (genStore.mode === 'text') {
+        if (genMode === 'text') {
           let flatPrompt = flattenMessagesToPrompt(
             interceptedRequest.messages,
             textOptions?.instruct,
@@ -606,9 +608,9 @@ export function ChatView({ characterId }: ChatViewProps) {
           }
           generator = streamTextCompletion({
             text_completion_source: textCompletionSource(source),
-            model: genStore.model || model,
+            model: genModel || model,
             prompt: flatPrompt,
-            max_context: genStore.max_context,
+            max_context: genMaxContext,
             reverse_proxy: reverseProxy,
             ...genParams,
           });
@@ -735,7 +737,6 @@ export function ChatView({ characterId }: ChatViewProps) {
       isGenerating,
       settings,
       messages,
-      genStore,
       resolvedPersona,
       addMessage,
       appendMessageMutation,
@@ -851,7 +852,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       };
       for (const key of PARAM_KEYS) {
         if (key === 'mode' || key === 'preset') continue;
-        const val = genStore[key];
+        const val = useGenerationStore.getState()[key];
         if (typeof val === 'function') continue;
         if (key === 'stop') {
           genParams.stop = (val as string[]).length > 0 ? val : undefined;
@@ -866,7 +867,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       // partial stop-token fragments leak into the rendered text as garbled
       // fragments like "s *Amalia Amalaia". Mirrors SillyTavern's
       // getInstructStoppingSequences (public/scripts/instruct-mode.js:301).
-      const mergedStop = [...genStore.stop];
+      const mergedStop = [...genStop];
       const charName = character?.name ?? '';
       const instructStops = getInstructStoppingSequences(textOptions?.instruct, {
         userName,
@@ -905,7 +906,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       }
       genParams.stop = mergedStop.length > 0 ? mergedStop : undefined;
 
-      const maxContext = genStore.max_context ?? 8192;
+      const maxContext = genMaxContext ?? 8192;
       const tokenPadding = textOptions?.tokenPadding ?? 1024;
 
       const promptBuildResult = await apiPost<{
@@ -982,7 +983,7 @@ export function ChatView({ characterId }: ChatViewProps) {
       try {
         const interceptorRequest: StreamChatRequest = {
           chat_completion_source: (settings?.chat_completion_source as string) || 'openai',
-          model: genStore.model || (settings?.chat_completion_model as string) || 'gpt-3.5-turbo',
+          model: genModel || (settings?.chat_completion_model as string) || 'gpt-3.5-turbo',
           messages: promptMessages,
           reverse_proxy: (settings?.reverse_proxy as string) || undefined,
           ...genParams,
@@ -998,7 +999,7 @@ export function ChatView({ characterId }: ChatViewProps) {
 
         const source = (settings?.chat_completion_source as string) || 'openai';
         let generator: AsyncGenerator<string>;
-        if (genStore.mode === 'text') {
+        if (genMode === 'text') {
           let flatPrompt = flattenMessagesToPrompt(
             interceptedRequest.messages,
             textOptions?.instruct,
@@ -1009,9 +1010,9 @@ export function ChatView({ characterId }: ChatViewProps) {
           }
           generator = streamTextCompletion({
             text_completion_source: textCompletionSource(source),
-            model: genStore.model || (settings?.chat_completion_model as string) || 'gpt-3.5-turbo',
+            model: genModel || (settings?.chat_completion_model as string) || 'gpt-3.5-turbo',
             prompt: flatPrompt,
-            max_context: genStore.max_context,
+            max_context: genMaxContext,
             reverse_proxy: (settings?.reverse_proxy as string) || undefined,
             ...genParams,
           });
@@ -1136,7 +1137,6 @@ export function ChatView({ characterId }: ChatViewProps) {
       isGenerating,
       settings,
       messages,
-      genStore,
       resolvedPersona,
       setIsGenerating,
       setStreamingContent,
@@ -1153,6 +1153,22 @@ export function ChatView({ characterId }: ChatViewProps) {
     ],
   );
 
+  const displayMessages = useMemo(() => [
+    ...messages,
+    ...(streamingContent || isThinkingStream || isGenerating
+      ? [
+          {
+            name: character?.name ?? '',
+            is_user: false,
+            mes: streamingContent,
+            thinking: streamingThinking,
+            send_date: streamingSendDate,
+            extra: {},
+          } as ChatMessageType,
+        ]
+      : []),
+  ], [messages, streamingContent, isThinkingStream, isGenerating, character?.name, streamingThinking, streamingSendDate]);
+
   if (charLoading) {
     return <LoadingSpinner size="lg" label="retrieving persona" className="h-full" />;
   }
@@ -1164,22 +1180,6 @@ export function ChatView({ characterId }: ChatViewProps) {
       </div>
     );
   }
-
-  const displayMessages = [
-    ...messages,
-    ...(streamingContent || isThinkingStream || isGenerating
-      ? [
-          {
-            name: character.name,
-            is_user: false,
-            mes: streamingContent,
-            thinking: streamingThinking,
-            send_date: streamingSendDate,
-            extra: {},
-          } as ChatMessageType,
-        ]
-      : []),
-  ];
 
   return (
     <div className="flex h-full flex-col">

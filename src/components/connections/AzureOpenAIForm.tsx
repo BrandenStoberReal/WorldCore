@@ -173,3 +173,5 @@ export function AzureOpenAIForm({ config, onConfigChange, className }: AzureOpen
     </div>
   );
 }
+
+export default AzureOpenAIForm;

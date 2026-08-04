@@ -66,3 +66,5 @@ export function UISettingsPanel() {
     </div>
   );
 }
+
+export default UISettingsPanel;

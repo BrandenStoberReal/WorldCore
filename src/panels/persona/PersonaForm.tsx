@@ -168,7 +168,7 @@ function PersonaSidebar() {
           }}
         >
           {avatarPreview ? (
-            <img src={avatarPreview} alt="Persona avatar" className="h-full w-full object-cover" />
+            <img src={avatarPreview} alt="Persona avatar" className="h-full w-full object-cover" loading="lazy" />
           ) : (
             <div className="text-muted-foreground flex h-full w-full flex-col items-center justify-center gap-1">
               <Upload className="h-5 w-5" />
@@ -267,7 +267,7 @@ function PersonaSidebar() {
           <div className="flex items-center gap-1.5">
             <div className="border-ember/40 bg-ember/10 flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full border">
               {avatarPreview ? (
-                <img src={avatarPreview} alt={name} className="h-6 w-6 rounded-full object-cover" />
+                <img src={avatarPreview} alt={name} className="h-6 w-6 rounded-full object-cover" loading="lazy" />
               ) : (
                 <span className="display-host text-ember text-[11px] font-semibold">
                   {previewInitial}

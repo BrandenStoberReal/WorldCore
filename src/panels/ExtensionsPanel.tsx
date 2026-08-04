@@ -369,3 +369,5 @@ function ScopeChoice({
     </button>
   );
 }
+
+export default ExtensionsPanel;

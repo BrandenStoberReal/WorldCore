@@ -106,3 +106,5 @@ const placeholderPersona: Persona = {
   dateAdded: 0,
   dateModified: 0,
 };
+
+export default PersonaPanel;

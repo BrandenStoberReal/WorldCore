@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, lazy, Suspense } from 'react';
 import { Users } from 'lucide-react';
 import { DrawerSlot } from './DrawerSlot';
 import { NavRail } from './NavRail';
@@ -9,16 +9,17 @@ import { useChatStore } from '@/lib/stores';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { CharacterSelector } from '@/components/CharacterSelector';
 import { DragDropOverlay } from '@/components/DragDropOverlay';
-import { WorldInfoPanel } from '@/panels/WorldInfoPanel';
-import { ExtensionsPanel } from '@/panels/ExtensionsPanel';
-import { ConnectionsPanel } from '@/panels/ConnectionsPanel';
-import { TextOptionsPanel } from '@/panels/TextOptionsPanel';
-import { SettingsPanel } from '@/panels/SettingsPanel';
-import { UISettingsPanel } from '@/panels/UISettingsPanel';
-import { PersonaPanel } from '@/panels/persona/PersonaPanel';
 import { GenerationPanel } from '@/panels/GenerationPanel';
 import { ExtensionPanelSlot } from '@/lib/extensionSlots';
 import { cn } from '@/lib/utils';
+
+const WorldInfoPanel = lazy(() => import('@/panels/WorldInfoPanel'));
+const ExtensionsPanel = lazy(() => import('@/panels/ExtensionsPanel'));
+const ConnectionsPanel = lazy(() => import('@/panels/ConnectionsPanel'));
+const TextOptionsPanel = lazy(() => import('@/panels/TextOptionsPanel'));
+const SettingsPanel = lazy(() => import('@/panels/SettingsPanel'));
+const UISettingsPanel = lazy(() => import('@/panels/UISettingsPanel'));
+const PersonaPanel = lazy(() => import('@/panels/persona/PersonaPanel'));
 
 const TOP_DRAWER_PANELS: Record<string, React.ComponentType> = {
   worldinfo: WorldInfoPanel,
@@ -136,7 +137,11 @@ export function DrawerShell() {
       <NavRail />
 
       <DrawerSlot direction="top" open={topDrawer !== null}>
-        {TopPanel && <TopPanel />}
+        {TopPanel && (
+          <Suspense fallback={null}>
+            <TopPanel />
+          </Suspense>
+        )}
         <ExtensionPanelSlot target="top-drawer" />
       </DrawerSlot>
 

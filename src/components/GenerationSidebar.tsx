@@ -294,10 +294,75 @@ const SAMPLER_LABELS: Record<string, string> = {
 };
 
 export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: GenerationSidebarProps) {
-  const store = useGenerationStore();
-  const { mode } = store;
-  const { streamingEnabled, setStreamingEnabled, smoothStreaming, setSmoothStreaming } =
-    useAppStore();
+  const mode = useGenerationStore((s) => s.mode);
+  const preset = useGenerationStore((s) => s.preset);
+  const loadPreset = useGenerationStore((s) => s.loadPreset);
+  const loadPresetFromBackend = useGenerationStore((s) => s.loadPresetFromBackend);
+  const savePresetToBackend = useGenerationStore((s) => s.savePresetToBackend);
+  const resetDefaults = useGenerationStore((s) => s.resetDefaults);
+  const samplers = useGenerationStore((s) => s.samplers);
+  const temperature = useGenerationStore((s) => s.temperature);
+  const top_p = useGenerationStore((s) => s.top_p);
+  const top_k = useGenerationStore((s) => s.top_k);
+  const min_p = useGenerationStore((s) => s.min_p);
+  const typical_p = useGenerationStore((s) => s.typical_p);
+  const top_a = useGenerationStore((s) => s.top_a);
+  const tfs = useGenerationStore((s) => s.tfs);
+  const rep_pen = useGenerationStore((s) => s.rep_pen);
+  const rep_pen_range = useGenerationStore((s) => s.rep_pen_range);
+  const rep_pen_slope = useGenerationStore((s) => s.rep_pen_slope);
+  const rep_pen_decay = useGenerationStore((s) => s.rep_pen_decay);
+  const dry_penalty_last_n = useGenerationStore((s) => s.dry_penalty_last_n);
+  const encoder_rep_pen = useGenerationStore((s) => s.encoder_rep_pen);
+  const frequency_penalty = useGenerationStore((s) => s.frequency_penalty);
+  const presence_penalty = useGenerationStore((s) => s.presence_penalty);
+  const smoothing_curve = useGenerationStore((s) => s.smoothing_curve);
+  const penalty_alpha = useGenerationStore((s) => s.penalty_alpha);
+  const num_beams = useGenerationStore((s) => s.num_beams);
+  const length_penalty = useGenerationStore((s) => s.length_penalty);
+  const min_length = useGenerationStore((s) => s.min_length);
+  const skew = useGenerationStore((s) => s.skew);
+  const dynatemp = useGenerationStore((s) => s.dynatemp);
+  const min_temp = useGenerationStore((s) => s.min_temp);
+  const max_temp = useGenerationStore((s) => s.max_temp);
+  const dynatemp_exponent = useGenerationStore((s) => s.dynatemp_exponent);
+  const xtc_threshold = useGenerationStore((s) => s.xtc_threshold);
+  const xtc_probability = useGenerationStore((s) => s.xtc_probability);
+  const nsigma = useGenerationStore((s) => s.nsigma);
+  const min_keep = useGenerationStore((s) => s.min_keep);
+  const rep_pen_size = useGenerationStore((s) => s.rep_pen_size);
+  const adaptive_target = useGenerationStore((s) => s.adaptive_target);
+  const adaptive_decay = useGenerationStore((s) => s.adaptive_decay);
+  const dry_multiplier = useGenerationStore((s) => s.dry_multiplier);
+  const dry_base = useGenerationStore((s) => s.dry_base);
+  const dry_allowed_length = useGenerationStore((s) => s.dry_allowed_length);
+  const mirostat_mode = useGenerationStore((s) => s.mirostat_mode);
+  const mirostat_tau = useGenerationStore((s) => s.mirostat_tau);
+  const mirostat_eta = useGenerationStore((s) => s.mirostat_eta);
+  const smoothing_factor = useGenerationStore((s) => s.smoothing_factor);
+  const epsilon_cutoff = useGenerationStore((s) => s.epsilon_cutoff);
+  const eta_cutoff = useGenerationStore((s) => s.eta_cutoff);
+  const temperature_last = useGenerationStore((s) => s.temperature_last);
+  const do_sample = useGenerationStore((s) => s.do_sample);
+  const early_stopping = useGenerationStore((s) => s.early_stopping);
+  const max_tokens = useGenerationStore((s) => s.max_tokens);
+  const max_context = useGenerationStore((s) => s.max_context);
+  const min_tokens = useGenerationStore((s) => s.min_tokens);
+  const no_repeat_ngram_size = useGenerationStore((s) => s.no_repeat_ngram_size);
+  const guidance_scale = useGenerationStore((s) => s.guidance_scale);
+  const max_length = useGenerationStore((s) => s.max_length);
+  const stop = useGenerationStore((s) => s.stop);
+  const seed = useGenerationStore((s) => s.seed);
+  const ignore_eos_token = useGenerationStore((s) => s.ignore_eos_token);
+  const spaces_between_special_tokens = useGenerationStore((s) => s.spaces_between_special_tokens);
+  const speculative_ngram = useGenerationStore((s) => s.speculative_ngram);
+  const negative_prompt = useGenerationStore((s) => s.negative_prompt);
+  const grammar_string = useGenerationStore((s) => s.grammar_string);
+  const banned_tokens = useGenerationStore((s) => s.banned_tokens);
+  const streamingEnabled = useAppStore((s) => s.streamingEnabled);
+  const setStreamingEnabled = useAppStore((s) => s.setStreamingEnabled);
+  const smoothStreaming = useAppStore((s) => s.smoothStreaming);
+  const setSmoothStreaming = useAppStore((s) => s.setSmoothStreaming);
   const [presetStatus, setPresetStatus] = useState<PresetStatus>('idle');
   const [presetMessage, setPresetMessage] = useState<string>('');
   const [saveName, setSaveName] = useState('');
@@ -414,7 +479,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               if (section === 'preset') {
                 const parsed = parseSillyTavernGenerationPreset(sectionData);
                 if (parsed) {
-                  store.loadPreset(parsed);
+                  loadPreset(parsed);
 
                   const importData = { name: baseName, ...parsed };
                   const matchName = await findMatchingPresetName('generation', importData);
@@ -484,7 +549,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
             return;
           }
 
-          store.loadPreset(parsed);
+          loadPreset(parsed);
 
           const baseName = file.name.replace(/\.json$/i, '') || 'Imported';
           const importData = { name: baseName, ...parsed };
@@ -527,15 +592,15 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
 
       e.target.value = '';
     },
-    [store, generationPresetNames, defaultPresets, queryClient],
+    [loadPreset, loadPresetFromBackend, presetNames, defaultPresets, queryClient, flashStatus],
   );
 
-  const isCurrentPresetDefault = defaultPresets.has(store.preset);
+  const isCurrentPresetDefault = defaultPresets.has(preset);
 
   const handleSavePreset = useCallback(async () => {
     const name = saveName.trim();
     if (!name) return;
-    if (isCurrentPresetDefault && name === store.preset) {
+    if (isCurrentPresetDefault && name === preset) {
       flashStatus('err', `Cannot overwrite default preset "${name}". Choose a different name.`);
       return;
     }
@@ -549,22 +614,22 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
       const matchName = await findMatchingPresetName('generation', saveData);
       if (matchName && matchName !== name) {
         flashStatus('err', `Preset already exists as "${matchName}" — loaded instead`);
-        await store.loadPresetFromBackend(matchName);
+        await loadPresetFromBackend(matchName);
         setSaveName('');
         setShowSaveInput(false);
         return;
       }
-      await store.savePresetToBackend(name);
+      await savePresetToBackend(name);
       flashStatus('ok', `Saved "${name}"`);
       setSaveName('');
       setShowSaveInput(false);
     } catch (err) {
       flashStatus('err', err instanceof Error ? err.message : String(err));
     }
-  }, [store, saveName, isCurrentPresetDefault, flashStatus]);
+  }, [preset, saveName, isCurrentPresetDefault, flashStatus, savePresetToBackend]);
 
   const handleClonePreset = useCallback(() => {
-    const baseName = (store.preset || 'Preset').replace(/\s*\(\d+\)$/, '');
+    const baseName = (preset || 'Preset').replace(/\s*\(\d+\)$/, '');
     const existingNames = new Set(presetNames);
     let cloneName = `${baseName} (1)`;
     let counter = 2;
@@ -574,24 +639,24 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
     }
     setSaveName(cloneName);
     setShowSaveInput(true);
-  }, [store.preset, presetNames]);
+  }, [preset, presetNames]);
 
   const handleLoadPreset = useCallback(
     async (name: string) => {
       if (!name) return;
       setPresetStatus('loading');
       try {
-        await store.loadPresetFromBackend(name);
+        await loadPresetFromBackend(name);
         flashStatus('ok', `Loaded "${name}"`);
       } catch (err) {
         flashStatus('err', err instanceof Error ? err.message : String(err));
       }
     },
-    [store],
+    [loadPresetFromBackend, flashStatus],
   );
 
   const handleDeletePreset = useCallback(async () => {
-    const name = store.preset;
+    const name = preset;
     if (!name || defaultPresets.has(name)) return;
     if (!window.confirm(`Delete preset "${name}"? This cannot be undone.`)) return;
     setPresetStatus('saving');
@@ -603,7 +668,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
     } catch (err) {
       flashStatus('err', err instanceof Error ? err.message : String(err));
     }
-  }, [store.preset, defaultPresets, queryClient, flashStatus]);
+  }, [preset, defaultPresets, queryClient, flashStatus]);
 
   const update = useCallback(
     <K extends keyof ReturnType<typeof useGenerationStore.getState>>(
@@ -616,7 +681,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
   );
 
   const handleToggleSampler = (sampler: string) => {
-    const current = [...store.samplers];
+    const current = [...samplers];
     const idx = current.indexOf(sampler);
     if (idx >= 0) {
       current.splice(idx, 1);
@@ -627,7 +692,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
   };
 
   const handleMoveUp = (sampler: string) => {
-    const current = [...store.samplers];
+    const current = [...samplers];
     const idx = current.indexOf(sampler);
     if (idx > 0) {
       const a = current[idx - 1] as string;
@@ -639,7 +704,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
   };
 
   const handleMoveDown = (sampler: string) => {
-    const current = [...store.samplers];
+    const current = [...samplers];
     const idx = current.indexOf(sampler);
     if (idx >= 0 && idx < current.length - 1) {
       const a = current[idx] as string;
@@ -722,7 +787,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     <button
                       type="button"
                       onClick={() => {
-                        setSaveName(store.preset);
+                        setSaveName(preset);
                         setShowSaveInput(true);
                       }}
                       disabled={presetStatus === 'saving' || presetStatus === 'loading'}
@@ -738,7 +803,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   )}
                   <button
                     type="button"
-                    onClick={() => store.resetDefaults()}
+                    onClick={() => resetDefaults()}
                     className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
                     title="Reset to defaults"
                     aria-label="Reset to defaults"
@@ -784,7 +849,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
             className="hidden"
           />
           <div className="mt-2 flex items-center gap-1">
-            <Select value={store.preset} onValueChange={handleLoadPreset}>
+            <Select value={preset} onValueChange={handleLoadPreset}>
               <SelectTrigger className="h-6 text-[11px]">
                 <SelectValue placeholder="Load preset..." />
               </SelectTrigger>
@@ -801,7 +866,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 ))}
               </SelectContent>
             </Select>
-            {store.preset && !defaultPresets.has(store.preset) && (
+            {preset && !defaultPresets.has(preset) && (
               <button
                 type="button"
                 onClick={handleDeletePreset}
@@ -823,7 +888,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
           <InlineSection panelId="generation" sectionId="sampling" title="Sampling" defaultOpen>
             <GenerationSlider
               label="Temperature"
-              value={store.temperature}
+              value={temperature}
               min={0}
               max={2.5}
               step={0.01}
@@ -832,7 +897,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
             />
             <GenerationSlider
               label="Top P"
-              value={store.top_p}
+              value={top_p}
               min={0}
               max={1}
               step={0.001}
@@ -841,7 +906,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
             />
             <GenerationSlider
               label="Top K"
-              value={store.top_k}
+              value={top_k}
               min={0}
               max={300}
               step={1}
@@ -852,7 +917,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <>
                 <GenerationSlider
                   label="Min P"
-                  value={store.min_p}
+                  value={min_p}
                   min={0}
                   max={1}
                   step={0.001}
@@ -861,7 +926,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Typical P"
-                  value={store.typical_p}
+                  value={typical_p}
                   min={0}
                   max={1}
                   step={0.001}
@@ -870,7 +935,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Top A"
-                  value={store.top_a}
+                  value={top_a}
                   min={0}
                   max={1}
                   step={0.001}
@@ -879,7 +944,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="TFS"
-                  value={store.tfs}
+                  value={tfs}
                   min={0}
                   max={1}
                   step={0.001}
@@ -895,7 +960,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <>
                 <GenerationSlider
                   label="Rep Pen"
-                  value={store.rep_pen}
+                  value={rep_pen}
                   min={1}
                   max={8}
                   step={0.025}
@@ -904,7 +969,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Rep Pen Range"
-                  value={store.rep_pen_range}
+                  value={rep_pen_range}
                   min={0}
                   max={8192}
                   step={1}
@@ -913,7 +978,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Rep Pen Slope"
-                  value={store.rep_pen_slope}
+                  value={rep_pen_slope}
                   min={0}
                   max={10}
                   step={0.01}
@@ -922,7 +987,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Rep Pen Decay"
-                  value={store.rep_pen_decay}
+                  value={rep_pen_decay}
                   min={0}
                   max={1}
                   step={0.01}
@@ -931,7 +996,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Dry Penalty Last N"
-                  value={store.dry_penalty_last_n}
+                  value={dry_penalty_last_n}
                   min={-1}
                   max={2048}
                   step={1}
@@ -940,7 +1005,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Encoder Rep Pen"
-                  value={store.encoder_rep_pen}
+                  value={encoder_rep_pen}
                   min={0}
                   max={10}
                   step={0.01}
@@ -952,7 +1017,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <>
                 <GenerationSlider
                   label="Freq Penalty"
-                  value={store.frequency_penalty}
+                  value={frequency_penalty}
                   min={-2}
                   max={2}
                   step={0.01}
@@ -961,7 +1026,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Pres Penalty"
-                  value={store.presence_penalty}
+                  value={presence_penalty}
                   min={-2}
                   max={2}
                   step={0.01}
@@ -981,7 +1046,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <>
                 <GenerationSlider
                   label="Smoothing Curve"
-                  value={store.smoothing_curve}
+                  value={smoothing_curve}
                   min={0}
                   max={10}
                   step={0.01}
@@ -990,7 +1055,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Penalty Alpha"
-                  value={store.penalty_alpha}
+                  value={penalty_alpha}
                   min={0}
                   max={2}
                   step={0.01}
@@ -999,7 +1064,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Num Beams"
-                  value={store.num_beams}
+                  value={num_beams}
                   min={1}
                   max={8}
                   step={1}
@@ -1008,7 +1073,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Length Penalty"
-                  value={store.length_penalty}
+                  value={length_penalty}
                   min={0}
                   max={4}
                   step={0.01}
@@ -1017,7 +1082,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Min Length"
-                  value={store.min_length}
+                  value={min_length}
                   min={0}
                   max={2048}
                   step={1}
@@ -1026,7 +1091,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Skew"
-                  value={store.skew}
+                  value={skew}
                   min={0}
                   max={10}
                   step={0.01}
@@ -1050,24 +1115,24 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={store.dynatemp}
-                    onClick={() => update('dynatemp', !store.dynatemp)}
+                    aria-checked={dynatemp}
+                    onClick={() => update('dynatemp', !dynatemp)}
                     className={cn(
                       'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
-                      store.dynatemp ? 'bg-ember/60' : 'bg-border',
+                      dynatemp ? 'bg-ember/60' : 'bg-border',
                     )}
                   >
                     <span
                       className={cn(
                         'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
-                        store.dynatemp ? 'translate-x-3' : 'translate-x-0',
+                        dynatemp ? 'translate-x-3' : 'translate-x-0',
                       )}
                     />
                   </button>
                 </div>
                 <GenerationSlider
                   label="Min Temp"
-                  value={store.min_temp}
+                  value={min_temp}
                   min={0}
                   max={2}
                   step={0.01}
@@ -1076,7 +1141,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Max Temp"
-                  value={store.max_temp}
+                  value={max_temp}
                   min={0}
                   max={5}
                   step={0.01}
@@ -1085,7 +1150,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Dynatemp Exponent"
-                  value={store.dynatemp_exponent}
+                  value={dynatemp_exponent}
                   min={0}
                   max={10}
                   step={0.01}
@@ -1094,7 +1159,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="XTC Threshold"
-                  value={store.xtc_threshold}
+                  value={xtc_threshold}
                   min={0}
                   max={1}
                   step={0.01}
@@ -1103,7 +1168,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="XTC Probability"
-                  value={store.xtc_probability}
+                  value={xtc_probability}
                   min={0}
                   max={1}
                   step={0.01}
@@ -1128,7 +1193,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <>
                 <GenerationSlider
                   label="NSigma"
-                  value={store.nsigma}
+                  value={nsigma}
                   min={0}
                   max={10}
                   step={0.01}
@@ -1137,7 +1202,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Min Keep"
-                  value={store.min_keep}
+                  value={min_keep}
                   min={0}
                   max={100}
                   step={1}
@@ -1146,7 +1211,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Rep Pen Size"
-                  value={store.rep_pen_size}
+                  value={rep_pen_size}
                   min={0}
                   max={2048}
                   step={1}
@@ -1167,7 +1232,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <>
                 <GenerationSlider
                   label="Adaptive Target"
-                  value={store.adaptive_target}
+                  value={adaptive_target}
                   min={-1}
                   max={1}
                   step={0.01}
@@ -1176,7 +1241,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Adaptive Decay"
-                  value={store.adaptive_decay}
+                  value={adaptive_decay}
                   min={0}
                   max={1}
                   step={0.01}
@@ -1197,7 +1262,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <>
                 <GenerationSlider
                   label="DRY Multiplier"
-                  value={store.dry_multiplier}
+                  value={dry_multiplier}
                   min={0}
                   max={10}
                   step={0.1}
@@ -1206,7 +1271,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="DRY Base"
-                  value={store.dry_base}
+                  value={dry_base}
                   min={0}
                   max={10}
                   step={0.1}
@@ -1215,7 +1280,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="DRY Allowed Length"
-                  value={store.dry_allowed_length}
+                  value={dry_allowed_length}
                   min={0}
                   max={20}
                   step={1}
@@ -1232,7 +1297,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                         onClick={() => update('mirostat_mode', m)}
                         className={cn(
                           'flex-1 rounded-md border py-0.5 font-mono text-[10px] transition-all',
-                          store.mirostat_mode === m
+                          mirostat_mode === m
                             ? 'bg-ember/15 text-ember border-ember/25'
                             : 'border-border text-foreground/40 hover:text-foreground/60',
                         )}
@@ -1243,11 +1308,11 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   </div>
                   <p className="text-foreground/30 text-[9px]">0 = off, 1 = v1, 2 = v2</p>
                 </div>
-                {store.mirostat_mode !== 0 && (
+                {mirostat_mode !== 0 && (
                   <>
                     <GenerationSlider
                       label="Mirostat Tau"
-                      value={store.mirostat_tau}
+                      value={mirostat_tau}
                       min={0}
                       max={10}
                       step={0.1}
@@ -1256,7 +1321,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     />
                     <GenerationSlider
                       label="Mirostat Eta"
-                      value={store.mirostat_eta}
+                      value={mirostat_eta}
                       min={0}
                       max={1}
                       step={0.01}
@@ -1267,7 +1332,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 )}
                 <GenerationSlider
                   label="Smoothing Factor"
-                  value={store.smoothing_factor}
+                  value={smoothing_factor}
                   min={0}
                   max={10}
                   step={0.1}
@@ -1276,7 +1341,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Epsilon Cutoff"
-                  value={store.epsilon_cutoff}
+                  value={epsilon_cutoff}
                   min={0}
                   max={9}
                   step={0.01}
@@ -1285,7 +1350,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Eta Cutoff"
-                  value={store.eta_cutoff}
+                  value={eta_cutoff}
                   min={0}
                   max={20}
                   step={0.01}
@@ -1297,17 +1362,17 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={store.temperature_last}
-                    onClick={() => update('temperature_last', !store.temperature_last)}
+                    aria-checked={temperature_last}
+                    onClick={() => update('temperature_last', !temperature_last)}
                     className={cn(
                       'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
-                      store.temperature_last ? 'bg-ember/60' : 'bg-border',
+                      temperature_last ? 'bg-ember/60' : 'bg-border',
                     )}
                   >
                     <span
                       className={cn(
                         'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
-                        store.temperature_last ? 'translate-x-3' : 'translate-x-0',
+                        temperature_last ? 'translate-x-3' : 'translate-x-0',
                       )}
                     />
                   </button>
@@ -1317,17 +1382,17 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={store.do_sample}
-                    onClick={() => update('do_sample', !store.do_sample)}
+                    aria-checked={do_sample}
+                    onClick={() => update('do_sample', !do_sample)}
                     className={cn(
                       'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
-                      store.do_sample ? 'bg-ember/60' : 'bg-border',
+                      do_sample ? 'bg-ember/60' : 'bg-border',
                     )}
                   >
                     <span
                       className={cn(
                         'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
-                        store.do_sample ? 'translate-x-3' : 'translate-x-0',
+                        do_sample ? 'translate-x-3' : 'translate-x-0',
                       )}
                     />
                   </button>
@@ -1337,17 +1402,17 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={store.early_stopping}
-                    onClick={() => update('early_stopping', !store.early_stopping)}
+                    aria-checked={early_stopping}
+                    onClick={() => update('early_stopping', !early_stopping)}
                     className={cn(
                       'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
-                      store.early_stopping ? 'bg-ember/60' : 'bg-border',
+                      early_stopping ? 'bg-ember/60' : 'bg-border',
                     )}
                   >
                     <span
                       className={cn(
                         'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
-                        store.early_stopping ? 'translate-x-3' : 'translate-x-0',
+                        early_stopping ? 'translate-x-3' : 'translate-x-0',
                       )}
                     />
                   </button>
@@ -1369,8 +1434,8 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
             >
               <div className="space-y-0.5">
                 {ALL_SAMPLERS.map((sampler) => {
-                  const active = store.samplers.includes(sampler);
-                  const idx = store.samplers.indexOf(sampler);
+                  const active = samplers.includes(sampler);
+                  const idx = samplers.indexOf(sampler);
                   return (
                     <div
                       key={sampler}
@@ -1394,7 +1459,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                       <button
                         type="button"
                         onClick={() => handleMoveDown(sampler)}
-                        disabled={!active || idx === store.samplers.length - 1}
+                        disabled={!active || idx === samplers.length - 1}
                         className={cn(
                           'text-foreground/30 hover:text-foreground/60 rounded p-0 transition-colors',
                           'disabled:cursor-not-allowed disabled:opacity-20',
@@ -1433,7 +1498,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
           <InlineSection panelId="generation" sectionId="output" title="Output">
             <GenerationSlider
               label="Max Tokens"
-              value={store.max_tokens}
+              value={max_tokens}
               min={1}
               max={8192}
               step={1}
@@ -1442,7 +1507,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
             />
             <GenerationSlider
               label="Context Size"
-              value={store.max_context}
+              value={max_context}
               min={512}
               max={131072}
               step={512}
@@ -1452,7 +1517,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
             {mode === 'text' && (
               <GenerationSlider
                 label="Min Tokens"
-                value={store.min_tokens}
+                value={min_tokens}
                 min={0}
                 max={2048}
                 step={1}
@@ -1464,7 +1529,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <>
                 <GenerationSlider
                   label="No Repeat Ngram Size"
-                  value={store.no_repeat_ngram_size}
+                  value={no_repeat_ngram_size}
                   min={0}
                   max={20}
                   step={1}
@@ -1473,7 +1538,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Guidance Scale"
-                  value={store.guidance_scale}
+                  value={guidance_scale}
                   min={1}
                   max={20}
                   step={0.1}
@@ -1482,7 +1547,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                 />
                 <GenerationSlider
                   label="Max Length"
-                  value={store.max_length}
+                  value={max_length}
                   min={1}
                   max={131072}
                   step={1}
@@ -1495,7 +1560,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <label className="mono-tag text-foreground/60">Stop Sequences</label>
               <input
                 type="text"
-                value={store.stop.join(', ')}
+                value={stop.join(', ')}
                 onChange={(e) =>
                   update(
                     'stop',
@@ -1518,7 +1583,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <label className="mono-tag text-foreground/60">Seed</label>
               <input
                 type="number"
-                value={store.seed}
+                value={seed}
                 onChange={(e) => update('seed', parseInt(e.target.value, 10) || -1)}
                 className={cn(
                   'border-border bg-background/60 h-6 w-full rounded-md border px-2',
@@ -1568,17 +1633,17 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={store.ignore_eos_token}
-                    onClick={() => update('ignore_eos_token', !store.ignore_eos_token)}
+                    aria-checked={ignore_eos_token}
+                    onClick={() => update('ignore_eos_token', !ignore_eos_token)}
                     className={cn(
                       'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
-                      store.ignore_eos_token ? 'bg-ember/60' : 'bg-border',
+                      ignore_eos_token ? 'bg-ember/60' : 'bg-border',
                     )}
                   >
                     <span
                       className={cn(
                         'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
-                        store.ignore_eos_token ? 'translate-x-3' : 'translate-x-0',
+                        ignore_eos_token ? 'translate-x-3' : 'translate-x-0',
                       )}
                     />
                   </button>
@@ -1590,19 +1655,19 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={store.spaces_between_special_tokens}
+                    aria-checked={spaces_between_special_tokens}
                     onClick={() =>
-                      update('spaces_between_special_tokens', !store.spaces_between_special_tokens)
+                      update('spaces_between_special_tokens', !spaces_between_special_tokens)
                     }
                     className={cn(
                       'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
-                      store.spaces_between_special_tokens ? 'bg-ember/60' : 'bg-border',
+                      spaces_between_special_tokens ? 'bg-ember/60' : 'bg-border',
                     )}
                   >
                     <span
                       className={cn(
                         'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
-                        store.spaces_between_special_tokens ? 'translate-x-3' : 'translate-x-0',
+                        spaces_between_special_tokens ? 'translate-x-3' : 'translate-x-0',
                       )}
                     />
                   </button>
@@ -1612,17 +1677,17 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={store.speculative_ngram}
-                    onClick={() => update('speculative_ngram', !store.speculative_ngram)}
+                    aria-checked={speculative_ngram}
+                    onClick={() => update('speculative_ngram', !speculative_ngram)}
                     className={cn(
                       'relative h-4 w-7 overflow-hidden rounded-full transition-colors duration-200',
-                      store.speculative_ngram ? 'bg-ember/60' : 'bg-border',
+                      speculative_ngram ? 'bg-ember/60' : 'bg-border',
                     )}
                   >
                     <span
                       className={cn(
                         'absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
-                        store.speculative_ngram ? 'translate-x-3' : 'translate-x-0',
+                        speculative_ngram ? 'translate-x-3' : 'translate-x-0',
                       )}
                     />
                   </button>
@@ -1631,7 +1696,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <label className="mono-tag text-foreground/60">Negative Prompt</label>
                   <input
                     type="text"
-                    value={store.negative_prompt}
+                    value={negative_prompt}
                     onChange={(e) => update('negative_prompt', e.target.value)}
                     placeholder="optional negative prompt"
                     className={cn(
@@ -1646,7 +1711,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <label className="mono-tag text-foreground/60">Grammar String</label>
                   <input
                     type="text"
-                    value={store.grammar_string}
+                    value={grammar_string}
                     onChange={(e) => update('grammar_string', e.target.value)}
                     placeholder="optional grammar约束"
                     className={cn(
@@ -1661,7 +1726,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <label className="mono-tag text-foreground/60">Banned Tokens</label>
                   <input
                     type="text"
-                    value={store.banned_tokens}
+                    value={banned_tokens}
                     onChange={(e) => update('banned_tokens', e.target.value)}
                     placeholder="comma separated tokens"
                     className={cn(
