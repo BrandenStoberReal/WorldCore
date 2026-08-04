@@ -5,6 +5,8 @@ import { cn, surfaceCard, ambientGlow } from '@/lib/utils';
 import { apiPost } from '@/lib/api';
 import { ExtensionSlot } from '@/lib/extensionSlots';
 import { useScrollInputIntoView } from '@/hooks/useVirtualKeyboard';
+import { ResponsiveSlot } from '@/components/Responsive';
+import { MobileChatInput } from '@/components/MobileChatInput';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -98,62 +100,67 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
   const canSend = value.trim() && !disabled && !isGenerating;
 
   return (
-    <div className="border-border/60 bg-background/60 supports-[backdrop-filter]:bg-background/40 safe-area-bottom shrink-0 border-t p-1 backdrop-blur-sm sm:p-4">
-      <div className="relative mx-auto max-w-6xl">
-        <div
-          className={cn(
-            surfaceCard,
-            'focus-within:border-ember/60 relative rounded-md transition-colors',
-          )}
-        >
-          <div
-            aria-hidden
-            className="via-ember/60 pointer-events-none absolute -top-px right-6 left-6 hidden h-px bg-gradient-to-r from-transparent to-transparent opacity-0 transition-opacity focus-within:opacity-100 sm:block"
-          />
-          <div className="relative flex items-center gap-1 px-1.5 py-0.5 sm:gap-2 sm:px-3 sm:py-3">
-            <textarea
-              ref={textareaRef}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              placeholder={
-                isGenerating ? 'generating...' : 'type a message... (⏎ send, ⇧⏎ newline)'
-              }
-              rows={1}
-              className="placeholder:text-muted-foreground/50 flex max-h-40 min-h-5 flex-1 resize-none bg-transparent font-mono text-[11px] leading-tight outline-none disabled:opacity-50 sm:min-h-9 sm:text-[13.5px] sm:leading-relaxed"
-              disabled={disabled && !isGenerating}
-            />
-            <div className="mono-tag text-muted-foreground/60 hidden shrink-0 text-xs tabular-nums sm:block sm:text-sm">
-              {tokenLoading ? (
-                <span className="inline-block animate-pulse">...</span>
-              ) : tokenCount !== null ? (
-                <span>{tokenCount}</span>
-              ) : null}
-            </div>
-            <Button
-              size="icon-sm"
-              onClick={handleSendClick}
-              disabled={!canSend && !isGenerating}
+    <ResponsiveSlot
+      mobile={<MobileChatInput onSend={onSend} onStop={onStop} disabled={disabled} isGenerating={isGenerating} />}
+      desktop={
+        <div className="border-border/60 bg-background/60 supports-[backdrop-filter]:bg-background/40 safe-area-bottom shrink-0 border-t p-1 backdrop-blur-sm sm:p-4">
+          <div className="relative mx-auto max-w-6xl">
+            <div
               className={cn(
-                'shrink-0 self-end transition-all duration-200',
-                isGenerating && 'border-ember/50 text-ember hover:border-ember/70 hover:text-ember',
-                !isGenerating && ambientGlow,
+                surfaceCard,
+                'focus-within:border-ember/60 relative rounded-md transition-colors',
               )}
-              title={isGenerating ? 'Stop generation' : 'Send message'}
             >
-              {isGenerating ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Send className="h-3.5 w-3.5" />
-              )}
-            </Button>
+              <div
+                aria-hidden
+                className="via-ember/60 pointer-events-none absolute -top-px right-6 left-6 hidden h-px bg-gradient-to-r from-transparent to-transparent opacity-0 transition-opacity focus-within:opacity-100 sm:block"
+              />
+              <div className="relative flex items-center gap-1 px-1.5 py-0.5 sm:gap-2 sm:px-3 sm:py-3">
+                <textarea
+                  ref={textareaRef}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setFocused(false)}
+                  placeholder={
+                    isGenerating ? 'generating...' : 'type a message... (⏎ send, ⇧⏎ newline)'
+                  }
+                  rows={1}
+                  className="placeholder:text-muted-foreground/50 flex max-h-40 min-h-5 flex-1 resize-none bg-transparent font-mono text-[11px] leading-tight outline-none disabled:opacity-50 sm:min-h-9 sm:text-[13.5px] sm:leading-relaxed"
+                  disabled={disabled && !isGenerating}
+                />
+                <div className="mono-tag text-muted-foreground/60 hidden shrink-0 text-xs tabular-nums sm:block sm:text-sm">
+                  {tokenLoading ? (
+                    <span className="inline-block animate-pulse">...</span>
+                  ) : tokenCount !== null ? (
+                    <span>{tokenCount}</span>
+                  ) : null}
+                </div>
+                <Button
+                  size="icon-sm"
+                  onClick={handleSendClick}
+                  disabled={!canSend && !isGenerating}
+                  className={cn(
+                    'shrink-0 self-end transition-all duration-200',
+                    isGenerating && 'border-ember/50 text-ember hover:border-ember/70 hover:text-ember',
+                    !isGenerating && ambientGlow,
+                  )}
+                  title={isGenerating ? 'Stop generation' : 'Send message'}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Send className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <ExtensionSlot slotId="chat-input-toolbar" />
           </div>
         </div>
-
-        <ExtensionSlot slotId="chat-input-toolbar" />
-      </div>
-    </div>
+      }
+    />
   );
 }
