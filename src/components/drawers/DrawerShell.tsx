@@ -9,7 +9,6 @@ import { useChatStore } from '@/lib/stores';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { CharacterSelector } from '@/components/CharacterSelector';
 import { DragDropOverlay } from '@/components/DragDropOverlay';
-import { GenerationPanel } from '@/panels/GenerationPanel';
 import { ExtensionPanelSlot } from '@/lib/extensionSlots';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +19,7 @@ const TEXTOPTIONS_IMPORT = () => import('@/panels/TextOptionsPanel');
 const SETTINGS_IMPORT = () => import('@/panels/SettingsPanel');
 const UI_SETTINGS_IMPORT = () => import('@/panels/UISettingsPanel');
 const PERSONAS_IMPORT = () => import('@/panels/persona/PersonaPanel');
+const GENERATION_IMPORT = () => import('@/panels/GenerationPanel');
 
 const WorldInfoPanel = lazy(WORLDINFO_IMPORT);
 const ExtensionsPanel = lazy(EXTENSIONS_IMPORT);
@@ -28,6 +28,7 @@ const TextOptionsPanel = lazy(TEXTOPTIONS_IMPORT);
 const SettingsPanel = lazy(SETTINGS_IMPORT);
 const UISettingsPanel = lazy(UI_SETTINGS_IMPORT);
 const PersonaPanel = lazy(PERSONAS_IMPORT);
+const GenerationPanel = lazy(GENERATION_IMPORT);
 
 const PREFETCH_MAP: Record<string, () => Promise<{ default: React.ComponentType }>> = {
   worldinfo: WORLDINFO_IMPORT,
@@ -37,6 +38,7 @@ const PREFETCH_MAP: Record<string, () => Promise<{ default: React.ComponentType 
   settings: SETTINGS_IMPORT,
   'ui-settings': UI_SETTINGS_IMPORT,
   personas: PERSONAS_IMPORT,
+  generation: GENERATION_IMPORT,
 };
 
 const TOP_DRAWER_PANELS: Record<string, React.ComponentType> = {
@@ -59,10 +61,17 @@ function CharactersSidebar() {
   const activeCharacterId = useChatStore((s) => s.activeCharacterId);
   const setActiveCharacter = useChatStore((s) => s.setActiveCharacter);
   const toggleCharacters = useNavStore((s) => s.toggleCharacters);
+  const { isMobile } = useBreakpoint();
+
+  function handleSelect(id: number) {
+    setActiveCharacter(id);
+    if (isMobile) toggleCharacters();
+  }
+
   return (
     <CharacterSelector
       selectedId={activeCharacterId}
-      onSelect={setActiveCharacter}
+      onSelect={handleSelect}
       onToggle={toggleCharacters}
     />
   );
@@ -163,7 +172,7 @@ export function DrawerShell() {
 
   return (
     <PrefetchContext.Provider value={prefetchValue}>
-      <div data-drawer-shell className="bg-background flex h-screen flex-col overflow-hidden" style={{ minHeight: '100dvh' }}>
+      <div data-drawer-shell className="bg-background flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
         <DragDropOverlay />
         <NavRail />
 
@@ -182,9 +191,13 @@ export function DrawerShell() {
           isMobile ? 'flex flex-col' : 'flex flex-row',
         )}
       >
-        {!isMobile && <GenerationPanel closed={!genSidebarOpen} onToggle={toggleGenSidebar} />}
+        {!isMobile && (
+          <Suspense fallback={null}>
+            <GenerationPanel closed={!genSidebarOpen} onToggle={toggleGenSidebar} />
+          </Suspense>
+        )}
         <CenterPageHost />
-        {!isMobile && <CharactersPanel />}
+        <CharactersPanel />
       </div>
 
       {/* Mobile bottom navigation */}

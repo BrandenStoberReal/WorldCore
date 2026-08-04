@@ -601,13 +601,6 @@
 
 /* Mobile-first responsive utilities */
 @layer utilities {
-  /* Always show message action buttons on touch devices (no hover available) */
-  @media (pointer: coarse) {
-    .message-actions {
-      opacity: 1 !important;
-    }
-  }
-
   /* Touch-friendly minimum target size */
   .touch-target {
     min-height: var(--touch-target-min);

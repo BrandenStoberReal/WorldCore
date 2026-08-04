@@ -1187,39 +1187,39 @@ export function ChatView({ characterId }: ChatViewProps) {
       <header
         className={cn(
           frostedGlass,
-          'z-10 flex h-14 shrink-0 items-center justify-between gap-2 px-6 sm:px-10',
+          'z-10 flex h-10 shrink-0 items-center justify-between gap-1 px-2 sm:h-14 sm:gap-2 sm:px-6 sm:px-10',
         )}
       >
         {/* Left: persona + character identity */}
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="border-ember/40 bg-ember/10 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border">
+        <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="border-ember/40 bg-ember/10 flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full border sm:h-8 sm:w-8">
             {resolvedPersona.avatar ? (
               <img
                 src={resolvedPersona.avatar}
                 alt={resolvedPersona.name}
-                className="h-8 w-8 rounded-full object-cover"
+                className="h-5 w-5 rounded-full object-cover sm:h-8 sm:w-8"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
             ) : (
-              <span className="display-host text-ember text-[13px] font-semibold">
+              <span className="display-host text-ember text-[11px] font-semibold sm:text-[13px]">
                 {resolvedPersona.name[0]?.toUpperCase() ?? 'U'}
               </span>
             )}
           </div>
-          <div className="flex min-w-0 flex-col leading-tight">
-            <span className="display-host text-ember/90 truncate text-[13px] font-medium">
+          <div className="flex min-w-0 shrink-0 flex-col leading-tight">
+            <span className="display-host text-ember/90 truncate text-[11px] font-medium sm:text-[13px]">
               {resolvedPersona.name}
             </span>
-            <span className="text-muted-foreground/60 truncate text-[11px]">
+            <span className="text-muted-foreground/60 hidden truncate text-[10px] sm:block sm:text-[11px]">
               {character?.name ?? '—'}
             </span>
           </div>
         </div>
 
         {/* Right: controls */}
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <PersonaSelector
             value={chatPersonaId}
             onChange={(personaId) => {
@@ -1233,7 +1233,7 @@ export function ChatView({ characterId }: ChatViewProps) {
             size="sm"
             onClick={handleNewChat}
             title="Start a new conversation"
-            className="h-7 transition-transform hover:scale-105"
+            className="h-6 shrink-0 px-1.5 sm:h-7 sm:px-3"
           >
             <MessageSquarePlus className="h-3 w-3" />
             <span className="mono-tag hidden sm:inline">New Session</span>
@@ -1243,7 +1243,7 @@ export function ChatView({ characterId }: ChatViewProps) {
 
       {/* Messages stream */}
       <div ref={scrollContainerRef} onScroll={handleScroll} className="relative flex-1 overflow-y-auto scroll-mobile">
-        <div className="relative mx-auto max-w-6xl space-y-4 px-6 py-4 sm:px-10">
+        <div className="relative mx-auto max-w-6xl space-y-3 px-3 py-3 sm:space-y-4 sm:px-10 sm:py-4">
           {displayMessages.map((msg, i) => (
             <ChatMessage
               key={`${i}-${msg.send_date ?? i}`}

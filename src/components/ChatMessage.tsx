@@ -70,6 +70,7 @@ export const ChatMessage = memo(function ChatMessage({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(msg.mes);
   const [thinkingOpen, setThinkingOpen] = useState(autoExpandThinking);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const wasStreamingRef = useRef(false);
   const thinkingStartRef = useRef<number | null>(null);
   const [liveThinkingElapsed, setLiveThinkingElapsed] = useState<number | null>(null);
@@ -278,10 +279,17 @@ export const ChatMessage = memo(function ChatMessage({
       )}
 
       {/* Message body — mes_text class for ST styling */}
-      <div className="group/message relative">
+      <div
+        className="group/message relative"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setContextMenu({ x: e.clientX, y: e.clientY });
+        }}
+        onClick={() => setContextMenu(null)}
+      >
         <div
           className={cn(
-            'mes_text relative rounded-md px-4 py-3 text-sm leading-relaxed break-words',
+            'mes_text relative rounded-md px-3 py-2 text-xs leading-relaxed break-words sm:px-4 sm:py-3 sm:text-sm',
             isUser ? 'bg-ember/5 shadow-sm' : 'bg-card/40 text-foreground shadow-xs',
           )}
         >
@@ -298,8 +306,8 @@ export const ChatMessage = memo(function ChatMessage({
           )}
         </div>
 
-        {/* Action buttons — appear on hover, always visible on touch devices */}
-        <div className="message-actions absolute -top-2 right-2 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/message:opacity-100">
+        {/* Desktop: hover action buttons */}
+        <div className="message-actions absolute -top-3 right-2 hidden items-center gap-0.5 opacity-0 shadow-sm backdrop-blur-sm transition-opacity group-hover/message:opacity-100 sm:flex">
           <button
             type="button"
             onClick={() => {
@@ -307,10 +315,10 @@ export const ChatMessage = memo(function ChatMessage({
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
-            className="touch-target bg-background/80 hover:bg-accent/50 border-border/60 flex h-10 w-10 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
+            className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-8 w-8 items-center justify-center rounded border p-0 transition-colors"
             title="Copy message"
           >
-            {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
           </button>
 
           {onEdit && (
@@ -324,10 +332,10 @@ export const ChatMessage = memo(function ChatMessage({
                   setIsEditing(true);
                 }
               }}
-              className="touch-target bg-background/80 hover:bg-accent/50 border-border/60 flex h-10 w-10 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
+              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-8 w-8 items-center justify-center rounded border p-0 transition-colors"
               title={isEditing ? 'Save edit' : 'Edit message'}
             >
-              <Pencil className="h-4 w-4" />
+              <Pencil className="h-3.5 w-3.5" />
             </button>
           )}
 
@@ -335,10 +343,10 @@ export const ChatMessage = memo(function ChatMessage({
             <button
               type="button"
               onClick={() => onRegenerate(index)}
-              className="touch-target bg-background/80 hover:bg-accent/50 border-border/60 flex h-10 w-10 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
+              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-8 w-8 items-center justify-center rounded border p-0 transition-colors"
               title="Regenerate response"
             >
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="h-3.5 w-3.5" />
             </button>
           )}
 
@@ -346,13 +354,82 @@ export const ChatMessage = memo(function ChatMessage({
             <button
               type="button"
               onClick={() => onDelete(index)}
-              className="touch-target bg-background/80 hover:bg-destructive/10 hover:text-destructive border-border/60 flex h-10 w-10 items-center justify-center rounded border p-0 backdrop-blur-sm transition-colors"
+              className="bg-background/80 hover:bg-destructive/10 hover:text-destructive border-border/60 flex h-8 w-8 items-center justify-center rounded border p-0 transition-colors"
               title="Delete message"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
+
+        {/* Mobile: long-press context menu */}
+        {contextMenu && (
+          <div
+            className="bg-background/95 border-border/60 fixed z-50 flex animate-in fade-in zoom-in-95 duration-150 flex-col gap-0.5 rounded-lg border p-1 shadow-lg backdrop-blur-md sm:hidden"
+            style={{ left: Math.min(contextMenu.x, window.innerWidth - 180), top: Math.min(contextMenu.y, window.innerHeight - 160) }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                onCopy?.(msg.mes);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+                setContextMenu(null);
+              }}
+              className="hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+            >
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (isEditing) {
+                    onEdit(index, editText);
+                    setIsEditing(false);
+                  } else {
+                    setIsEditing(true);
+                  }
+                  setContextMenu(null);
+                }}
+                className="hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {isEditing ? 'Save' : 'Edit'}
+              </button>
+            )}
+
+            {!isUser && onRegenerate && (
+              <button
+                type="button"
+                onClick={() => {
+                  onRegenerate(index);
+                  setContextMenu(null);
+                }}
+                className="hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Regenerate
+              </button>
+            )}
+
+            {canDelete && onDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  onDelete(index);
+                  setContextMenu(null);
+                }}
+                className="hover:bg-destructive/10 hover:text-destructive flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

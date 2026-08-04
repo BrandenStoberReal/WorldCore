@@ -20,9 +20,9 @@ export function PersonaSelector({ value, onChange }: PersonaSelectorProps) {
         const val = e.target.value;
         onChange(val ? Number(val) : null);
       }}
-      className="border-border bg-background text-foreground rounded-md border px-2 py-1 text-sm"
+      className="border-border bg-background text-foreground max-w-[80px] truncate rounded-md border px-1 py-0.5 text-[11px] sm:max-w-none sm:px-2 sm:py-1 sm:text-sm"
     >
-      <option value="">Use Default Persona</option>
+      <option value="">Use Default</option>
       {personas.map((p) => (
         <option key={p.id} value={p.id}>
           {p.name}

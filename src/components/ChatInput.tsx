@@ -98,7 +98,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
   const canSend = value.trim() && !disabled && !isGenerating;
 
   return (
-    <div className="border-border/60 bg-background/60 supports-[backdrop-filter]:bg-background/40 safe-area-bottom shrink-0 border-t p-3 backdrop-blur-sm sm:p-4">
+    <div className="border-border/60 bg-background/60 supports-[backdrop-filter]:bg-background/40 safe-area-bottom shrink-0 border-t p-1 backdrop-blur-sm sm:p-4">
       <div className="relative mx-auto max-w-6xl">
         <div
           className={cn(
@@ -108,9 +108,9 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
         >
           <div
             aria-hidden
-            className="via-ember/60 pointer-events-none absolute -top-px right-6 left-6 h-px bg-gradient-to-r from-transparent to-transparent opacity-0 transition-opacity focus-within:opacity-100"
+            className="via-ember/60 pointer-events-none absolute -top-px right-6 left-6 hidden h-px bg-gradient-to-r from-transparent to-transparent opacity-0 transition-opacity focus-within:opacity-100 sm:block"
           />
-          <div className="relative flex items-center gap-2 px-3 py-3">
+          <div className="relative flex items-center gap-1 px-1.5 py-0.5 sm:gap-2 sm:px-3 sm:py-3">
             <textarea
               ref={textareaRef}
               value={value}
@@ -122,10 +122,10 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
                 isGenerating ? 'generating...' : 'type a message... (⏎ send, ⇧⏎ newline)'
               }
               rows={1}
-              className="placeholder:text-muted-foreground/50 text-mobile-base flex max-h-40 min-h-9 flex-1 resize-none bg-transparent font-mono text-[13.5px] leading-relaxed outline-none disabled:opacity-50"
+              className="placeholder:text-muted-foreground/50 flex max-h-40 min-h-5 flex-1 resize-none bg-transparent font-mono text-[11px] leading-tight outline-none disabled:opacity-50 sm:min-h-9 sm:text-[13.5px] sm:leading-relaxed"
               disabled={disabled && !isGenerating}
             />
-            <div className="mono-tag text-muted-foreground/60 shrink-0 text-sm tabular-nums">
+            <div className="mono-tag text-muted-foreground/60 hidden shrink-0 text-xs tabular-nums sm:block sm:text-sm">
               {tokenLoading ? (
                 <span className="inline-block animate-pulse">...</span>
               ) : tokenCount !== null ? (
