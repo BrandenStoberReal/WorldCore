@@ -15,11 +15,7 @@ const needsOnboarding = isOnboardingNeeded();
 
 const PORT = Number(process.env.PORT ?? 3000);
 const HOST =
-  process.env.HOST ??
-  (() => {
-    const appConfig = loadAppConfig();
-    return appConfig?.host ?? '127.0.0.1';
-  })();
+  loadAppConfig()?.host ?? process.env.HOST ?? '127.0.0.1';
 log.info('boot', `Config: port=${PORT} host=${HOST} onboarding=${needsOnboarding}`);
 
 const distDir = path.join(process.cwd(), 'dist');
