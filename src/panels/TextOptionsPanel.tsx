@@ -791,392 +791,396 @@ export function TextOptionsPanel() {
                 </button>
               </div>
 
-              <label className="flex items-center gap-2 text-[13px]">
-                <input
-                  type="checkbox"
-                  checked={form.instruct.bindToContext}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      instruct: { ...f.instruct, bindToContext: e.target.checked },
-                    }))
-                  }
-                  className="border-border rounded"
-                />
-                Bind to Context
-              </label>
-
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Preset</Label>
-                <div className="flex items-center gap-1">
-                  <Select
-                    value={form.instruct.selectedPreset}
-                    onValueChange={(v) => loadPreset('instruct', v)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select preset" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(instructPresets ?? []).map((p) => (
-                        <SelectItem key={p.name} value={p.name}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {form.instruct.selectedPreset &&
-                    !defaultPresets.has(form.instruct.selectedPreset) && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeletePreset('instruct', form.instruct.selectedPreset)}
-                        className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
-                        title="Delete preset"
-                        aria-label="Delete preset"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                      </button>
-                    )}
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Story String Prefix</Label>
-                <Textarea
-                  value={form.instruct.storyStringPrefix}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      instruct: { ...f.instruct, storyStringPrefix: e.target.value },
-                    }))
-                  }
-                  className="min-h-[60px] font-mono text-[13px]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Story String Suffix</Label>
-                <Textarea
-                  value={form.instruct.storyStringSuffix}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      instruct: { ...f.instruct, storyStringSuffix: e.target.value },
-                    }))
-                  }
-                  className="min-h-[60px] font-mono text-[13px]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Activation Regex</Label>
-                <Input
-                  value={form.instruct.activationRegex}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      instruct: { ...f.instruct, activationRegex: e.target.value },
-                    }))
-                  }
-                  placeholder="e.g. /llama(-)?[3|3.1]/i"
-                  className="font-mono text-[13px]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">User Prefix</Label>
-                  <Textarea
-                    value={form.instruct.inputSequence}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, inputSequence: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">User Suffix</Label>
-                  <Textarea
-                    value={form.instruct.inputSuffix}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, inputSuffix: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">Assistant Prefix</Label>
-                  <Textarea
-                    value={form.instruct.outputSequence}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, outputSequence: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">Assistant Suffix</Label>
-                  <Textarea
-                    value={form.instruct.outputSuffix}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, outputSuffix: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">System Prefix</Label>
-                  <Textarea
-                    value={form.instruct.systemSequence}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, systemSequence: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">System Suffix</Label>
-                  <Textarea
-                    value={form.instruct.systemSuffix}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, systemSuffix: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">System Sequence Prefix</Label>
-                  <Textarea
-                    value={form.instruct.systemSequencePrefix}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, systemSequencePrefix: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">System Sequence Suffix</Label>
-                  <Textarea
-                    value={form.instruct.systemSequenceSuffix}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, systemSequenceSuffix: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">First Assistant Prefix</Label>
-                  <Textarea
-                    value={form.instruct.firstOutputSequence}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, firstOutputSequence: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">Last Assistant Prefix</Label>
-                  <Textarea
-                    value={form.instruct.lastOutputSequence}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, lastOutputSequence: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">First User Prefix</Label>
-                  <Textarea
-                    value={form.instruct.firstInputSequence}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, firstInputSequence: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">Last User Prefix</Label>
-                  <Textarea
-                    value={form.instruct.lastInputSequence}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, lastInputSequence: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">System Instruction Prefix</Label>
-                  <Textarea
-                    value={form.instruct.lastSystemSequence}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, lastSystemSequence: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-medium">Stop Sequence</Label>
-                  <Textarea
-                    value={form.instruct.stopSequence}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        instruct: { ...f.instruct, stopSequence: e.target.value },
-                      }))
-                    }
-                    className="min-h-[60px] font-mono text-[13px]"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">User Filler Message</Label>
-                <Textarea
-                  value={form.instruct.userAlignmentMessage}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      instruct: { ...f.instruct, userAlignmentMessage: e.target.value },
-                    }))
-                  }
-                  className="min-h-[60px] font-mono text-[13px]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">System Prompt</Label>
-                <Textarea
-                  value={form.instruct.systemPrompt}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      instruct: { ...f.instruct, systemPrompt: e.target.value },
-                    }))
-                  }
-                  className="min-h-[80px] font-mono text-[13px]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Separator Sequence</Label>
-                <Textarea
-                  value={form.instruct.separatorSequence}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      instruct: { ...f.instruct, separatorSequence: e.target.value },
-                    }))
-                  }
-                  className="min-h-[60px] font-mono text-[13px]"
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-4">
-                {(
-                  [
-                    ['wrap', 'Wrap Sequences'],
-                    ['macro', 'Replace Macro'],
-                    ['sequencesAsStopStrings', 'Sequences as Stop Strings'],
-                    ['skipExamples', 'Skip Example Formatting'],
-                    ['names', 'Include Names'],
-                    ['namesForceGroups', 'Force Group Names'],
-                    ['systemSameAsUser', 'System Same as User'],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label key={key} className="flex items-center gap-2 text-[13px]">
+              {form.instruct.enabled && (
+                <>
+                  <label className="flex items-center gap-2 text-[13px]">
                     <input
                       type="checkbox"
-                      checked={form.instruct[key]}
+                      checked={form.instruct.bindToContext}
                       onChange={(e) =>
                         setForm((f) => ({
                           ...f,
-                          instruct: { ...f.instruct, [key]: e.target.checked },
+                          instruct: { ...f.instruct, bindToContext: e.target.checked },
                         }))
                       }
                       className="border-border rounded"
                     />
-                    {label}
+                    Bind to Context
                   </label>
-                ))}
-              </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Include Names</Label>
-                <Select
-                  value={form.instruct.namesBehavior}
-                  onValueChange={(v) =>
-                    setForm((f) => ({
-                      ...f,
-                      instruct: { ...f.instruct, namesBehavior: v as 'none' | 'force' | 'always' },
-                    }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select behavior" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Never</SelectItem>
-                    <SelectItem value="force">Groups and Past Personas</SelectItem>
-                    <SelectItem value="always">Always</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Preset</Label>
+                    <div className="flex items-center gap-1">
+                      <Select
+                        value={form.instruct.selectedPreset}
+                        onValueChange={(v) => loadPreset('instruct', v)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select preset" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(instructPresets ?? []).map((p) => (
+                            <SelectItem key={p.name} value={p.name}>
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {form.instruct.selectedPreset &&
+                        !defaultPresets.has(form.instruct.selectedPreset) && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePreset('instruct', form.instruct.selectedPreset)}
+                            className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                            title="Delete preset"
+                            aria-label="Delete preset"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                          </button>
+                        )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Story String Prefix</Label>
+                    <Textarea
+                      value={form.instruct.storyStringPrefix}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          instruct: { ...f.instruct, storyStringPrefix: e.target.value },
+                        }))
+                      }
+                      className="min-h-[60px] font-mono text-[13px]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Story String Suffix</Label>
+                    <Textarea
+                      value={form.instruct.storyStringSuffix}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          instruct: { ...f.instruct, storyStringSuffix: e.target.value },
+                        }))
+                      }
+                      className="min-h-[60px] font-mono text-[13px]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Activation Regex</Label>
+                    <Input
+                      value={form.instruct.activationRegex}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          instruct: { ...f.instruct, activationRegex: e.target.value },
+                        }))
+                      }
+                      placeholder="e.g. /llama(-)?[3|3.1]/i"
+                      className="font-mono text-[13px]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">User Prefix</Label>
+                      <Textarea
+                        value={form.instruct.inputSequence}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, inputSequence: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">User Suffix</Label>
+                      <Textarea
+                        value={form.instruct.inputSuffix}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, inputSuffix: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">Assistant Prefix</Label>
+                      <Textarea
+                        value={form.instruct.outputSequence}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, outputSequence: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">Assistant Suffix</Label>
+                      <Textarea
+                        value={form.instruct.outputSuffix}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, outputSuffix: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">System Prefix</Label>
+                      <Textarea
+                        value={form.instruct.systemSequence}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, systemSequence: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">System Suffix</Label>
+                      <Textarea
+                        value={form.instruct.systemSuffix}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, systemSuffix: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">System Sequence Prefix</Label>
+                      <Textarea
+                        value={form.instruct.systemSequencePrefix}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, systemSequencePrefix: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">System Sequence Suffix</Label>
+                      <Textarea
+                        value={form.instruct.systemSequenceSuffix}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, systemSequenceSuffix: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">First Assistant Prefix</Label>
+                      <Textarea
+                        value={form.instruct.firstOutputSequence}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, firstOutputSequence: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">Last Assistant Prefix</Label>
+                      <Textarea
+                        value={form.instruct.lastOutputSequence}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, lastOutputSequence: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">First User Prefix</Label>
+                      <Textarea
+                        value={form.instruct.firstInputSequence}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, firstInputSequence: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">Last User Prefix</Label>
+                      <Textarea
+                        value={form.instruct.lastInputSequence}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, lastInputSequence: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">System Instruction Prefix</Label>
+                      <Textarea
+                        value={form.instruct.lastSystemSequence}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, lastSystemSequence: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[13px] font-medium">Stop Sequence</Label>
+                      <Textarea
+                        value={form.instruct.stopSequence}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            instruct: { ...f.instruct, stopSequence: e.target.value },
+                          }))
+                        }
+                        className="min-h-[60px] font-mono text-[13px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">User Filler Message</Label>
+                    <Textarea
+                      value={form.instruct.userAlignmentMessage}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          instruct: { ...f.instruct, userAlignmentMessage: e.target.value },
+                        }))
+                      }
+                      className="min-h-[60px] font-mono text-[13px]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">System Prompt</Label>
+                    <Textarea
+                      value={form.instruct.systemPrompt}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          instruct: { ...f.instruct, systemPrompt: e.target.value },
+                        }))
+                      }
+                      className="min-h-[80px] font-mono text-[13px]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Separator Sequence</Label>
+                    <Textarea
+                      value={form.instruct.separatorSequence}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          instruct: { ...f.instruct, separatorSequence: e.target.value },
+                        }))
+                      }
+                      className="min-h-[60px] font-mono text-[13px]"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-4">
+                    {(
+                      [
+                        ['wrap', 'Wrap Sequences'],
+                        ['macro', 'Replace Macro'],
+                        ['sequencesAsStopStrings', 'Sequences as Stop Strings'],
+                        ['skipExamples', 'Skip Example Formatting'],
+                        ['names', 'Include Names'],
+                        ['namesForceGroups', 'Force Group Names'],
+                        ['systemSameAsUser', 'System Same as User'],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <label key={key} className="flex items-center gap-2 text-[13px]">
+                        <input
+                          type="checkbox"
+                          checked={form.instruct[key]}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              instruct: { ...f.instruct, [key]: e.target.checked },
+                            }))
+                          }
+                          className="border-border rounded"
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Include Names</Label>
+                    <Select
+                      value={form.instruct.namesBehavior}
+                      onValueChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          instruct: { ...f.instruct, namesBehavior: v as 'none' | 'force' | 'always' },
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select behavior" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Never</SelectItem>
+                        <SelectItem value="force">Groups and Past Personas</SelectItem>
+                        <SelectItem value="always">Always</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
             </div>
           </InlineSection>
         </div>
@@ -1215,116 +1219,120 @@ export function TextOptionsPanel() {
                 </button>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Preset</Label>
-                <div className="flex items-center gap-1">
-                  <Select
-                    value={form.sysprompt.selectedPreset}
-                    onValueChange={(v) => loadPreset('sysprompt', v)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select preset" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(syspromptPresets ?? []).map((p) => (
-                        <SelectItem key={p.name} value={p.name}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {form.sysprompt.selectedPreset &&
-                    !defaultPresets.has(form.sysprompt.selectedPreset) && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleDeletePreset('sysprompt', form.sysprompt.selectedPreset)
-                        }
-                        className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
-                        title="Delete preset"
-                        aria-label="Delete preset"
+              {form.sysprompt.enabled && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Preset</Label>
+                    <div className="flex items-center gap-1">
+                      <Select
+                        value={form.sysprompt.selectedPreset}
+                        onValueChange={(v) => loadPreset('sysprompt', v)}
                       >
-                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                      </button>
-                    )}
-                </div>
-              </div>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select preset" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(syspromptPresets ?? []).map((p) => (
+                            <SelectItem key={p.name} value={p.name}>
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {form.sysprompt.selectedPreset &&
+                        !defaultPresets.has(form.sysprompt.selectedPreset) && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDeletePreset('sysprompt', form.sysprompt.selectedPreset)
+                            }
+                            className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                            title="Delete preset"
+                            aria-label="Delete preset"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                          </button>
+                        )}
+                    </div>
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Prompt Content</Label>
-                <Textarea
-                  value={form.sysprompt.content}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      sysprompt: { ...f.sysprompt, content: e.target.value },
-                    }))
-                  }
-                  placeholder="Enter system prompt..."
-                  className="min-h-[120px] font-mono text-[13px]"
-                />
-              </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Prompt Content</Label>
+                    <Textarea
+                      value={form.sysprompt.content}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          sysprompt: { ...f.sysprompt, content: e.target.value },
+                        }))
+                      }
+                      placeholder="Enter system prompt..."
+                      className="min-h-[120px] font-mono text-[13px]"
+                    />
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Post-History Instructions</Label>
-                <Textarea
-                  value={form.sysprompt.postHistoryInstructions}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      sysprompt: { ...f.sysprompt, postHistoryInstructions: e.target.value },
-                    }))
-                  }
-                  placeholder="Instructions applied after chat history..."
-                  className="min-h-[80px] font-mono text-[13px]"
-                />
-              </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Post-History Instructions</Label>
+                    <Textarea
+                      value={form.sysprompt.postHistoryInstructions}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          sysprompt: { ...f.sysprompt, postHistoryInstructions: e.target.value },
+                        }))
+                      }
+                      placeholder="Instructions applied after chat history..."
+                      className="min-h-[80px] font-mono text-[13px]"
+                    />
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Tokenizer</Label>
-                <Select
-                  value={form.tokenizer}
-                  onValueChange={(v) => setForm((f) => ({ ...f, tokenizer: v }))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="best">Best match (recommended)</SelectItem>
-                    <SelectItem value="none">None / Estimated</SelectItem>
-                    <SelectItem value="gpt2">GPT-2</SelectItem>
-                    <SelectItem value="llama12">Llama 1/2</SelectItem>
-                    <SelectItem value="llama3">Llama 3</SelectItem>
-                    <SelectItem value="gemma">Gemma / Gemini</SelectItem>
-                    <SelectItem value="jamba">Jamba</SelectItem>
-                    <SelectItem value="qwen2">Qwen2</SelectItem>
-                    <SelectItem value="commandr">Command-R</SelectItem>
-                    <SelectItem value="commanda">Command-A</SelectItem>
-                    <SelectItem value="nerdstash">NerdStash (NovelAI Clio)</SelectItem>
-                    <SelectItem value="nerdstashv2">NerdStash v2 (NovelAI Kayra)</SelectItem>
-                    <SelectItem value="mistralv1">Mistral V1</SelectItem>
-                    <SelectItem value="mistralnemo">Mistral Nemo</SelectItem>
-                    <SelectItem value="yi">Yi</SelectItem>
-                    <SelectItem value="claude">Claude 1/2</SelectItem>
-                    <SelectItem value="deepseekv3">DeepSeek V3</SelectItem>
-                    <SelectItem value="api">API (WebUI / koboldcpp)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Tokenizer</Label>
+                    <Select
+                      value={form.tokenizer}
+                      onValueChange={(v) => setForm((f) => ({ ...f, tokenizer: v }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="best">Best match (recommended)</SelectItem>
+                        <SelectItem value="none">None / Estimated</SelectItem>
+                        <SelectItem value="gpt2">GPT-2</SelectItem>
+                        <SelectItem value="llama12">Llama 1/2</SelectItem>
+                        <SelectItem value="llama3">Llama 3</SelectItem>
+                        <SelectItem value="gemma">Gemma / Gemini</SelectItem>
+                        <SelectItem value="jamba">Jamba</SelectItem>
+                        <SelectItem value="qwen2">Qwen2</SelectItem>
+                        <SelectItem value="commandr">Command-R</SelectItem>
+                        <SelectItem value="commanda">Command-A</SelectItem>
+                        <SelectItem value="nerdstash">NerdStash (NovelAI Clio)</SelectItem>
+                        <SelectItem value="nerdstashv2">NerdStash v2 (NovelAI Kayra)</SelectItem>
+                        <SelectItem value="mistralv1">Mistral V1</SelectItem>
+                        <SelectItem value="mistralnemo">Mistral Nemo</SelectItem>
+                        <SelectItem value="yi">Yi</SelectItem>
+                        <SelectItem value="claude">Claude 1/2</SelectItem>
+                        <SelectItem value="deepseekv3">DeepSeek V3</SelectItem>
+                        <SelectItem value="api">API (WebUI / koboldcpp)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-medium">Token Padding</Label>
-                <Input
-                  type="number"
-                  min={-2048}
-                  max={2048}
-                  value={form.tokenPadding}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, tokenPadding: parseInt(e.target.value) || 0 }))
-                  }
-                  className="font-mono text-[13px]"
-                />
-              </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Token Padding</Label>
+                    <Input
+                      type="number"
+                      min={-2048}
+                      max={2048}
+                      value={form.tokenPadding}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, tokenPadding: parseInt(e.target.value) || 0 }))
+                      }
+                      className="font-mono text-[13px]"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </InlineSection>
 

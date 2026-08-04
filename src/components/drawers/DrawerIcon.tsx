@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useNavStore, type SectionId, type TopDrawerId } from '@/lib/navStore';
+import { PrefetchContext } from './DrawerShell';
 
 interface DrawerIconProps {
   icon: ReactNode;
@@ -30,6 +31,7 @@ export function DrawerIcon({
   const openSection = useNavStore((s) => s.openSection);
   const openTopDrawer = useNavStore((s) => s.openTopDrawer);
   const toggleCharacters = useNavStore((s) => s.toggleCharacters);
+  const prefetch = useContext(PrefetchContext);
 
   const isActive =
     behavior === 'section'
@@ -48,10 +50,17 @@ export function DrawerIcon({
     }
   }
 
+  function handleMouseEnter() {
+    if (behavior === 'top-drawer') {
+      prefetch(sectionId);
+    }
+  }
+
   return (
     <button
       data-drawer-icon={sectionId}
       onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
       aria-pressed={isActive}
       title={label}
       className={cn(

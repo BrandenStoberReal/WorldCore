@@ -1,4 +1,4 @@
-import { useRef, useEffect, lazy, Suspense } from 'react';
+import { useRef, useEffect, lazy, Suspense, useCallback, createContext, useContext, useMemo } from 'react';
 import { Users } from 'lucide-react';
 import { DrawerSlot } from './DrawerSlot';
 import { NavRail } from './NavRail';
@@ -13,13 +13,31 @@ import { GenerationPanel } from '@/panels/GenerationPanel';
 import { ExtensionPanelSlot } from '@/lib/extensionSlots';
 import { cn } from '@/lib/utils';
 
-const WorldInfoPanel = lazy(() => import('@/panels/WorldInfoPanel'));
-const ExtensionsPanel = lazy(() => import('@/panels/ExtensionsPanel'));
-const ConnectionsPanel = lazy(() => import('@/panels/ConnectionsPanel'));
-const TextOptionsPanel = lazy(() => import('@/panels/TextOptionsPanel'));
-const SettingsPanel = lazy(() => import('@/panels/SettingsPanel'));
-const UISettingsPanel = lazy(() => import('@/panels/UISettingsPanel'));
-const PersonaPanel = lazy(() => import('@/panels/persona/PersonaPanel'));
+const WORLDINFO_IMPORT = () => import('@/panels/WorldInfoPanel');
+const EXTENSIONS_IMPORT = () => import('@/panels/ExtensionsPanel');
+const CONNECTIONS_IMPORT = () => import('@/panels/ConnectionsPanel');
+const TEXTOPTIONS_IMPORT = () => import('@/panels/TextOptionsPanel');
+const SETTINGS_IMPORT = () => import('@/panels/SettingsPanel');
+const UI_SETTINGS_IMPORT = () => import('@/panels/UISettingsPanel');
+const PERSONAS_IMPORT = () => import('@/panels/persona/PersonaPanel');
+
+const WorldInfoPanel = lazy(WORLDINFO_IMPORT);
+const ExtensionsPanel = lazy(EXTENSIONS_IMPORT);
+const ConnectionsPanel = lazy(CONNECTIONS_IMPORT);
+const TextOptionsPanel = lazy(TEXTOPTIONS_IMPORT);
+const SettingsPanel = lazy(SETTINGS_IMPORT);
+const UISettingsPanel = lazy(UI_SETTINGS_IMPORT);
+const PersonaPanel = lazy(PERSONAS_IMPORT);
+
+const PREFETCH_MAP: Record<string, () => Promise<{ default: React.ComponentType }>> = {
+  worldinfo: WORLDINFO_IMPORT,
+  extensions: EXTENSIONS_IMPORT,
+  connections: CONNECTIONS_IMPORT,
+  textoptions: TEXTOPTIONS_IMPORT,
+  settings: SETTINGS_IMPORT,
+  'ui-settings': UI_SETTINGS_IMPORT,
+  personas: PERSONAS_IMPORT,
+};
 
 const TOP_DRAWER_PANELS: Record<string, React.ComponentType> = {
   worldinfo: WorldInfoPanel,
@@ -30,6 +48,12 @@ const TOP_DRAWER_PANELS: Record<string, React.ComponentType> = {
   settings: SettingsPanel,
   personas: PersonaPanel,
 };
+
+/**
+ * Prefetch context — DrawerIcon calls prefetch(sectionId) on mouseenter
+ * so the lazy component starts loading before the user clicks.
+ */
+export const PrefetchContext = createContext<(id: string) => void>(() => {});
 
 function CharactersSidebar() {
   const activeCharacterId = useChatStore((s) => s.activeCharacterId);
@@ -131,10 +155,17 @@ export function DrawerShell() {
   if (CurrentTopPanel) lastTopPanelRef.current = CurrentTopPanel;
   const TopPanel = CurrentTopPanel ?? lastTopPanelRef.current;
 
+  const prefetch = useCallback((id: string) => {
+    PREFETCH_MAP[id]?.();
+  }, []);
+
+  const prefetchValue = useMemo(() => prefetch, [prefetch]);
+
   return (
-    <div data-drawer-shell className="bg-background flex h-screen flex-col overflow-hidden" style={{ minHeight: '100dvh' }}>
-      <DragDropOverlay />
-      <NavRail />
+    <PrefetchContext.Provider value={prefetchValue}>
+      <div data-drawer-shell className="bg-background flex h-screen flex-col overflow-hidden" style={{ minHeight: '100dvh' }}>
+        <DragDropOverlay />
+        <NavRail />
 
       <DrawerSlot direction="top" open={topDrawer !== null}>
         {TopPanel && (
@@ -160,6 +191,7 @@ export function DrawerShell() {
       {isMobile && (
         <MobileBottomNav genSidebarOpen={genSidebarOpen} onToggleGenSidebar={toggleGenSidebar} />
       )}
-    </div>
+      </div>
+    </PrefetchContext.Provider>
   );
 }
