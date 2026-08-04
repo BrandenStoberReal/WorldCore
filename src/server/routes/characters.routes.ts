@@ -6,7 +6,12 @@ import { exportCharacter, type ExportFormat } from '@/server/exporters/character
 import { characterFolderService } from '@/server/services/character-folder.service';
 import { getUserCharacterPath } from '@/server/storage/paths';
 import { removeFile } from '@/server/storage/fs';
+import { and, eq, inArray } from 'drizzle-orm';
+import { db } from '@/server/db/client';
+import { characters } from '@/server/db/schema';
+import AdmZip from 'adm-zip';
 import path from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import type { CharacterCreateInput } from '@/shared/types/character';
 
@@ -289,6 +294,50 @@ export const characterRoutes = {
       }
       const result = await characterFolderService.deleteOrphans(userId, body.paths);
       return Response.json(result);
+    }),
+  ),
+
+  exportZip: errorGuard(
+    withUserId(async (req: Request, userId: string): Promise<Response> => {
+      const body = (await req.json().catch(() => ({}))) as { ids?: number[] };
+      const charDir = getUserCharacterPath(userId);
+
+      let rows;
+      if (Array.isArray(body.ids) && body.ids.length > 0) {
+        rows = await db
+          .select()
+          .from(characters)
+          .where(and(inArray(characters.id, body.ids), eq(characters.userId, userId)));
+      } else {
+        rows = await db
+          .select()
+          .from(characters)
+          .where(eq(characters.userId, userId));
+      }
+
+      if (rows.length === 0) {
+        return Response.json(
+          { error: { code: 'NOT_FOUND', message: 'No characters to export' } },
+          { status: 404 },
+        );
+      }
+
+      const zip = new AdmZip();
+      for (const row of rows) {
+        const pngPath = path.join(charDir, row.avatar);
+        const pngData = await readFile(pngPath).catch(() => null);
+        if (pngData) {
+          zip.addFile(row.fileName, pngData);
+        }
+      }
+
+      const zipBuffer = zip.toBuffer();
+      return new Response(new Uint8Array(zipBuffer), {
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="characters-export.zip"`,
+        },
+      });
     }),
   ),
 };

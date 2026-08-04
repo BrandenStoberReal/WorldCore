@@ -12,6 +12,7 @@ import {
   Square,
   Tag,
   PanelLeftClose,
+  Download,
 } from 'lucide-react';
 import { apiFetch, apiPost } from '@/lib/api';
 import { emit } from '@/lib/extensionEventBus';
@@ -143,6 +144,29 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
       emit('character_import', { id: result.id });
+    },
+  });
+
+  const exportZipMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      const res = await fetch('/api/v1/characters/export-zip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`Export failed (${res.status}): ${text}`);
+      }
+      return res.blob();
+    },
+    onSuccess: (blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'characters-export.zip';
+      a.click();
+      URL.revokeObjectURL(url);
     },
   });
 
@@ -355,6 +379,24 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
                 disabled={importMutation.isPending}
                 title="Import character PNG"
                 aria-label="Import character PNG"
+              />
+              <IconButton
+                icon={
+                  exportZipMutation.isPending ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    <Download className="h-3 w-3" strokeWidth={2.25} />
+                  )
+                }
+                onClick={() => {
+                  const ids = selectedIds.size > 0
+                    ? Array.from(selectedIds)
+                    : (sorted ?? []).map((c) => c.id);
+                  exportZipMutation.mutate(ids);
+                }}
+                disabled={exportZipMutation.isPending || (sorted?.length ?? 0) === 0}
+                title={selectedIds.size > 0 ? `Export ${selectedIds.size} selected to ZIP` : 'Export all to ZIP'}
+                aria-label={selectedIds.size > 0 ? `Export ${selectedIds.size} selected to ZIP` : 'Export all to ZIP'}
               />
               {onToggle && (
                 <IconButton
