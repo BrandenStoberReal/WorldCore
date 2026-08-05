@@ -42,6 +42,7 @@ import { vectorsRoutes } from './vectors.routes';
 import { ssoRoutes } from './sso.routes';
 import { promptBuilderRoutes } from './prompt-builder.routes';
 import { summarizeRoutes } from './summarize.routes';
+import { outfitAnalyzerRoutes } from './outfit-analyzer.routes';
 import { serverConfigRoutes } from './server-config.routes';
 import { SHARED_CONST } from '@/shared/constants';
 
@@ -137,6 +138,7 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
 
   // === Summarization ===
   routes[`${PREFIX}/summarize`] = summarizeRoutes.summarize;
+  routes[`${PREFIX}/outfit-analyzer/analyze`] = outfitAnalyzerRoutes.analyze;
 
   // === Chats (T10) ===
   routes[`${PREFIX}/chats/save`] = chatsRoutes.save;
