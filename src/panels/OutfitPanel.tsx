@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Shirt } from 'lucide-react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Shirt, Plus, Trash2 } from 'lucide-react';
 import { useChatStore } from '@/lib/stores';
 
 type BodySlot =
@@ -41,72 +40,114 @@ const ALL_SLOTS: BodySlot[] = [
   'socks', 'feet', 'accessories',
 ];
 
-const REGION_COLORS: Record<string, string> = {
-  head: 'from-violet-500/20 to-violet-600/10 border-violet-500/30',
-  upper: 'from-blue-500/20 to-blue-600/10 border-blue-500/30',
-  mid: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30',
-  lower: 'from-amber-500/20 to-amber-600/10 border-amber-500/30',
-  feet: 'from-rose-500/20 to-rose-600/10 border-rose-500/30',
-};
-
-const REGION_ACCENT: Record<string, string> = {
-  head: 'text-violet-400', upper: 'text-blue-400', mid: 'text-emerald-400',
-  lower: 'text-amber-400', feet: 'text-rose-400',
-};
-
-const SLOT_REGIONS: Record<string, BodySlot[]> = {
-  head: ['head', 'face'],
-  upper: ['neck', 'undergarment_top', 'torso_top', 'torso_outer', 'arms', 'hands'],
-  mid: ['accessories'],
-  lower: ['undergarment_bottom', 'lower_body', 'legs'],
-  feet: ['socks', 'feet'],
-};
-
-function emptyOutfit(): Record<BodySlot, string> {
-  return Object.fromEntries(ALL_SLOTS.map((s) => [s, ''])) as Record<BodySlot, string>;
+interface CustomField {
+  id: string;
+  label: string;
+  placeholder: string;
 }
 
-function formatOutfitForPrompt(items: Record<BodySlot, string>): string {
+interface CustomPanel {
+  id: string;
+  label: string;
+  color: string;
+  accent: string;
+  fields: CustomField[];
+}
+
+interface BuiltInRegion {
+  id: string;
+  label: string;
+  color: string;
+  accent: string;
+  slots: BodySlot[];
+  customFields: CustomField[];
+}
+
+const REGION_STYLES = [
+  { color: 'border-t-violet-500/40', accent: 'text-violet-400' },
+  { color: 'border-t-blue-500/40', accent: 'text-blue-400' },
+  { color: 'border-t-cyan-500/40', accent: 'text-cyan-400' },
+  { color: 'border-t-emerald-500/40', accent: 'text-emerald-400' },
+  { color: 'border-t-amber-500/40', accent: 'text-amber-400' },
+  { color: 'border-t-rose-500/40', accent: 'text-rose-400' },
+  { color: 'border-t-pink-500/40', accent: 'text-pink-400' },
+  { color: 'border-t-orange-500/40', accent: 'text-orange-400' },
+];
+
+function makeDefaultRegions(): BuiltInRegion[] {
+  return [
+    { id: 'head', label: 'Head', color: 'border-t-violet-500/40', accent: 'text-violet-400', slots: ['head', 'face'], customFields: [] },
+    { id: 'upper', label: 'Upper Body', color: 'border-t-blue-500/40', accent: 'text-blue-400', slots: ['neck', 'undergarment_top', 'torso_top', 'torso_outer'], customFields: [] },
+    { id: 'arms', label: 'Arms & Hands', color: 'border-t-cyan-500/40', accent: 'text-cyan-400', slots: ['arms', 'hands'], customFields: [] },
+    { id: 'lower', label: 'Lower Body', color: 'border-t-emerald-500/40', accent: 'text-emerald-400', slots: ['undergarment_bottom', 'lower_body', 'legs'], customFields: [] },
+    { id: 'feet', label: 'Feet', color: 'border-t-amber-500/40', accent: 'text-amber-400', slots: ['socks', 'feet'], customFields: [] },
+    { id: 'acc', label: 'Accessories', color: 'border-t-rose-500/40', accent: 'text-rose-400', slots: ['accessories'], customFields: [] },
+  ];
+}
+
+function emptyOutfit(): Record<string, string> {
+  const items: Record<string, string> = {};
+  for (const s of ALL_SLOTS) items[s] = '';
+  return items;
+}
+
+function formatOutfitForPrompt(items: Record<string, string>, regions: BuiltInRegion[], customPanels: CustomPanel[]): string {
   const lines: string[] = [];
-  for (const slot of ALL_SLOTS) {
-    const desc = items[slot];
-    if (desc.trim()) {
-      lines.push(`- ${slot.replace(/_/g, ' ')}: ${desc}`);
+  for (const region of regions) {
+    const regionLines: string[] = [];
+    for (const slot of region.slots) {
+      const desc = items[slot];
+      if (desc?.trim()) regionLines.push(`- ${SLOT_LABELS[slot]}: ${desc}`);
+    }
+    for (const cf of region.customFields) {
+      const desc = items[cf.id];
+      if (desc?.trim()) regionLines.push(`- ${cf.label}: ${desc}`);
+    }
+    if (regionLines.length > 0) {
+      lines.push(`[${region.label}]`);
+      lines.push(...regionLines);
+    }
+  }
+  for (const panel of customPanels) {
+    const panelLines: string[] = [];
+    for (const cf of panel.fields) {
+      const desc = items[cf.id];
+      if (desc?.trim()) panelLines.push(`- ${cf.label}: ${desc}`);
+    }
+    if (panelLines.length > 0) {
+      lines.push(`[${panel.label}]`);
+      lines.push(...panelLines);
     }
   }
   return lines.length > 0 ? lines.join('\n') : '(no outfit specified)';
 }
 
-function HumanSilhouette() {
-  return (
-    <svg viewBox="0 0 120 280" className="h-full w-auto" aria-hidden="true">
-      <circle cx="60" cy="30" r="18" className="fill-muted/30 stroke-muted-foreground/20" strokeWidth="1" />
-      <rect x="54" y="48" width="12" height="10" rx="2" className="fill-muted/25 stroke-muted-foreground/15" strokeWidth="0.5" />
-      <path d="M35 58 L85 58 L80 140 L40 140 Z" className="fill-muted/20 stroke-muted-foreground/15" strokeWidth="0.5" />
-      <path d="M35 58 L15 120 L22 122 L40 70" className="fill-muted/15 stroke-muted-foreground/10" strokeWidth="0.5" />
-      <path d="M85 58 L105 120 L98 122 L80 70" className="fill-muted/15 stroke-muted-foreground/10" strokeWidth="0.5" />
-      <circle cx="15" cy="125" r="6" className="fill-muted/20 stroke-muted-foreground/10" strokeWidth="0.5" />
-      <circle cx="105" cy="125" r="6" className="fill-muted/20 stroke-muted-foreground/10" strokeWidth="0.5" />
-      <path d="M40 140 L80 140 L85 160 L35 160 Z" className="fill-muted/20 stroke-muted-foreground/15" strokeWidth="0.5" />
-      <path d="M38 160 L35 240 L50 240 L52 160" className="fill-muted/15 stroke-muted-foreground/10" strokeWidth="0.5" />
-      <path d="M68 160 L70 240 L85 240 L82 160" className="fill-muted/15 stroke-muted-foreground/10" strokeWidth="0.5" />
-      <ellipse cx="42" cy="250" rx="12" ry="6" className="fill-muted/20 stroke-muted-foreground/10" strokeWidth="0.5" />
-      <ellipse cx="78" cy="250" rx="12" ry="6" className="fill-muted/20 stroke-muted-foreground/10" strokeWidth="0.5" />
-    </svg>
-  );
-}
-
 interface OutfitPreset {
   id: string;
   name: string;
-  items: Record<BodySlot, string>;
+  items: Record<string, string>;
+  regions: BuiltInRegion[];
+  customPanels: CustomPanel[];
   createdAt: number;
+}
+
+function nextColorIndex(regions: BuiltInRegion[], customPanels: CustomPanel[]): number {
+  return (regions.length + customPanels.length) % REGION_STYLES.length;
+}
+
+let fieldCounter = 0;
+function newFieldId(): string {
+  return `cf-${Date.now()}-${++fieldCounter}`;
 }
 
 export function OutfitPanel() {
   const characterId = useChatStore((s) => s.activeCharacterId);
-  const [outfit, setOutfit] = useState<Record<BodySlot, string>>(emptyOutfit);
-  const [savedOutfit, setSavedOutfit] = useState<Record<BodySlot, string>>(emptyOutfit);
+  const [outfit, setOutfit] = useState<Record<string, string>>(emptyOutfit);
+  const [savedOutfit, setSavedOutfit] = useState<Record<string, string>>(emptyOutfit);
+  const [regions, setRegions] = useState<BuiltInRegion[]>(makeDefaultRegions);
+  const [savedRegions, setSavedRegions] = useState<BuiltInRegion[]>(makeDefaultRegions);
+  const [customPanels, setCustomPanels] = useState<CustomPanel[]>([]);
+  const [savedCustomPanels, setSavedCustomPanels] = useState<CustomPanel[]>([]);
   const [presets, setPresets] = useState<OutfitPreset[]>([]);
   const [savedPresets, setSavedPresets] = useState<OutfitPreset[]>([]);
   const [presetName, setPresetName] = useState('');
@@ -124,60 +165,155 @@ export function OutfitPanel() {
       if (raw) {
         const data = JSON.parse(raw);
         const items = data.items ?? emptyOutfit();
+        const rgs = data.regions ?? makeDefaultRegions();
+        const cps = data.customPanels ?? [];
         const prs = data.presets ?? [];
         const dis = data.disabled ?? false;
         setOutfit(items);
         setSavedOutfit(items);
+        setRegions(rgs);
+        setSavedRegions(rgs);
+        setCustomPanels(cps);
+        setSavedCustomPanels(cps);
         setPresets(prs);
         setSavedPresets(prs);
         setDisabled(dis);
         setSavedDisabled(dis);
       } else {
-        const empty = emptyOutfit();
-        setOutfit(empty);
-        setSavedOutfit(empty);
-        setPresets([]);
-        setSavedPresets([]);
-        setDisabled(false);
-        setSavedDisabled(false);
+        resetAll();
       }
     } catch {
-      const empty = emptyOutfit();
-      setOutfit(empty);
-      setSavedOutfit(empty);
-      setPresets([]);
-      setSavedPresets([]);
-      setDisabled(false);
-      setSavedDisabled(false);
+      resetAll();
     }
   }, [characterId]);
 
-  const saveToStorage = useCallback((items: Record<BodySlot, string>, prs: OutfitPreset[], dis: boolean) => {
+  function resetAll() {
+    const e = emptyOutfit();
+    const r = makeDefaultRegions();
+    setOutfit(e);
+    setSavedOutfit(e);
+    setRegions(r);
+    setSavedRegions(r);
+    setCustomPanels([]);
+    setSavedCustomPanels([]);
+    setPresets([]);
+    setSavedPresets([]);
+    setDisabled(false);
+    setSavedDisabled(false);
+  }
+
+  const saveToStorage = useCallback(() => {
     if (characterId === null) return;
     const key = `worldcore/outfit/${characterId}`;
-    localStorage.setItem(key, JSON.stringify({ items, presets: prs, disabled: dis }));
-    setSavedOutfit(items);
-    setSavedPresets(prs);
-    setSavedDisabled(dis);
-  }, [characterId]);
+    localStorage.setItem(key, JSON.stringify({
+      items: outfit,
+      regions,
+      customPanels,
+      presets,
+      disabled,
+    }));
+    setSavedOutfit(outfit);
+    setSavedRegions(regions);
+    setSavedCustomPanels(customPanels);
+    setSavedPresets(presets);
+    setSavedDisabled(disabled);
+  }, [characterId, outfit, regions, customPanels, presets, disabled]);
 
   const handleSave = useCallback(() => {
     setSaveStatus('saving');
-    saveToStorage(outfit, presets, disabled);
+    saveToStorage();
     setTimeout(() => setSaveStatus('saved'), 100);
     setTimeout(() => setSaveStatus('idle'), 2000);
-  }, [outfit, presets, disabled, saveToStorage]);
+  }, [saveToStorage]);
 
   const isDirty = useMemo(() => {
     return JSON.stringify(outfit) !== JSON.stringify(savedOutfit) ||
+           JSON.stringify(regions) !== JSON.stringify(savedRegions) ||
+           JSON.stringify(customPanels) !== JSON.stringify(savedCustomPanels) ||
            JSON.stringify(presets) !== JSON.stringify(savedPresets) ||
            disabled !== savedDisabled;
-  }, [outfit, presets, disabled, savedOutfit, savedPresets, savedDisabled]);
+  }, [outfit, regions, customPanels, presets, disabled, savedOutfit, savedRegions, savedCustomPanels, savedPresets, savedDisabled]);
 
-  const handleSlotChange = useCallback((slot: BodySlot, value: string) => {
-    const next = { ...outfit, [slot]: value };
-    setOutfit(next);
-  }, [outfit]);
+  const handleSlotChange = useCallback((slot: string, value: string) => {
+    setOutfit((prev) => ({ ...prev, [slot]: value }));
+  }, []);
+
+  const handleAddCustomField = useCallback((panelId: string, isCustom: boolean) => {
+    const field: CustomField = { id: newFieldId(), label: 'New Field', placeholder: '...' };
+    if (isCustom) {
+      setCustomPanels((prev) => prev.map((p) =>
+        p.id === panelId ? { ...p, fields: [...p.fields, field] } : p
+      ));
+    } else {
+      setRegions((prev) => prev.map((r) =>
+        r.id === panelId ? { ...r, customFields: [...r.customFields, field] } : r
+      ));
+    }
+    setOutfit((prev) => ({ ...prev, [field.id]: '' }));
+  }, []);
+
+  const handleRemoveCustomField = useCallback((panelId: string, fieldId: string, isCustom: boolean) => {
+    if (isCustom) {
+      setCustomPanels((prev) => prev.map((p) =>
+        p.id === panelId ? { ...p, fields: p.fields.filter((f) => f.id !== fieldId) } : p
+      ));
+    } else {
+      setRegions((prev) => prev.map((r) =>
+        r.id === panelId ? { ...r, customFields: r.customFields.filter((f) => f.id !== fieldId) } : r
+      ));
+    }
+    setOutfit((prev) => {
+      const next = { ...prev };
+      delete next[fieldId];
+      return next;
+    });
+  }, []);
+
+  const handleUpdateFieldLabel = useCallback((panelId: string, fieldId: string, label: string, isCustom: boolean) => {
+    const update = (fields: CustomField[]) => fields.map((f) => f.id === fieldId ? { ...f, label } : f);
+    if (isCustom) {
+      setCustomPanels((prev) => prev.map((p) =>
+        p.id === panelId ? { ...p, fields: update(p.fields) } : p
+      ));
+    } else {
+      setRegions((prev) => prev.map((r) =>
+        r.id === panelId ? { ...r, customFields: update(r.customFields) } : r
+      ));
+    }
+  }, []);
+
+  const handleAddCustomPanel = useCallback(() => {
+    const colorIdx = nextColorIndex(regions, customPanels);
+    const style = REGION_STYLES[colorIdx]!;
+    const panel: CustomPanel = {
+      id: `cp-${Date.now()}`,
+      label: 'Custom Panel',
+      color: style.color,
+      accent: style.accent,
+      fields: [],
+    };
+    setCustomPanels((prev) => [...prev, panel]);
+  }, [regions, customPanels]);
+
+  const handleRemoveCustomPanel = useCallback((panelId: string) => {
+    setCustomPanels((prev) => {
+      const panel = prev.find((p) => p.id === panelId);
+      if (panel) {
+        setOutfit((items) => {
+          const next = { ...items };
+          for (const f of panel.fields) delete next[f.id];
+          return next;
+        });
+      }
+      return prev.filter((p) => p.id !== panelId);
+    });
+  }, []);
+
+  const handleUpdatePanelLabel = useCallback((panelId: string, label: string) => {
+    setCustomPanels((prev) => prev.map((p) =>
+      p.id === panelId ? { ...p, label } : p
+    ));
+  }, []);
 
   const handleSavePreset = useCallback(() => {
     if (!presetName.trim()) return;
@@ -185,18 +321,21 @@ export function OutfitPanel() {
       id: `preset-${Date.now()}`,
       name: presetName.trim(),
       items: { ...outfit },
+      regions: JSON.parse(JSON.stringify(regions)),
+      customPanels: JSON.parse(JSON.stringify(customPanels)),
       createdAt: Date.now(),
     };
-    const next = [...presets, preset];
-    setPresets(next);
+    setPresets((prev) => [...prev, preset]);
     setPresetName('');
-  }, [presetName, outfit, presets]);
+  }, [presetName, outfit, regions, customPanels]);
 
   const handleApplyPreset = useCallback((presetId: string) => {
     const preset = presets.find((p) => p.id === presetId);
-    if (preset) {
-      setOutfit(preset.items);
-    }
+    if (!preset) return;
+    const merged = { ...emptyOutfit(), ...preset.items };
+    setOutfit(merged);
+    if (preset.regions) setRegions(preset.regions);
+    if (preset.customPanels) setCustomPanels(preset.customPanels);
   }, [presets]);
 
   const handleDeletePreset = useCallback((presetId: string) => {
@@ -205,17 +344,31 @@ export function OutfitPanel() {
 
   const confirmDeletePreset = useCallback(() => {
     if (pendingDeleteId) {
-      const next = presets.filter((p) => p.id !== pendingDeleteId);
-      setPresets(next);
+      setPresets((prev) => prev.filter((p) => p.id !== pendingDeleteId));
       setPendingDeleteId(null);
     }
-  }, [pendingDeleteId, presets]);
+  }, [pendingDeleteId]);
 
   const cancelDeletePreset = useCallback(() => {
     setPendingDeleteId(null);
   }, []);
 
-  const promptPreview = useMemo(() => formatOutfitForPrompt(outfit), [outfit]);
+  const promptPreview = useMemo(() => formatOutfitForPrompt(outfit, regions, customPanels), [outfit, regions, customPanels]);
+
+  const filledCount = useMemo(() => {
+    let count = 0;
+    for (const s of ALL_SLOTS) if (outfit[s]?.trim()) count++;
+    for (const r of regions) for (const f of r.customFields) if (outfit[f.id]?.trim()) count++;
+    for (const cp of customPanels) for (const f of cp.fields) if (outfit[f.id]?.trim()) count++;
+    return count;
+  }, [outfit, regions, customPanels]);
+
+  const totalFieldCount = useMemo(() => {
+    let count = ALL_SLOTS.length;
+    for (const r of regions) count += r.customFields.length;
+    for (const cp of customPanels) count += cp.fields.length;
+    return count;
+  }, [regions, customPanels]);
 
   if (characterId === null) {
     return (
@@ -225,207 +378,346 @@ export function OutfitPanel() {
     );
   }
 
-  const regions = Object.entries(SLOT_REGIONS);
-
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <div className="flex items-center justify-between border-b px-4 py-2">
-        <h2 className="text-sm font-semibold">Outfit Manager</h2>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-muted-foreground text-xs" htmlFor="outfit-disabled">
-              Disabled
-            </label>
-            <button
-              id="outfit-disabled"
-              type="button"
-              role="switch"
-              aria-checked={disabled}
-              onClick={() => setDisabled(!disabled)}
-              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                disabled ? 'bg-primary' : 'bg-muted'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition-transform ${
-                  disabled ? 'translate-x-4' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowPrompt(!showPrompt)}
-            className="text-muted-foreground hover:text-foreground rounded px-2 py-1 text-xs transition-colors"
-          >
-            {showPrompt ? 'Hide' : 'Show'} Prompt
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!isDirty || saveStatus === 'saving'}
-            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-              isDirty
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-muted text-muted-foreground cursor-not-allowed'
-            } ${saveStatus === 'saving' ? 'opacity-70' : ''}`}
-          >
-            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save'}
-          </button>
-        </div>
-      </div>
-
+    <div className="flex h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4">
         {disabled ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
             <Shirt className="text-muted-foreground/40 mb-4 h-12 w-12" />
             <h3 className="text-muted-foreground text-sm font-medium">Outfit Disabled</h3>
             <p className="text-muted-foreground/60 mt-1 max-w-xs text-xs">
-              This character doesn&apos;t use the outfit system. Toggle the switch above to enable it.
+              Toggle the switch in the sidebar to enable outfit tracking.
             </p>
           </div>
         ) : (
-          <>
-            <div className="flex items-start justify-center gap-6">
-              <div className="flex flex-col gap-3 pt-8">
-                {regions.map(([region, slots]) => (
-                  <div key={`left-${region}`} className={`rounded-lg border bg-gradient-to-br p-2 ${REGION_COLORS[region]}`}>
-                    <div className="space-y-1.5">
-                      {slots.slice(0, Math.ceil(slots.length / 2)).map((slot) => (
-                        <div key={slot}>
-                          <label className={`text-[10px] font-medium uppercase tracking-wider ${REGION_ACCENT[region]}`}>
-                            {SLOT_LABELS[slot]}
-                          </label>
-                          <input
-                            type="text"
-                            value={outfit[slot]}
-                            onChange={(e) => handleSlotChange(slot, e.target.value)}
-                            placeholder={SLOT_PLACEHOLDERS[slot]}
-                            aria-label={SLOT_LABELS[slot]}
-                            className="bg-background/50 border-border/50 focus:border-primary/50 mt-0.5 w-full rounded border px-2 py-1 text-xs transition-colors placeholder:text-muted-foreground/40"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex h-[280px] shrink-0 items-center justify-center">
-                <HumanSilhouette />
-              </div>
-
-              <div className="flex flex-col gap-3 pt-8">
-                {regions
-                  .filter(([, slots]) => slots.length > Math.ceil(slots.length / 2))
-                  .map(([region, slots]) => (
-                    <div key={`right-${region}`} className={`rounded-lg border bg-gradient-to-br p-2 ${REGION_COLORS[region]}`}>
-                      <div className="space-y-1.5">
-                        {slots.slice(Math.ceil(slots.length / 2)).map((slot) => (
-                          <div key={slot}>
-                            <label className={`text-[10px] font-medium uppercase tracking-wider ${REGION_ACCENT[region]}`}>
-                              {SLOT_LABELS[slot]}
-                            </label>
-                            <input
-                              type="text"
-                              value={outfit[slot]}
-                              onChange={(e) => handleSlotChange(slot, e.target.value)}
-                              placeholder={SLOT_PLACEHOLDERS[slot]}
-                              aria-label={SLOT_LABELS[slot]}
-                              className="bg-background/50 border-border/50 focus:border-primary/50 mt-0.5 w-full rounded border px-2 py-1 text-xs transition-colors placeholder:text-muted-foreground/40"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
-            {showPrompt && (
-              <div className="mt-4 rounded-lg border border-border/50 bg-muted/20 p-3">
-                <h3 className="text-muted-foreground mb-1 text-[10px] font-medium uppercase tracking-wider">
-                  Prompt Context
-                </h3>
-                <pre className="text-foreground/80 max-h-32 overflow-y-auto whitespace-pre-wrap text-xs">
-                  {promptPreview}
-                </pre>
-              </div>
-            )}
-
-            <div className="mt-4 border-t pt-4">
-              <h3 className="text-muted-foreground mb-2 text-[10px] font-medium uppercase tracking-wider">
-                Presets
-              </h3>
-              <div className="mb-3 flex gap-2">
-                <input
-                  type="text"
-                  value={presetName}
-                  onChange={(e) => setPresetName(e.target.value)}
-                  placeholder="New preset name..."
-                  aria-label="Preset name"
-                  className="bg-background/50 border-border/50 focus:border-primary/50 flex-1 rounded border px-2 py-1 text-xs transition-colors placeholder:text-muted-foreground/40"
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSavePreset(); }}
-                />
-                <button
-                  type="button"
-                  onClick={handleSavePreset}
-                  disabled={!presetName.trim()}
-                  className="bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 rounded px-3 py-1 text-xs font-medium transition-colors"
-                >
-                  Save
-                </button>
-              </div>
-              {presets.length === 0 ? (
-                <p className="text-muted-foreground/60 py-2 text-center text-xs">No presets saved yet.</p>
-              ) : (
-                <div className="space-y-1">
-                  {presets.map((preset) => (
-                    <div key={preset.id} className="bg-background/50 flex items-center justify-between rounded px-2 py-1.5">
-                      <span className="text-foreground/80 text-xs">{preset.name}</span>
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleApplyPreset(preset.id)}
-                          className="text-primary hover:bg-primary/10 rounded px-2 py-0.5 text-[10px] transition-colors"
-                        >
-                          Apply
-                        </button>
-                        {pendingDeleteId === preset.id ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={confirmDeletePreset}
-                              className="text-destructive hover:bg-destructive/10 rounded px-2 py-0.5 text-[10px] transition-colors font-medium"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelDeletePreset}
-                              className="text-muted-foreground hover:bg-muted/50 rounded px-2 py-0.5 text-[10px] transition-colors"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePreset(preset.id)}
-                            className="text-destructive hover:bg-destructive/10 rounded px-2 py-0.5 text-[10px] transition-colors"
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+            {regions.map((region) => (
+              <RegionCard
+                key={region.id}
+                region={region}
+                outfit={outfit}
+                onSlotChange={handleSlotChange}
+                onAddField={() => handleAddCustomField(region.id, false)}
+                onRemoveField={(fieldId) => handleRemoveCustomField(region.id, fieldId, false)}
+                onUpdateFieldLabel={(fieldId, label) => handleUpdateFieldLabel(region.id, fieldId, label, false)}
+              />
+            ))}
+            {customPanels.map((panel) => (
+              <CustomPanelCard
+                key={panel.id}
+                panel={panel}
+                outfit={outfit}
+                onSlotChange={handleSlotChange}
+                onAddField={() => handleAddCustomField(panel.id, true)}
+                onRemoveField={(fieldId) => handleRemoveCustomField(panel.id, fieldId, true)}
+                onUpdateFieldLabel={(fieldId, label) => handleUpdateFieldLabel(panel.id, fieldId, label, true)}
+                onUpdateLabel={(label) => handleUpdatePanelLabel(panel.id, label)}
+                onRemove={() => handleRemoveCustomPanel(panel.id)}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={handleAddCustomPanel}
+              className="border-border/30 hover:border-border/60 hover:bg-muted/20 flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-colors"
+            >
+              <Plus className="text-muted-foreground/40 h-5 w-5" />
+              <span className="text-muted-foreground/50 text-[10px] font-medium uppercase tracking-wider">
+                Add Panel
+              </span>
+            </button>
+          </div>
         )}
       </div>
+
+      <div className="flex w-72 shrink-0 flex-col overflow-y-auto border-l">
+        <div className="space-y-3 border-b p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-foreground/80 text-xs font-medium">
+              {filledCount}/{totalFieldCount} filled
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPrompt(!showPrompt)}
+                className="text-muted-foreground hover:text-foreground rounded px-2 py-1 text-[10px] transition-colors"
+              >
+                {showPrompt ? 'Hide' : 'Show'} Prompt
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!isDirty || saveStatus === 'saving'}
+                className={`rounded px-3 py-1 text-[10px] font-medium transition-colors ${
+                  isDirty
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed'
+                }`}
+              >
+                {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save'}
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={disabled}
+              onClick={() => setDisabled(!disabled)}
+              className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                disabled ? 'bg-primary' : 'bg-muted'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${
+                  disabled ? 'translate-x-3' : 'translate-x-0'
+                }`}
+              />
+            </button>
+            <label className="text-muted-foreground text-[10px]">Disabled</label>
+          </div>
+        </div>
+
+        {showPrompt && (
+          <div className="border-b p-4">
+            <h3 className="text-muted-foreground mb-1 text-[10px] font-medium uppercase tracking-wider">
+              Prompt Context
+            </h3>
+            <pre className="text-foreground/80 max-h-32 overflow-y-auto whitespace-pre-wrap text-[10px]">
+              {promptPreview}
+            </pre>
+          </div>
+        )}
+
+        <div className="flex flex-1 flex-col p-4">
+          <h3 className="text-muted-foreground mb-2 text-[10px] font-medium uppercase tracking-wider">
+            Presets
+          </h3>
+          <div className="mb-3 flex gap-1.5">
+            <input
+              type="text"
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              placeholder="Preset name..."
+              aria-label="Preset name"
+              className="bg-background/50 border-border/50 focus:border-primary/50 flex-1 rounded border px-2 py-1 text-[11px] transition-colors placeholder:text-muted-foreground/40"
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSavePreset(); }}
+            />
+            <button
+              type="button"
+              onClick={handleSavePreset}
+              disabled={!presetName.trim()}
+              className="bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 rounded px-2 py-1 text-[11px] font-medium transition-colors"
+            >
+              Save
+            </button>
+          </div>
+          {presets.length === 0 ? (
+            <p className="text-muted-foreground/60 py-4 text-center text-[11px]">No presets yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {presets.map((preset) => (
+                <div key={preset.id} className="bg-background/50 flex items-center justify-between rounded px-2 py-1.5">
+                  <span className="text-foreground/80 text-[11px]">{preset.name}</span>
+                  <div className="flex gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => handleApplyPreset(preset.id)}
+                      className="text-primary hover:bg-primary/10 rounded px-1.5 py-0.5 text-[10px] transition-colors"
+                    >
+                      Apply
+                    </button>
+                    {pendingDeleteId === preset.id ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={confirmDeletePreset}
+                          className="text-destructive hover:bg-destructive/10 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors"
+                        >
+                          Yes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelDeletePreset}
+                          className="text-muted-foreground hover:bg-muted/50 rounded px-1.5 py-0.5 text-[10px] transition-colors"
+                        >
+                          No
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePreset(preset.id)}
+                        className="text-destructive hover:bg-destructive/10 rounded px-1.5 py-0.5 text-[10px] transition-colors"
+                      >
+                        Del
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RegionCard({
+  region,
+  outfit,
+  onSlotChange,
+  onAddField,
+  onRemoveField,
+  onUpdateFieldLabel,
+}: {
+  region: BuiltInRegion;
+  outfit: Record<string, string>;
+  onSlotChange: (slot: string, value: string) => void;
+  onAddField: () => void;
+  onRemoveField: (fieldId: string) => void;
+  onUpdateFieldLabel: (fieldId: string, label: string) => void;
+}) {
+  return (
+    <div className={`rounded-lg border border-l-2 border-t-2 border-border/50 bg-card p-3 ${region.color}`}>
+      <h3 className={`mb-2 text-[10px] font-semibold uppercase tracking-wider ${region.accent}`}>
+        {region.label}
+      </h3>
+      <div className="space-y-2">
+        {region.slots.map((slot) => (
+          <div key={slot}>
+            <label className="text-muted-foreground text-[10px] font-medium">
+              {SLOT_LABELS[slot]}
+            </label>
+            <input
+              type="text"
+              value={outfit[slot] ?? ''}
+              onChange={(e) => onSlotChange(slot, e.target.value)}
+              placeholder={SLOT_PLACEHOLDERS[slot]}
+              aria-label={SLOT_LABELS[slot]}
+              className="bg-background/50 border-border/50 focus:border-primary/50 mt-0.5 w-full rounded border px-2 py-1 text-xs transition-colors placeholder:text-muted-foreground/40"
+            />
+          </div>
+        ))}
+        {region.customFields.map((field) => (
+          <CustomFieldRow
+            key={field.id}
+            field={field}
+            value={outfit[field.id] ?? ''}
+            onChange={(v) => onSlotChange(field.id, v)}
+            onRemove={() => onRemoveField(field.id)}
+            onUpdateLabel={(l) => onUpdateFieldLabel(field.id, l)}
+          />
+        ))}
+        <button
+          type="button"
+          onClick={onAddField}
+          className="text-muted-foreground/50 hover:text-muted-foreground flex w-full items-center justify-center gap-1 rounded border border-dashed border-transparent py-1 text-[10px] transition-colors hover:border-border/40"
+        >
+          <Plus className="h-3 w-3" /> Add Field
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CustomPanelCard({
+  panel,
+  outfit,
+  onSlotChange,
+  onAddField,
+  onRemoveField,
+  onUpdateFieldLabel,
+  onUpdateLabel,
+  onRemove,
+}: {
+  panel: CustomPanel;
+  outfit: Record<string, string>;
+  onSlotChange: (slot: string, value: string) => void;
+  onAddField: () => void;
+  onRemoveField: (fieldId: string) => void;
+  onUpdateFieldLabel: (fieldId: string, label: string) => void;
+  onUpdateLabel: (label: string) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className={`rounded-lg border border-l-2 border-t-2 border-border/50 bg-card p-3 ${panel.color}`}>
+      <div className="mb-2 flex items-center justify-between">
+        <input
+          type="text"
+          value={panel.label}
+          onChange={(e) => onUpdateLabel(e.target.value)}
+          className={`bg-transparent text-[10px] font-semibold uppercase tracking-wider outline-none ${panel.accent}`}
+        />
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-muted-foreground/40 hover:text-destructive transition-colors"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      </div>
+      <div className="space-y-2">
+        {panel.fields.map((field) => (
+          <CustomFieldRow
+            key={field.id}
+            field={field}
+            value={outfit[field.id] ?? ''}
+            onChange={(v) => onSlotChange(field.id, v)}
+            onRemove={() => onRemoveField(field.id)}
+            onUpdateLabel={(l) => onUpdateFieldLabel(field.id, l)}
+          />
+        ))}
+        <button
+          type="button"
+          onClick={onAddField}
+          className="text-muted-foreground/50 hover:text-muted-foreground flex w-full items-center justify-center gap-1 rounded border border-dashed border-transparent py-1 text-[10px] transition-colors hover:border-border/40"
+        >
+          <Plus className="h-3 w-3" /> Add Field
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CustomFieldRow({
+  field,
+  value,
+  onChange,
+  onRemove,
+  onUpdateLabel,
+}: {
+  field: CustomField;
+  value: string;
+  onChange: (value: string) => void;
+  onRemove: () => void;
+  onUpdateLabel: (label: string) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-1">
+        <input
+          type="text"
+          value={field.label}
+          onChange={(e) => onUpdateLabel(e.target.value)}
+          className="bg-transparent text-muted-foreground text-[10px] font-medium outline-none"
+        />
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-muted-foreground/30 hover:text-destructive ml-auto transition-colors"
+        >
+          <Trash2 className="h-2.5 w-2.5" />
+        </button>
+      </div>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={field.placeholder}
+        aria-label={field.label}
+        className="bg-background/50 border-border/50 focus:border-primary/50 mt-0.5 w-full rounded border px-2 py-1 text-xs transition-colors placeholder:text-muted-foreground/40"
+      />
     </div>
   );
 }
