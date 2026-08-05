@@ -106,9 +106,15 @@ interface OutfitPreset {
 export function OutfitPanel() {
   const characterId = useChatStore((s) => s.activeCharacterId);
   const [outfit, setOutfit] = useState<Record<BodySlot, string>>(emptyOutfit);
+  const [savedOutfit, setSavedOutfit] = useState<Record<BodySlot, string>>(emptyOutfit);
   const [presets, setPresets] = useState<OutfitPreset[]>([]);
+  const [savedPresets, setSavedPresets] = useState<OutfitPreset[]>([]);
   const [presetName, setPresetName] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [disabled, setDisabled] = useState(false);
+  const [savedDisabled, setSavedDisabled] = useState(false);
 
   useEffect(() => {
     if (characterId === null) return;
@@ -117,29 +123,61 @@ export function OutfitPanel() {
       const raw = localStorage.getItem(key);
       if (raw) {
         const data = JSON.parse(raw);
-        setOutfit(data.items ?? emptyOutfit());
-        setPresets(data.presets ?? []);
+        const items = data.items ?? emptyOutfit();
+        const prs = data.presets ?? [];
+        const dis = data.disabled ?? false;
+        setOutfit(items);
+        setSavedOutfit(items);
+        setPresets(prs);
+        setSavedPresets(prs);
+        setDisabled(dis);
+        setSavedDisabled(dis);
       } else {
-        setOutfit(emptyOutfit());
+        const empty = emptyOutfit();
+        setOutfit(empty);
+        setSavedOutfit(empty);
         setPresets([]);
+        setSavedPresets([]);
+        setDisabled(false);
+        setSavedDisabled(false);
       }
     } catch {
-      setOutfit(emptyOutfit());
+      const empty = emptyOutfit();
+      setOutfit(empty);
+      setSavedOutfit(empty);
       setPresets([]);
+      setSavedPresets([]);
+      setDisabled(false);
+      setSavedDisabled(false);
     }
   }, [characterId]);
 
-  const saveToStorage = useCallback((items: Record<BodySlot, string>, prs: OutfitPreset[]) => {
+  const saveToStorage = useCallback((items: Record<BodySlot, string>, prs: OutfitPreset[], dis: boolean) => {
     if (characterId === null) return;
     const key = `worldcore/outfit/${characterId}`;
-    localStorage.setItem(key, JSON.stringify({ items, presets: prs }));
+    localStorage.setItem(key, JSON.stringify({ items, presets: prs, disabled: dis }));
+    setSavedOutfit(items);
+    setSavedPresets(prs);
+    setSavedDisabled(dis);
   }, [characterId]);
+
+  const handleSave = useCallback(() => {
+    setSaveStatus('saving');
+    saveToStorage(outfit, presets, disabled);
+    setTimeout(() => setSaveStatus('saved'), 100);
+    setTimeout(() => setSaveStatus('idle'), 2000);
+  }, [outfit, presets, disabled, saveToStorage]);
+
+  const isDirty = useMemo(() => {
+    return JSON.stringify(outfit) !== JSON.stringify(savedOutfit) ||
+           JSON.stringify(presets) !== JSON.stringify(savedPresets) ||
+           disabled !== savedDisabled;
+  }, [outfit, presets, disabled, savedOutfit, savedPresets, savedDisabled]);
 
   const handleSlotChange = useCallback((slot: BodySlot, value: string) => {
     const next = { ...outfit, [slot]: value };
     setOutfit(next);
-    saveToStorage(next, presets);
-  }, [outfit, presets, saveToStorage]);
+  }, [outfit]);
 
   const handleSavePreset = useCallback(() => {
     if (!presetName.trim()) return;
@@ -152,22 +190,30 @@ export function OutfitPanel() {
     const next = [...presets, preset];
     setPresets(next);
     setPresetName('');
-    saveToStorage(outfit, next);
-  }, [presetName, outfit, presets, saveToStorage]);
+  }, [presetName, outfit, presets]);
 
   const handleApplyPreset = useCallback((presetId: string) => {
     const preset = presets.find((p) => p.id === presetId);
     if (preset) {
       setOutfit(preset.items);
-      saveToStorage(preset.items, presets);
     }
-  }, [presets, saveToStorage]);
+  }, [presets]);
 
   const handleDeletePreset = useCallback((presetId: string) => {
-    const next = presets.filter((p) => p.id !== presetId);
-    setPresets(next);
-    saveToStorage(outfit, next);
-  }, [presets, outfit, saveToStorage]);
+    setPendingDeleteId(presetId);
+  }, []);
+
+  const confirmDeletePreset = useCallback(() => {
+    if (pendingDeleteId) {
+      const next = presets.filter((p) => p.id !== pendingDeleteId);
+      setPresets(next);
+      setPendingDeleteId(null);
+    }
+  }, [pendingDeleteId, presets]);
+
+  const cancelDeletePreset = useCallback(() => {
+    setPendingDeleteId(null);
+  }, []);
 
   const promptPreview = useMemo(() => formatOutfitForPrompt(outfit), [outfit]);
 
@@ -185,129 +231,200 @@ export function OutfitPanel() {
     <div className="flex h-full flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b px-4 py-2">
         <h2 className="text-sm font-semibold">Outfit Manager</h2>
-        <button
-          type="button"
-          onClick={() => setShowPrompt(!showPrompt)}
-          className="text-muted-foreground hover:text-foreground rounded px-2 py-1 text-xs transition-colors"
-        >
-          {showPrompt ? 'Hide' : 'Show'} Prompt
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-muted-foreground text-xs" htmlFor="outfit-disabled">
+              Disabled
+            </label>
+            <button
+              id="outfit-disabled"
+              type="button"
+              role="switch"
+              aria-checked={disabled}
+              onClick={() => setDisabled(!disabled)}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                disabled ? 'bg-primary' : 'bg-muted'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                  disabled ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPrompt(!showPrompt)}
+            className="text-muted-foreground hover:text-foreground rounded px-2 py-1 text-xs transition-colors"
+          >
+            {showPrompt ? 'Hide' : 'Show'} Prompt
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!isDirty || saveStatus === 'saving'}
+            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+              isDirty
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'bg-muted text-muted-foreground cursor-not-allowed'
+            } ${saveStatus === 'saving' ? 'opacity-70' : ''}`}
+          >
+            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save'}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        <div className="flex items-start justify-center gap-6">
-          <div className="flex flex-col gap-3 pt-8">
-            {regions.map(([region, slots]) => (
-              <div key={`left-${region}`} className={`rounded-lg border bg-gradient-to-br p-2 ${REGION_COLORS[region]}`}>
-                <div className="space-y-1.5">
-                  {slots.slice(0, Math.ceil(slots.length / 2)).map((slot) => (
-                    <div key={slot}>
-                      <label className={`text-[10px] font-medium uppercase tracking-wider ${REGION_ACCENT[region]}`}>
-                        {SLOT_LABELS[slot]}
-                      </label>
-                      <input
-                        type="text"
-                        value={outfit[slot]}
-                        onChange={(e) => handleSlotChange(slot, e.target.value)}
-                        placeholder={SLOT_PLACEHOLDERS[slot]}
-                        className="bg-background/50 border-border/50 focus:border-primary/50 mt-0.5 w-full rounded border px-2 py-1 text-xs transition-colors placeholder:text-muted-foreground/40"
-                      />
+        {disabled ? (
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <Shirt className="text-muted-foreground/40 mb-4 h-12 w-12" />
+            <h3 className="text-muted-foreground text-sm font-medium">Outfit Disabled</h3>
+            <p className="text-muted-foreground/60 mt-1 max-w-xs text-xs">
+              This character doesn&apos;t use the outfit system. Toggle the switch above to enable it.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-center gap-6">
+              <div className="flex flex-col gap-3 pt-8">
+                {regions.map(([region, slots]) => (
+                  <div key={`left-${region}`} className={`rounded-lg border bg-gradient-to-br p-2 ${REGION_COLORS[region]}`}>
+                    <div className="space-y-1.5">
+                      {slots.slice(0, Math.ceil(slots.length / 2)).map((slot) => (
+                        <div key={slot}>
+                          <label className={`text-[10px] font-medium uppercase tracking-wider ${REGION_ACCENT[region]}`}>
+                            {SLOT_LABELS[slot]}
+                          </label>
+                          <input
+                            type="text"
+                            value={outfit[slot]}
+                            onChange={(e) => handleSlotChange(slot, e.target.value)}
+                            placeholder={SLOT_PLACEHOLDERS[slot]}
+                            aria-label={SLOT_LABELS[slot]}
+                            className="bg-background/50 border-border/50 focus:border-primary/50 mt-0.5 w-full rounded border px-2 py-1 text-xs transition-colors placeholder:text-muted-foreground/40"
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex h-[280px] shrink-0 items-center justify-center">
-            <HumanSilhouette />
-          </div>
-
-          <div className="flex flex-col gap-3 pt-8">
-            {regions.map(([region, slots]) => (
-              <div key={`right-${region}`} className={`rounded-lg border bg-gradient-to-br p-2 ${REGION_COLORS[region]}`}>
-                <div className="space-y-1.5">
-                  {slots.slice(Math.ceil(slots.length / 2)).map((slot) => (
-                    <div key={slot}>
-                      <label className={`text-[10px] font-medium uppercase tracking-wider ${REGION_ACCENT[region]}`}>
-                        {SLOT_LABELS[slot]}
-                      </label>
-                      <input
-                        type="text"
-                        value={outfit[slot]}
-                        onChange={(e) => handleSlotChange(slot, e.target.value)}
-                        placeholder={SLOT_PLACEHOLDERS[slot]}
-                        className="bg-background/50 border-border/50 focus:border-primary/50 mt-0.5 w-full rounded border px-2 py-1 text-xs transition-colors placeholder:text-muted-foreground/40"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {showPrompt && (
-          <div className="mt-4 rounded-lg border border-border/50 bg-muted/20 p-3">
-            <h3 className="text-muted-foreground mb-1 text-[10px] font-medium uppercase tracking-wider">
-              Prompt Context
-            </h3>
-            <pre className="text-foreground/80 max-h-32 overflow-y-auto whitespace-pre-wrap text-xs">
-              {promptPreview}
-            </pre>
-          </div>
-        )}
-
-        <div className="mt-4 border-t pt-4">
-          <h3 className="text-muted-foreground mb-2 text-[10px] font-medium uppercase tracking-wider">
-            Presets
-          </h3>
-          <div className="mb-3 flex gap-2">
-            <input
-              type="text"
-              value={presetName}
-              onChange={(e) => setPresetName(e.target.value)}
-              placeholder="New preset name..."
-              className="bg-background/50 border-border/50 focus:border-primary/50 flex-1 rounded border px-2 py-1 text-xs transition-colors placeholder:text-muted-foreground/40"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSavePreset(); }}
-            />
-            <button
-              type="button"
-              onClick={handleSavePreset}
-              disabled={!presetName.trim()}
-              className="bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 rounded px-3 py-1 text-xs font-medium transition-colors"
-            >
-              Save
-            </button>
-          </div>
-          {presets.length === 0 ? (
-            <p className="text-muted-foreground/60 py-2 text-center text-xs">No presets saved yet.</p>
-          ) : (
-            <div className="space-y-1">
-              {presets.map((preset) => (
-                <div key={preset.id} className="bg-background/50 flex items-center justify-between rounded px-2 py-1.5">
-                  <span className="text-foreground/80 text-xs">{preset.name}</span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => handleApplyPreset(preset.id)}
-                      className="text-primary hover:bg-primary/10 rounded px-2 py-0.5 text-[10px] transition-colors"
-                    >
-                      Apply
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeletePreset(preset.id)}
-                      className="text-destructive hover:bg-destructive/10 rounded px-2 py-0.5 text-[10px] transition-colors"
-                    >
-                      Delete
-                    </button>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              <div className="flex h-[280px] shrink-0 items-center justify-center">
+                <HumanSilhouette />
+              </div>
+
+              <div className="flex flex-col gap-3 pt-8">
+                {regions
+                  .filter(([, slots]) => slots.length > Math.ceil(slots.length / 2))
+                  .map(([region, slots]) => (
+                    <div key={`right-${region}`} className={`rounded-lg border bg-gradient-to-br p-2 ${REGION_COLORS[region]}`}>
+                      <div className="space-y-1.5">
+                        {slots.slice(Math.ceil(slots.length / 2)).map((slot) => (
+                          <div key={slot}>
+                            <label className={`text-[10px] font-medium uppercase tracking-wider ${REGION_ACCENT[region]}`}>
+                              {SLOT_LABELS[slot]}
+                            </label>
+                            <input
+                              type="text"
+                              value={outfit[slot]}
+                              onChange={(e) => handleSlotChange(slot, e.target.value)}
+                              placeholder={SLOT_PLACEHOLDERS[slot]}
+                              aria-label={SLOT_LABELS[slot]}
+                              className="bg-background/50 border-border/50 focus:border-primary/50 mt-0.5 w-full rounded border px-2 py-1 text-xs transition-colors placeholder:text-muted-foreground/40"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+              </div>
             </div>
-          )}
-        </div>
+
+            {showPrompt && (
+              <div className="mt-4 rounded-lg border border-border/50 bg-muted/20 p-3">
+                <h3 className="text-muted-foreground mb-1 text-[10px] font-medium uppercase tracking-wider">
+                  Prompt Context
+                </h3>
+                <pre className="text-foreground/80 max-h-32 overflow-y-auto whitespace-pre-wrap text-xs">
+                  {promptPreview}
+                </pre>
+              </div>
+            )}
+
+            <div className="mt-4 border-t pt-4">
+              <h3 className="text-muted-foreground mb-2 text-[10px] font-medium uppercase tracking-wider">
+                Presets
+              </h3>
+              <div className="mb-3 flex gap-2">
+                <input
+                  type="text"
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  placeholder="New preset name..."
+                  aria-label="Preset name"
+                  className="bg-background/50 border-border/50 focus:border-primary/50 flex-1 rounded border px-2 py-1 text-xs transition-colors placeholder:text-muted-foreground/40"
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSavePreset(); }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSavePreset}
+                  disabled={!presetName.trim()}
+                  className="bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 rounded px-3 py-1 text-xs font-medium transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+              {presets.length === 0 ? (
+                <p className="text-muted-foreground/60 py-2 text-center text-xs">No presets saved yet.</p>
+              ) : (
+                <div className="space-y-1">
+                  {presets.map((preset) => (
+                    <div key={preset.id} className="bg-background/50 flex items-center justify-between rounded px-2 py-1.5">
+                      <span className="text-foreground/80 text-xs">{preset.name}</span>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPreset(preset.id)}
+                          className="text-primary hover:bg-primary/10 rounded px-2 py-0.5 text-[10px] transition-colors"
+                        >
+                          Apply
+                        </button>
+                        {pendingDeleteId === preset.id ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={confirmDeletePreset}
+                              className="text-destructive hover:bg-destructive/10 rounded px-2 py-0.5 text-[10px] transition-colors font-medium"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelDeletePreset}
+                              className="text-muted-foreground hover:bg-muted/50 rounded px-2 py-0.5 text-[10px] transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePreset(preset.id)}
+                            className="text-destructive hover:bg-destructive/10 rounded px-2 py-0.5 text-[10px] transition-colors"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
