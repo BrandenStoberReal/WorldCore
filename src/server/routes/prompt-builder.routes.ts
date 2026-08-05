@@ -44,6 +44,10 @@ const PromptBuildRequestSchema = z.object({
   context: ContextSettingsSchema.partial().optional(),
   worldInfoFileIds: z.array(z.number()).optional(),
   chatId: z.string().optional(),
+  outfit: z.object({
+    disabled: z.boolean().optional(),
+    items: z.record(z.string()).optional(),
+  }).optional(),
 });
 
 async function loadEntryStates(chatId: string, userId: string): Promise<Map<string, WiEntryState>> {
@@ -181,6 +185,7 @@ export const promptBuilderRoutes = {
           ? { ...TextOptionsDefaults.instruct, ...parsed.instruct }
           : undefined,
         context: parsed.context ? { ...TextOptionsDefaults.context, ...parsed.context } : undefined,
+        outfit: parsed.outfit,
       });
 
       if (parsed.chatId && result.updatedEntryStates) {

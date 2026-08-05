@@ -105,6 +105,10 @@ export interface PromptBuilderParams {
   instruct?: InstructSettings;
   context?: ContextSettings;
   summary?: string;
+  outfit?: {
+    disabled?: boolean;
+    items?: Record<string, string>;
+  };
 }
 
 export interface WiEntryState {
@@ -292,6 +296,22 @@ export class PromptBuilder {
           role: 'system',
           content: substituteMacros(`Scenario: ${character.scenario}`, macroCtx),
         });
+      }
+
+      // 6.1 Add current outfit (if provided and not disabled)
+      if (params.outfit && !params.outfit.disabled && params.outfit.items) {
+        const outfitLines: string[] = [];
+        for (const [slot, desc] of Object.entries(params.outfit.items)) {
+          if (desc && desc.trim()) {
+            outfitLines.push(`- ${slot.replace(/_/g, ' ')}: ${desc}`);
+          }
+        }
+        if (outfitLines.length > 0) {
+          messagesArray.push({
+            role: 'system',
+            content: `[Current outfit]\n${outfitLines.join('\n')}`,
+          });
+        }
       }
     }
 
