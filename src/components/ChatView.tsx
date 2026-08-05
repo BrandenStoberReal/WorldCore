@@ -217,6 +217,30 @@ export function ChatView({ characterId }: ChatViewProps) {
         };
   }, [settings]);
 
+  const [outfitData, setOutfitData] = useState<{
+    disabled?: boolean;
+    items?: Record<string, string>;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!characterId) return;
+    const key = `worldcore/outfit/${characterId}`;
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const data = JSON.parse(raw);
+        setOutfitData({
+          disabled: data.disabled ?? false,
+          items: data.items ?? {},
+        });
+      } else {
+        setOutfitData(null);
+      }
+    } catch {
+      setOutfitData(null);
+    }
+  }, [characterId]);
+
   const textOptions = useMemo(() => {
     const to = (settings as { textOptions?: TextOptions } | undefined)?.textOptions;
     if (!to) return null;
@@ -397,6 +421,10 @@ export function ChatView({ characterId }: ChatViewProps) {
             action: 'append',
             message: committedMsg,
           });
+
+          if (outfitData && !outfitData.disabled && character) {
+            void analyzeOutfitChanges(committedMsg.mes, character.name);
+          }
         }
       }
     }
@@ -454,6 +482,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         maxContext,
         tokenPadding,
         chatId: activeChatId ?? undefined,
+        outfit: outfitData ?? undefined,
       });
 
       let promptMessages = promptBuildResult.messages;
@@ -489,6 +518,7 @@ export function ChatView({ characterId }: ChatViewProps) {
               tokenPadding,
               summary: summarizeResult.summary,
               chatId: activeChatId ?? undefined,
+              outfit: outfitData ?? undefined,
             });
             promptMessages = rebuiltResult.messages;
           }
@@ -777,6 +807,37 @@ export function ChatView({ characterId }: ChatViewProps) {
     });
   }, []);
 
+  const analyzeOutfitChanges = useCallback(
+    async (message: string, charName: string) => {
+      if (!outfitData || outfitData.disabled) return;
+
+      try {
+        const result = await apiPost<{
+          changes: Array<{ slot: string; action: string; description: string }>;
+          updatedOutfit: Record<string, string>;
+        }>('/outfit-analyzer/analyze', {
+          message,
+          charName,
+          currentOutfit: outfitData.items ?? {},
+        });
+
+        if (result.changes.length > 0) {
+          const newOutfitData = {
+            ...outfitData,
+            items: result.updatedOutfit,
+          };
+          setOutfitData(newOutfitData);
+
+          const key = `worldcore/outfit/${characterId}`;
+          localStorage.setItem(key, JSON.stringify(newOutfitData));
+        }
+      } catch (err) {
+        console.warn('[ChatView] Outfit analysis failed:', err);
+      }
+    },
+    [outfitData, characterId],
+  );
+
   const handleEditMessage = useCallback(
     async (index: number, newText: string) => {
       if (!activeChatId || index >= messages.length) return;
@@ -928,6 +989,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         maxContext,
         tokenPadding,
         chatId: activeChatId ?? undefined,
+        outfit: outfitData ?? undefined,
       });
 
       let promptMessages = promptBuildResult.messages;
@@ -963,6 +1025,7 @@ export function ChatView({ characterId }: ChatViewProps) {
               tokenPadding,
               summary: summarizeResult.summary,
               chatId: activeChatId ?? undefined,
+              outfit: outfitData ?? undefined,
             });
             promptMessages = rebuiltResult.messages;
           }
