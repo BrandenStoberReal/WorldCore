@@ -13,7 +13,8 @@ export type SectionId =
   | 'settings'
   | 'ui-settings'
   | 'personas'
-  | 'character-browser';
+  | 'character-browser'
+  | 'outfit';
 
 /** Top drawers fold down from the top bar */
 export type TopDrawerId =
@@ -23,7 +24,8 @@ export type TopDrawerId =
   | 'textoptions'
   | 'settings'
   | 'ui-settings'
-  | 'personas';
+  | 'personas'
+  | 'outfit';
 
 const STORAGE_KEY = 'worldcore/nav';
 
