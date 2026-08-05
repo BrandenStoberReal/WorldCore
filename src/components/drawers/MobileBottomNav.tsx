@@ -46,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'chats', icon: <MessageSquare size={20} />, label: 'Chats', requiresCharacter: true },
   { id: 'character-editor', icon: <Pencil size={20} />, label: 'Editor', requiresCharacter: true },
   { id: 'lorebook', icon: <BookMarked size={20} />, label: 'Lore', requiresCharacter: true },
+  { id: 'outfit', icon: <Shirt size={20} />, label: 'Outfit', requiresCharacter: true },
   { id: 'generation', icon: <Zap size={20} />, label: 'Gen' },
   { id: 'characters', icon: <Users size={20} />, label: 'Chars' },
   { id: 'character-browser', icon: <Compass size={20} />, label: 'Browse' },
@@ -60,7 +61,6 @@ const MORE_ITEMS: MoreItem[] = [
   { id: 'personas', icon: <UserCircle size={18} />, label: 'Personas' },
   { id: 'ui-settings', icon: <Palette size={18} />, label: 'UI Settings' },
   { id: 'settings', icon: <Settings size={18} />, label: 'Settings' },
-  { id: 'outfit', icon: <Shirt size={18} />, label: 'Outfit', requiresCharacter: true },
 ];
 
 export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar, position = 'bottom' }: MobileBottomNavProps) {
@@ -76,7 +76,6 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar, position =
   const outfitEnabled = useExtensionEnabled('outfit');
 
   const visibleMoreItems = MORE_ITEMS.filter((item) => {
-    if (item.id === 'outfit' && !outfitEnabled) return false;
     if (item.requiresCharacter && activeCharacterId === null) return false;
     return true;
   });

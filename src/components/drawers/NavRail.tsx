@@ -63,17 +63,17 @@ const SECTION_ITEMS: NavItem[] = [
     requiresCharacter: true,
   },
   {
+    id: 'outfit',
+    icon: <Shirt size={16} />,
+    label: 'Outfit',
+    behavior: 'section',
+    requiresCharacter: true,
+  },
+  {
     id: 'character-browser',
     icon: <Compass size={16} />,
     label: 'Browse',
     behavior: 'section',
-  },
-  {
-    id: 'outfit',
-    icon: <Shirt size={16} />,
-    label: 'Outfit',
-    behavior: 'top-drawer',
-    requiresCharacter: true,
   },
 ];
 

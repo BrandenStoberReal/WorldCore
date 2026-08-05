@@ -24,8 +24,7 @@ export type TopDrawerId =
   | 'textoptions'
   | 'settings'
   | 'ui-settings'
-  | 'personas'
-  | 'outfit';
+  | 'personas';
 
 const STORAGE_KEY = 'worldcore/nav';
 

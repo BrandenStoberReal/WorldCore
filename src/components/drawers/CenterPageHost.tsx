@@ -4,6 +4,7 @@ import { CharactersPanel } from '@/panels/CharactersPanel';
 import { CharacterEditorPanel } from '@/panels/CharacterEditorPanel';
 import { LorebookPanel } from '@/panels/LorebookPanel';
 import { CharacterBrowserPanel } from '@/panels/CharacterBrowserPanel';
+import { OutfitPanel } from '@/panels/OutfitPanel';
 
 const CENTER_SECTIONS: Partial<Record<SectionId, React.ComponentType>> = {
   chats: ChatsPanel,
@@ -11,6 +12,7 @@ const CENTER_SECTIONS: Partial<Record<SectionId, React.ComponentType>> = {
   'character-editor': CharacterEditorPanel,
   lorebook: LorebookPanel,
   'character-browser': CharacterBrowserPanel,
+  outfit: OutfitPanel,
 };
 
 export function CenterPageHost() {

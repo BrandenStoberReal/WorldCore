@@ -53,7 +53,6 @@ const TOP_DRAWER_PANELS: Record<string, React.ComponentType> = {
   'ui-settings': UISettingsPanel,
   settings: SettingsPanel,
   personas: PersonaPanel,
-  outfit: OutfitPanel,
 };
 
 /**
