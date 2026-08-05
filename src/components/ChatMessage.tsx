@@ -3,7 +3,7 @@ import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import { cn, estimateTokens } from '@/lib/utils';
 import { substituteMacros, type MacroContext } from '@/lib/macros';
 import { renderMarkdown } from '@/lib/markdown';
-import { ChevronDown, Copy, Pencil, RotateCcw, Check, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Copy, Pencil, RotateCcw, Check, Trash2 } from 'lucide-react';
 
 function formatThinkingDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
@@ -38,6 +38,9 @@ interface ChatMessageProps {
   showHidden?: boolean;
   isStreaming?: boolean;
   thinkingDuration?: number;
+  alternateGreetings?: string[];
+  activeGreetingIndex?: number;
+  onGreetingChange?: (index: number) => void;
 }
 
 export const ChatMessage = memo(function ChatMessage({
@@ -64,6 +67,9 @@ export const ChatMessage = memo(function ChatMessage({
   showHidden = true,
   isStreaming = false,
   thinkingDuration,
+  alternateGreetings = [],
+  activeGreetingIndex = 0,
+  onGreetingChange,
 }: ChatMessageProps) {
   const isUser = msg.is_user;
   const [copied, setCopied] = useState(false);
@@ -305,6 +311,34 @@ export const ChatMessage = memo(function ChatMessage({
             renderedContent
           )}
         </div>
+
+        {/* Greeting navigation arrows — first character message only */}
+        {index === 0 && !isUser && alternateGreetings.length > 0 && onGreetingChange && (
+          <div className="mt-1 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onGreetingChange(Math.max(0, activeGreetingIndex - 1))}
+              disabled={activeGreetingIndex === 0}
+              className="text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+              title="Previous greeting"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="mono-tag text-muted-foreground/50 text-[10px]">
+              {activeGreetingIndex === 0 ? 'Default' : `Greeting ${activeGreetingIndex + 1}`}
+              {' '}/{' '}{alternateGreetings.length + 1}
+            </span>
+            <button
+              type="button"
+              onClick={() => onGreetingChange(Math.min(alternateGreetings.length, activeGreetingIndex + 1))}
+              disabled={activeGreetingIndex >= alternateGreetings.length}
+              className="text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+              title="Next greeting"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         {/* Desktop: hover action buttons */}
         <div className="message-actions absolute -top-3 right-2 hidden items-center gap-0.5 opacity-0 shadow-sm backdrop-blur-sm transition-opacity group-hover/message:opacity-100 sm:flex">

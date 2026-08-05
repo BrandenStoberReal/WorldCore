@@ -80,8 +80,10 @@ export function ChatView({ characterId }: ChatViewProps) {
   const appendStreamingContent = useChatStore((s) => s.appendStreamingContent);
   const startStreaming = useChatStore((s) => s.startStreaming);
   const commitStreaming = useChatStore((s) => s.commitStreaming);
-  const setIsGenerating = useChatStore((s) => s.setIsGenerating);
-  const clearChat = useChatStore((s) => s.clearChat);
+const setIsGenerating = useChatStore((s) => s.setIsGenerating);
+const clearChat = useChatStore((s) => s.clearChat);
+const activeGreetingIndex = useChatStore((s) => s.activeGreetingIndex);
+const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
 
   const genMaxContext = useGenerationStore((s) => s.max_context);
   const genStop = useGenerationStore((s) => s.stop);
@@ -441,6 +443,79 @@ export function ChatView({ characterId }: ChatViewProps) {
     setStreamingThinking,
     setIsThinkingStream,
   ]);
+
+  const handleGreetingChange = useCallback(
+    (newIndex: number) => {
+      if (!character) return;
+
+      setActiveGreetingIndex(newIndex);
+
+      const greetingText =
+        newIndex === 0
+          ? character.first_mes
+          : (character.alternate_greetings?.[newIndex - 1] ?? character.first_mes);
+
+      if (!greetingText) return;
+
+      const currentMessages = useChatStore.getState().messages;
+      const firstMsg = currentMessages[0];
+      if (currentMessages.length > 0 && firstMsg && !firstMsg.is_user) {
+        const updatedFirstMsg: ChatMessageType = {
+          name: firstMsg.name,
+          is_user: false,
+          mes: greetingText,
+          send_date: new Date().toISOString(),
+          extra: firstMsg.extra ?? {},
+        };
+        const newMessages = [updatedFirstMsg, ...currentMessages.slice(1)];
+        setMessages(newMessages);
+
+        if (activeChatId) {
+          void apiPost('/chats/message', {
+            fileId: activeChatId,
+            action: 'edit',
+            index: 0,
+            updates: updatedFirstMsg,
+          });
+        }
+      }
+
+      try {
+        const key = `worldcore/outfit/${characterId}`;
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const outfitData = JSON.parse(raw) as {
+            presets?: Array<{ id: string; greetingIndex?: number; items: Record<string, string>; regions?: unknown[]; customPanels?: unknown[] }>;
+            items?: Record<string, string>;
+            regions?: unknown[];
+            customPanels?: unknown[];
+            disabled?: boolean;
+          };
+
+          if (!outfitData.disabled && outfitData.presets) {
+            const matchingPreset = outfitData.presets.find((p) => p.greetingIndex === newIndex);
+            if (matchingPreset) {
+              const merged = { ...(outfitData.items ?? {}), ...matchingPreset.items };
+              const updatedOutfit = {
+                ...outfitData,
+                items: merged,
+                regions: matchingPreset.regions ?? outfitData.regions,
+                customPanels: matchingPreset.customPanels ?? outfitData.customPanels,
+              };
+              localStorage.setItem(key, JSON.stringify(updatedOutfit));
+              setOutfitData({
+                disabled: updatedOutfit.disabled ?? false,
+                items: updatedOutfit.items ?? {},
+              });
+            }
+          }
+        }
+      } catch {
+        // empty — outfit errors are non-critical
+      }
+    },
+    [character, characterId, activeChatId, setMessages, setActiveGreetingIndex],
+  );
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -1337,6 +1412,9 @@ export function ChatView({ characterId }: ChatViewProps) {
                   ? msg.extra.thinkingDuration
                   : undefined
               }
+              alternateGreetings={character.alternate_greetings}
+              activeGreetingIndex={activeGreetingIndex}
+              onGreetingChange={handleGreetingChange}
             />
           ))}
           {isGenerating && (streamingContent || isThinkingStream) && smoothStreaming > 0 && (

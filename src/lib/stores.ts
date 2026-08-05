@@ -584,6 +584,7 @@ export interface ChatStore {
   streamingThinking: string | undefined;
   isThinkingStream: boolean;
   streamingSendDate: string;
+  activeGreetingIndex: number;
   setActiveChat: (id: string | null) => void;
   setActiveCharacter: (id: number | null) => void;
   setMessages: (messages: ChatMessage[]) => void;
@@ -596,6 +597,7 @@ export interface ChatStore {
   startStreaming: () => void;
   commitStreaming: (name: string, parsed?: { mes: string; thinking?: string }) => void;
   setIsGenerating: (generating: boolean) => void;
+  setActiveGreetingIndex: (index: number) => void;
   clearChat: () => void;
 }
 
@@ -608,6 +610,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   streamingThinking: undefined,
   isThinkingStream: false,
   streamingSendDate: '',
+  activeGreetingIndex: 0,
   setActiveChat: (id) => {
     set({ activeChatId: id });
     emit('chat_changed', { chatId: id });
@@ -620,6 +623,7 @@ export const useChatStore = create<ChatStore>((set) => ({
       streamingContent: '',
       streamingThinking: undefined,
       isThinkingStream: false,
+      activeGreetingIndex: 0,
     });
     emit('character_changed', { characterId: id });
   },
@@ -659,6 +663,7 @@ export const useChatStore = create<ChatStore>((set) => ({
       };
     }),
   setIsGenerating: (generating) => set({ isGenerating: generating }),
+  setActiveGreetingIndex: (index) => set({ activeGreetingIndex: index }),
   clearChat: () =>
     set({
       activeChatId: null,

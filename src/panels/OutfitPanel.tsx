@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Shirt, Plus, Trash2 } from 'lucide-react';
+import { Shirt, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { useChatStore } from '@/lib/stores';
+import { useQuery } from '@tanstack/react-query';
+import { apiFetch } from '@/lib/api';
+import type { Character } from '@/shared/types/character';
 
 type BodySlot =
   | 'head' | 'face' | 'neck'
@@ -129,6 +132,7 @@ interface OutfitPreset {
   regions: BuiltInRegion[];
   customPanels: CustomPanel[];
   createdAt: number;
+  greetingIndex?: number; // undefined = default greeting, 0+ = alternate greeting index
 }
 
 function nextColorIndex(regions: BuiltInRegion[], customPanels: CustomPanel[]): number {
@@ -156,6 +160,29 @@ export function OutfitPanel() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [disabled, setDisabled] = useState(false);
   const [savedDisabled, setSavedDisabled] = useState(false);
+  const [selectedGreetingIndex, setSelectedGreetingIndex] = useState<number | undefined>(undefined);
+
+  const { data: character } = useQuery<Character & { id: number }>({
+    queryKey: ['/api/v1/characters/get', characterId],
+    queryFn: () =>
+      apiFetch('/characters/get', {
+        method: 'POST',
+        body: JSON.stringify({ id: characterId }),
+      }) as Promise<Character & { id: number }>,
+    enabled: characterId !== null,
+  });
+
+  const greetingsList = useMemo(() => {
+    if (!character) return [];
+    const list: string[] = [];
+    if (character.first_mes?.trim()) {
+      list.push(character.first_mes);
+    }
+    for (const g of character.alternate_greetings ?? []) {
+      if (g?.trim()) list.push(g);
+    }
+    return list;
+  }, [character]);
 
   useEffect(() => {
     if (characterId === null) return;
@@ -324,10 +351,12 @@ export function OutfitPanel() {
       regions: JSON.parse(JSON.stringify(regions)),
       customPanels: JSON.parse(JSON.stringify(customPanels)),
       createdAt: Date.now(),
+      greetingIndex: selectedGreetingIndex,
     };
     setPresets((prev) => [...prev, preset]);
     setPresetName('');
-  }, [presetName, outfit, regions, customPanels]);
+    setSelectedGreetingIndex(undefined);
+  }, [presetName, outfit, regions, customPanels, selectedGreetingIndex]);
 
   const handleApplyPreset = useCallback((presetId: string) => {
     const preset = presets.find((p) => p.id === presetId);
@@ -492,21 +521,41 @@ export function OutfitPanel() {
           <h3 className="text-muted-foreground mb-2 text-[10px] font-medium uppercase tracking-wider">
             Presets
           </h3>
-          <div className="mb-3 flex gap-1.5">
+          <div className="mb-3 space-y-2">
             <input
               type="text"
               value={presetName}
               onChange={(e) => setPresetName(e.target.value)}
               placeholder="Preset name..."
               aria-label="Preset name"
-              className="bg-background/50 border-border/50 focus:border-primary/50 flex-1 rounded border px-2 py-1 text-[11px] transition-colors placeholder:text-muted-foreground/40"
+              className="bg-background/50 border-border/50 focus:border-primary/50 w-full rounded border px-2 py-1 text-[11px] transition-colors placeholder:text-muted-foreground/40"
               onKeyDown={(e) => { if (e.key === 'Enter') handleSavePreset(); }}
             />
+            {greetingsList.length > 1 && (
+              <div className="relative">
+                <select
+                  value={selectedGreetingIndex ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedGreetingIndex(val === '' ? undefined : Number(val));
+                  }}
+                  className="bg-background/50 border-border/50 focus:border-primary/50 w-full appearance-none rounded border px-2 py-1 pr-6 text-[11px] transition-colors"
+                >
+                  <option value="">Default greeting</option>
+                  {greetingsList.slice(1).map((_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      Greeting {i + 2}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/40" />
+              </div>
+            )}
             <button
               type="button"
               onClick={handleSavePreset}
               disabled={!presetName.trim()}
-              className="bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 rounded px-2 py-1 text-[11px] font-medium transition-colors"
+              className="bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 w-full rounded px-2 py-1 text-[11px] font-medium transition-colors"
             >
               Save
             </button>
@@ -517,7 +566,14 @@ export function OutfitPanel() {
             <div className="space-y-1">
               {presets.map((preset) => (
                 <div key={preset.id} className="bg-background/50 flex items-center justify-between rounded px-2 py-1.5">
-                  <span className="text-foreground/80 text-[11px]">{preset.name}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-foreground/80 text-[11px]">{preset.name}</span>
+                    {preset.greetingIndex !== undefined && (
+                      <span className="bg-primary/10 text-primary rounded px-1 py-0.5 text-[9px]">
+                        {preset.greetingIndex === 0 ? 'Default' : `Greeting ${preset.greetingIndex + 1}`}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex gap-0.5">
                     <button
                       type="button"
