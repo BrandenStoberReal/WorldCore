@@ -6,15 +6,8 @@ import { PrefetchContext } from './DrawerShell';
 interface DrawerIconProps {
   icon: ReactNode;
   label: string;
-  sectionId: SectionId;
+  sectionId: SectionId | TopDrawerId;
   behavior: 'section' | 'top-drawer' | 'characters';
-  /**
-   * Marks the icon as character-contextual. Renders a small ember dot at the
-   * top-right corner so users can tell which icons are tied to the active
-   * character vs always-available. The parent is responsible for actually
-   * hiding the icon when no character is selected — this flag only controls
-   * the visual marker.
-   */
   requiresCharacter?: boolean;
 }
 

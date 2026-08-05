@@ -15,9 +15,11 @@ import {
   Puzzle,
   Palette,
   X,
+  Shirt,
 } from 'lucide-react';
 import { useNavStore, type SectionId, type TopDrawerId } from '@/lib/navStore';
 import { useChatStore } from '@/lib/stores';
+import { useExtensionEnabled } from '@/hooks/useExtensionEnabled';
 import { cn } from '@/lib/utils';
 
 interface MobileBottomNavProps {
@@ -37,6 +39,7 @@ interface MoreItem {
   id: TopDrawerId;
   icon: React.ReactNode;
   label: string;
+  requiresCharacter?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -57,6 +60,7 @@ const MORE_ITEMS: MoreItem[] = [
   { id: 'personas', icon: <UserCircle size={18} />, label: 'Personas' },
   { id: 'ui-settings', icon: <Palette size={18} />, label: 'UI Settings' },
   { id: 'settings', icon: <Settings size={18} />, label: 'Settings' },
+  { id: 'outfit', icon: <Shirt size={18} />, label: 'Outfit', requiresCharacter: true },
 ];
 
 export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar, position = 'bottom' }: MobileBottomNavProps) {
@@ -69,6 +73,13 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar, position =
   const activeCharacterId = useChatStore((s) => s.activeCharacterId);
   const [moreOpen, setMoreOpen] = useState(false);
   const isTop = position === 'top';
+  const outfitEnabled = useExtensionEnabled('outfit');
+
+  const visibleMoreItems = MORE_ITEMS.filter((item) => {
+    if (item.id === 'outfit' && !outfitEnabled) return false;
+    if (item.requiresCharacter && activeCharacterId === null) return false;
+    return true;
+  });
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -140,7 +151,7 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar, position =
             </div>
 
             <div className="max-h-[60vh] overflow-y-auto pb-2">
-              {MORE_ITEMS.map((item) => {
+              {visibleMoreItems.map((item) => {
                 const active = topDrawer === item.id;
                 return (
                   <button

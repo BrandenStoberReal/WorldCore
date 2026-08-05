@@ -21,6 +21,7 @@ const SETTINGS_IMPORT = () => import('@/panels/SettingsPanel');
 const UI_SETTINGS_IMPORT = () => import('@/panels/UISettingsPanel');
 const PERSONAS_IMPORT = () => import('@/panels/persona/PersonaPanel');
 const GENERATION_IMPORT = () => import('@/panels/GenerationPanel');
+const OUTFIT_IMPORT = () => import('@/panels/OutfitPanel').then((m) => ({ default: m.OutfitPanel }));
 
 const WorldInfoPanel = lazy(WORLDINFO_IMPORT);
 const ExtensionsPanel = lazy(EXTENSIONS_IMPORT);
@@ -30,6 +31,7 @@ const SettingsPanel = lazy(SETTINGS_IMPORT);
 const UISettingsPanel = lazy(UI_SETTINGS_IMPORT);
 const PersonaPanel = lazy(PERSONAS_IMPORT);
 const GenerationPanel = lazy(GENERATION_IMPORT);
+const OutfitPanel = lazy(OUTFIT_IMPORT);
 
 const PREFETCH_MAP: Record<string, () => Promise<{ default: React.ComponentType }>> = {
   worldinfo: WORLDINFO_IMPORT,
@@ -40,6 +42,7 @@ const PREFETCH_MAP: Record<string, () => Promise<{ default: React.ComponentType 
   'ui-settings': UI_SETTINGS_IMPORT,
   personas: PERSONAS_IMPORT,
   generation: GENERATION_IMPORT,
+  outfit: OUTFIT_IMPORT,
 };
 
 const TOP_DRAWER_PANELS: Record<string, React.ComponentType> = {
@@ -50,6 +53,7 @@ const TOP_DRAWER_PANELS: Record<string, React.ComponentType> = {
   'ui-settings': UISettingsPanel,
   settings: SettingsPanel,
   personas: PersonaPanel,
+  outfit: OutfitPanel,
 };
 
 /**

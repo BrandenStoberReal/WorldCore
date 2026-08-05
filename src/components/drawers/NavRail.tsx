@@ -10,16 +10,18 @@ import {
   Palette,
   UserCircle,
   Compass,
+  Shirt,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { DrawerIcon } from './DrawerIcon';
 import { useNavStore, type SectionId, type TopDrawerId } from '@/lib/navStore';
 import { useChatStore } from '@/lib/stores';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useExtensionEnabled } from '@/hooks/useExtensionEnabled';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
-  id: SectionId;
+  id: SectionId | TopDrawerId;
   icon: ReactNode;
   label: string;
   behavior: 'section' | 'top-drawer' | 'characters';
@@ -60,7 +62,19 @@ const SECTION_ITEMS: NavItem[] = [
     behavior: 'section',
     requiresCharacter: true,
   },
-  { id: 'character-browser', icon: <Compass size={16} />, label: 'Browse', behavior: 'section' },
+  {
+    id: 'character-browser',
+    icon: <Compass size={16} />,
+    label: 'Browse',
+    behavior: 'section',
+  },
+  {
+    id: 'outfit',
+    icon: <Shirt size={16} />,
+    label: 'Outfit',
+    behavior: 'top-drawer',
+    requiresCharacter: true,
+  },
 ];
 
 const DRAWER_ITEMS: NavItem[] = [
@@ -83,6 +97,15 @@ export function NavRail() {
   const activeCharacterId = useChatStore((s) => s.activeCharacterId);
   const { isMobile } = useBreakpoint();
   const drawerOpen = topDrawer !== null;
+  const outfitEnabled = useExtensionEnabled('outfit');
+
+  const visibleSectionItems = SECTION_ITEMS.filter((item) => {
+    if (!item.requiresCharacter || activeCharacterId !== null) {
+      if (item.id === 'outfit' && !outfitEnabled) return false;
+      return true;
+    }
+    return false;
+  });
 
   if (isMobile) {
     return null;
@@ -127,18 +150,16 @@ export function NavRail() {
             : 'border-border/60 h-9 py-1 opacity-100',
         )}
       >
-        {SECTION_ITEMS.filter((item) => !item.requiresCharacter || activeCharacterId !== null).map(
-          (item) => (
-            <DrawerIcon
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              sectionId={item.id}
-              behavior={item.behavior}
-              requiresCharacter={item.requiresCharacter}
-            />
-          ),
-        )}
+        {visibleSectionItems.map((item) => (
+          <DrawerIcon
+            key={item.id}
+            icon={item.icon}
+            label={item.label}
+            sectionId={item.id}
+            behavior={item.behavior}
+            requiresCharacter={item.requiresCharacter}
+          />
+        ))}
       </nav>
     </header>
   );
