@@ -10,6 +10,7 @@ import {
   ChevronUp,
   ChevronDown,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -26,7 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { IconButton } from '@/components/ui/icon-button';
-import { apiPost, deletePreset } from '@/lib/api';
+import { apiPost, deletePreset, renamePreset } from '@/lib/api';
 
 interface GenerationSidebarProps {
   mode?: 'sidebar' | 'drawer';
@@ -367,6 +368,8 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
   const [presetMessage, setPresetMessage] = useState<string>('');
   const [saveName, setSaveName] = useState('');
   const [showSaveInput, setShowSaveInput] = useState(false);
+  const [renameName, setRenameName] = useState('');
+  const [showRenameInput, setShowRenameInput] = useState(false);
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -670,6 +673,31 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
     }
   }, [preset, defaultPresets, queryClient, flashStatus]);
 
+  const handleRenamePreset = useCallback(async () => {
+    const newName = renameName.trim();
+    if (!newName || !preset) return;
+    if (defaultPresets.has(preset)) return;
+    if (newName === preset) {
+      flashStatus('err', 'New name is the same as the current name');
+      return;
+    }
+    if (presetNames.includes(newName)) {
+      flashStatus('err', `Preset "${newName}" already exists`);
+      return;
+    }
+    setPresetStatus('saving');
+    try {
+      await renamePreset('generation', preset, newName);
+      await queryClient.invalidateQueries({ queryKey: ['/api/v1/presets/all'] });
+      useGenerationStore.getState().updateParam('preset', newName);
+      flashStatus('ok', `Renamed to "${newName}"`);
+      setRenameName('');
+      setShowRenameInput(false);
+    } catch (err) {
+      flashStatus('err', err instanceof Error ? err.message : String(err));
+    }
+  }, [preset, renameName, presetNames, defaultPresets, queryClient, flashStatus]);
+
   const update = useCallback(
     <K extends keyof ReturnType<typeof useGenerationStore.getState>>(
       key: K,
@@ -751,6 +779,36 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                       'disabled:cursor-not-allowed disabled:opacity-40',
                     )}
                     title="Confirm save"
+                  >
+                    <Save className="h-2.5 w-2.5" strokeWidth={2} />
+                  </button>
+                </div>
+              ) : showRenameInput ? (
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="text"
+                    value={renameName}
+                    onChange={(e) => setRenameName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleRenamePreset();
+                      if (e.key === 'Escape') {
+                        setShowRenameInput(false);
+                        setRenameName('');
+                      }
+                    }}
+                    placeholder="New preset name"
+                    className="h-5 w-20 text-[10px]"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRenamePreset}
+                    disabled={!renameName.trim() || presetStatus === 'saving'}
+                    className={cn(
+                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors',
+                      'disabled:cursor-not-allowed disabled:opacity-40',
+                    )}
+                    title="Confirm rename"
                   >
                     <Save className="h-2.5 w-2.5" strokeWidth={2} />
                   </button>
@@ -867,19 +925,37 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               </SelectContent>
             </Select>
             {preset && !defaultPresets.has(preset) && (
-              <button
-                type="button"
-                onClick={handleDeletePreset}
-                disabled={presetStatus === 'saving' || presetStatus === 'loading'}
-                className={cn(
-                  'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors',
-                  'disabled:cursor-not-allowed disabled:opacity-40',
-                )}
-                title="Delete preset"
-                aria-label="Delete preset"
-              >
-                <Trash2 className="h-2.5 w-2.5" strokeWidth={2} />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRenameName(preset);
+                    setShowRenameInput(true);
+                  }}
+                  disabled={presetStatus === 'saving' || presetStatus === 'loading'}
+                  className={cn(
+                    'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors',
+                    'disabled:cursor-not-allowed disabled:opacity-40',
+                  )}
+                  title="Rename preset"
+                  aria-label="Rename preset"
+                >
+                  <Pencil className="h-2.5 w-2.5" strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeletePreset}
+                  disabled={presetStatus === 'saving' || presetStatus === 'loading'}
+                  className={cn(
+                    'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors',
+                    'disabled:cursor-not-allowed disabled:opacity-40',
+                  )}
+                  title="Delete preset"
+                  aria-label="Delete preset"
+                >
+                  <Trash2 className="h-2.5 w-2.5" strokeWidth={2} />
+                </button>
+              </>
             )}
           </div>
         </div>

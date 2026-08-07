@@ -11,12 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RotateCcw, Check, Upload, Trash2 } from 'lucide-react';
+import { RotateCcw, Check, Upload, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { InlineSection } from '@/components/drawers/InlineSection';
-import { apiFetch, apiGet, apiPost, deletePreset, savePreset } from '@/lib/api';
+import { apiFetch, apiGet, apiPost, deletePreset, renamePreset, savePreset } from '@/lib/api';
 import { useDebouncedAutoSave } from '@/hooks';
 import { parseSillyTavernOptions } from '@/lib/parseSillyTavernOptions';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -313,6 +313,9 @@ export function TextOptionsPanel() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
+  const [renameName, setRenameName] = useState('');
+  const [showRenameInput, setShowRenameInput] = useState(false);
+  const [renameCategory, setRenameCategory] = useState<string>('');
   const handleImportClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
@@ -523,6 +526,51 @@ export function TextOptionsPanel() {
     [defaultPresets, queryClient, setForm],
   );
 
+  const handleRenamePreset = useCallback(
+    async (category: string, oldName: string, newName: string) => {
+      if (!newName.trim() || !oldName || defaultPresets.has(oldName)) return;
+      const trimmedNewName = newName.trim();
+      if (trimmedNewName === oldName) {
+        toast.error('New name is the same as the current name');
+        return;
+      }
+      let existingNames: string[] = [];
+      if (category === 'context') {
+        existingNames = (contextPresets ?? []).map((p) => p.name).filter(Boolean);
+      } else if (category === 'instruct') {
+        existingNames = (instructPresets ?? []).map((p) => p.name).filter(Boolean);
+      } else if (category === 'sysprompt') {
+        existingNames = (syspromptPresets ?? []).map((p) => p.name).filter(Boolean);
+      } else if (category === 'reasoning') {
+        existingNames = (reasoningPresets ?? []).map((p) => p.name).filter(Boolean);
+      }
+      if (existingNames.includes(trimmedNewName)) {
+        toast.error(`Preset "${trimmedNewName}" already exists`);
+        return;
+      }
+      try {
+        await renamePreset(category, oldName, trimmedNewName);
+        await queryClient.invalidateQueries({ queryKey: ['/api/v1/presets/all'] });
+        if (category === 'context') {
+          setForm((f) => ({ ...f, context: { ...f.context, selectedPreset: trimmedNewName } }));
+        } else if (category === 'instruct') {
+          setForm((f) => ({ ...f, instruct: { ...f.instruct, selectedPreset: trimmedNewName } }));
+        } else if (category === 'sysprompt') {
+          setForm((f) => ({ ...f, sysprompt: { ...f.sysprompt, selectedPreset: trimmedNewName } }));
+        } else if (category === 'reasoning') {
+          setForm((f) => ({ ...f, reasoning: { ...f.reasoning, selectedPreset: trimmedNewName } }));
+        }
+        toast.success(`Renamed to "${trimmedNewName}"`);
+        setShowRenameInput(false);
+        setRenameName('');
+        setRenameCategory('');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [defaultPresets, contextPresets, instructPresets, syspromptPresets, reasoningPresets, queryClient, setForm],
+  );
+
   if (isLoading) {
     return <LoadingSpinner size="lg" label="loading text options" className="h-64" />;
   }
@@ -610,18 +658,62 @@ export function TextOptionsPanel() {
                   </Select>
                   {form.context.selectedPreset &&
                     !defaultPresets.has(form.context.selectedPreset) && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeletePreset('context', form.context.selectedPreset)}
-                        className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
-                        title="Delete preset"
-                        aria-label="Delete preset"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRenameName(form.context.selectedPreset);
+                            setRenameCategory('context');
+                            setShowRenameInput(true);
+                          }}
+                          className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                          title="Rename preset"
+                          aria-label="Rename preset"
+                        >
+                          <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePreset('context', form.context.selectedPreset)}
+                          className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                          title="Delete preset"
+                          aria-label="Delete preset"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                        </button>
+                      </>
                     )}
                 </div>
               </div>
+
+              {showRenameInput && renameCategory === 'context' && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="text"
+                    value={renameName}
+                    onChange={(e) => setRenameName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleRenamePreset('context', form.context.selectedPreset, renameName);
+                      if (e.key === 'Escape') {
+                        setShowRenameInput(false);
+                        setRenameName('');
+                        setRenameCategory('');
+                      }
+                    }}
+                    placeholder="New preset name"
+                    className="h-7 flex-1 font-mono text-[13px]"
+                    autoFocus
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRenamePreset('context', form.context.selectedPreset, renameName)}
+                    disabled={!renameName.trim()}
+                  >
+                    Rename
+                  </Button>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label className="text-[13px] font-medium">Story String</Label>
@@ -828,18 +920,62 @@ export function TextOptionsPanel() {
                       </Select>
                       {form.instruct.selectedPreset &&
                         !defaultPresets.has(form.instruct.selectedPreset) && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePreset('instruct', form.instruct.selectedPreset)}
-                            className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
-                            title="Delete preset"
-                            aria-label="Delete preset"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRenameName(form.instruct.selectedPreset);
+                                setRenameCategory('instruct');
+                                setShowRenameInput(true);
+                              }}
+                              className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                              title="Rename preset"
+                              aria-label="Rename preset"
+                            >
+                              <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePreset('instruct', form.instruct.selectedPreset)}
+                              className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                              title="Delete preset"
+                              aria-label="Delete preset"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                            </button>
+                          </>
                         )}
                     </div>
                   </div>
+
+                  {showRenameInput && renameCategory === 'instruct' && (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        value={renameName}
+                        onChange={(e) => setRenameName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenamePreset('instruct', form.instruct.selectedPreset, renameName);
+                          if (e.key === 'Escape') {
+                            setShowRenameInput(false);
+                            setRenameName('');
+                            setRenameCategory('');
+                          }
+                        }}
+                        placeholder="New preset name"
+                        className="h-7 flex-1 font-mono text-[13px]"
+                        autoFocus
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRenamePreset('instruct', form.instruct.selectedPreset, renameName)}
+                        disabled={!renameName.trim()}
+                      >
+                        Rename
+                      </Button>
+                    </div>
+                  )}
 
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-medium">Story String Prefix</Label>
@@ -1241,20 +1377,64 @@ export function TextOptionsPanel() {
                       </Select>
                       {form.sysprompt.selectedPreset &&
                         !defaultPresets.has(form.sysprompt.selectedPreset) && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleDeletePreset('sysprompt', form.sysprompt.selectedPreset)
-                            }
-                            className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
-                            title="Delete preset"
-                            aria-label="Delete preset"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRenameName(form.sysprompt.selectedPreset);
+                                setRenameCategory('sysprompt');
+                                setShowRenameInput(true);
+                              }}
+                              className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                              title="Rename preset"
+                              aria-label="Rename preset"
+                            >
+                              <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDeletePreset('sysprompt', form.sysprompt.selectedPreset)
+                              }
+                              className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                              title="Delete preset"
+                              aria-label="Delete preset"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                            </button>
+                          </>
                         )}
                     </div>
                   </div>
+
+                  {showRenameInput && renameCategory === 'sysprompt' && (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        value={renameName}
+                        onChange={(e) => setRenameName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenamePreset('sysprompt', form.sysprompt.selectedPreset, renameName);
+                          if (e.key === 'Escape') {
+                            setShowRenameInput(false);
+                            setRenameName('');
+                            setRenameCategory('');
+                          }
+                        }}
+                        placeholder="New preset name"
+                        className="h-7 flex-1 font-mono text-[13px]"
+                        autoFocus
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRenamePreset('sysprompt', form.sysprompt.selectedPreset, renameName)}
+                        disabled={!renameName.trim()}
+                      >
+                        Rename
+                      </Button>
+                    </div>
+                  )}
 
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-medium">Prompt Content</Label>
@@ -1372,20 +1552,64 @@ export function TextOptionsPanel() {
                   </Select>
                   {form.reasoning.selectedPreset &&
                     !defaultPresets.has(form.reasoning.selectedPreset) && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleDeletePreset('reasoning', form.reasoning.selectedPreset)
-                        }
-                        className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
-                        title="Delete preset"
-                        aria-label="Delete preset"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRenameName(form.reasoning.selectedPreset);
+                            setRenameCategory('reasoning');
+                            setShowRenameInput(true);
+                          }}
+                          className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                          title="Rename preset"
+                          aria-label="Rename preset"
+                        >
+                          <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDeletePreset('reasoning', form.reasoning.selectedPreset)
+                          }
+                          className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
+                          title="Delete preset"
+                          aria-label="Delete preset"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                        </button>
+                      </>
                     )}
+                    </div>
+                  </div>
+
+              {showRenameInput && renameCategory === 'reasoning' && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="text"
+                    value={renameName}
+                    onChange={(e) => setRenameName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleRenamePreset('reasoning', form.reasoning.selectedPreset, renameName);
+                      if (e.key === 'Escape') {
+                        setShowRenameInput(false);
+                        setRenameName('');
+                        setRenameCategory('');
+                      }
+                    }}
+                    placeholder="New preset name"
+                    className="h-7 flex-1 font-mono text-[13px]"
+                    autoFocus
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRenamePreset('reasoning', form.reasoning.selectedPreset, renameName)}
+                    disabled={!renameName.trim()}
+                  >
+                    Rename
+                  </Button>
                 </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
