@@ -25,6 +25,14 @@ export const streamingRoutes = {
 
     const parsed = ChatCompletionRequestSchema.parse(body);
 
+    // Propagate the incoming client-disconnect signal to the upstream adapter
+    // so the LLM fetch aborts when the browser tab closes/backgrounds and the
+    // connection drops. Adapters pass `req.signal` straight into their fetch();
+    // without this, abandoned clients leave the upstream (eg. llama.cpp)
+    // generating into a dead socket — wasting GPU and, on backends with a
+    // single in-flight slot, blocking every subsequent request.
+    (parsed as Record<string, unknown>).signal = req.signal;
+
     if (parsed.streaming === false) {
       const nonStreamReq: ChatCompletionRequest = { ...parsed, stream: false };
       const response = await chatGenerateHandler(nonStreamReq);
@@ -39,6 +47,9 @@ export const streamingRoutes = {
       ...parsed,
       stream: true,
     };
+    // The spread above copied the signal through, but be explicit so a future
+    // schema change cannot silently drop it.
+    (streamReq as Record<string, unknown>).signal = req.signal;
 
     const response = await chatGenerateHandler(streamReq);
 
@@ -68,7 +79,7 @@ export const streamingRoutes = {
   textStream: errorGuard(async (req: Request): Promise<Response> => {
     const body = await req.json();
     const parsed = TextCompletionRequestSchema.parse(body);
-    console.log('[textStream] request:', JSON.stringify(parsed).slice(0, 500));
+    (parsed as Record<string, unknown>).signal = req.signal;
     const response = await textGenerateHandler(parsed as TextCompletionRequest);
     if (!response.ok) {
       const errText = await response
