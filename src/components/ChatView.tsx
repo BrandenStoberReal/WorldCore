@@ -80,10 +80,10 @@ export function ChatView({ characterId }: ChatViewProps) {
   const appendStreamingContent = useChatStore((s) => s.appendStreamingContent);
   const startStreaming = useChatStore((s) => s.startStreaming);
   const commitStreaming = useChatStore((s) => s.commitStreaming);
-const setIsGenerating = useChatStore((s) => s.setIsGenerating);
-const clearChat = useChatStore((s) => s.clearChat);
-const activeGreetingIndex = useChatStore((s) => s.activeGreetingIndex);
-const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
+  const setIsGenerating = useChatStore((s) => s.setIsGenerating);
+  const clearChat = useChatStore((s) => s.clearChat);
+  const activeGreetingIndex = useChatStore((s) => s.activeGreetingIndex);
+  const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
 
   const genMaxContext = useGenerationStore((s) => s.max_context);
   const genStop = useGenerationStore((s) => s.stop);
@@ -109,18 +109,24 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
   // Drip buffer state: pending chunks waiting to be released to the UI at a
   // pace determined by `smoothStreaming`. 0 = no pacing (release immediately).
   // Higher = slower drip rate (smoother reveal).
+  // `lastDripAt` bounds worst-case display lag when the tab is backgrounded
+  // and setTimeout is throttled into oblivion: if a queued drip callback has
+  // not fired within 1.5x its own delay, the next incoming chunk flushes
+  // pending directly rather than waiting on the throttled scheduler.
   const dripRef = useRef<{
     pending: string;
     timer: ReturnType<typeof setTimeout> | null;
     bodyDripEmitted: number;
     thinkingSoFar: string | undefined;
     inThinking: boolean;
+    lastDripAt: number;
   }>({
     pending: '',
     timer: null,
     bodyDripEmitted: 0,
     thinkingSoFar: undefined,
     inThinking: false,
+    lastDripAt: 0,
   });
 
   const flushDrip = useCallback(() => {
@@ -131,8 +137,21 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
     if (dripRef.current.pending) {
       appendStreamingContent(dripRef.current.pending);
       dripRef.current.pending = '';
+      dripRef.current.lastDripAt = Date.now();
     }
   }, [appendStreamingContent]);
+
+  const resetDrip = useCallback(() => {
+    if (dripRef.current.timer) {
+      clearTimeout(dripRef.current.timer);
+      dripRef.current.timer = null;
+    }
+    dripRef.current.pending = '';
+    dripRef.current.bodyDripEmitted = 0;
+    dripRef.current.thinkingSoFar = undefined;
+    dripRef.current.inThinking = false;
+    dripRef.current.lastDripAt = Date.now();
+  }, []);
 
   const scheduleDrip = useCallback(() => {
     const { smoothStreaming } = useAppStore.getState();
@@ -140,7 +159,22 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
       flushDrip();
       return;
     }
+    // If a drip is already scheduled but the tab was throttled (mobile FF
+    // Android throttles backgrounded timers to ~1/min) and we have pending
+    // data that has waited more than ~1.5x the intended delay, release it
+    // immediately rather than letting the placeholder sit empty. This is the
+    // visibilitychange-independent safeguard that keeps tokens flowing during
+    // backgrounded/returning-to-focus streams.
     const delayMs = Math.round(smoothStreaming);
+    if (
+      dripRef.current.timer &&
+      dripRef.current.lastDripAt &&
+      Date.now() - dripRef.current.lastDripAt > delayMs * 1.5
+    ) {
+      flushDrip();
+      return;
+    }
+    if (dripRef.current.timer) return;
     dripRef.current.timer = setTimeout(() => {
       const pending = dripRef.current.pending;
       if (!pending) {
@@ -151,13 +185,15 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
       const slice = pending.slice(0, SLICE);
       dripRef.current.pending = pending.slice(SLICE);
       appendStreamingContent(slice);
+      dripRef.current.lastDripAt = Date.now();
       if (dripRef.current.pending) {
+        dripRef.current.timer = null;
         scheduleDripRef.current?.();
       } else {
         dripRef.current.timer = null;
       }
     }, delayMs);
-  }, [appendStreamingContent]);
+  }, [appendStreamingContent, flushDrip]);
 
   const scheduleDripRef = useRef(scheduleDrip);
   scheduleDripRef.current = scheduleDrip;
@@ -418,10 +454,17 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
         const latestMessages = useChatStore.getState().messages;
         const committedMsg = latestMessages[latestMessages.length - 1];
         if (committedMsg && !committedMsg.is_user) {
+          // Optimistic commit: hold the sync effect until the server has
+          // persisted the stopped-stream message.
+          localModificationsRef.current = true;
           void apiPost('/chats/message', {
             fileId: activeChatId,
             action: 'append',
             message: committedMsg,
+          }).finally(() => {
+            setTimeout(() => {
+              localModificationsRef.current = false;
+            }, 0);
           });
 
           if (outfitData && !outfitData.disabled && character) {
@@ -438,6 +481,7 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
     setIsGenerating,
     commitStreaming,
     flushDrip,
+    resetDrip,
     reasoningSettings,
     setStreamingContent,
     setStreamingThinking,
@@ -485,7 +529,13 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
         const raw = localStorage.getItem(key);
         if (raw) {
           const outfitData = JSON.parse(raw) as {
-            presets?: Array<{ id: string; greetingIndex?: number; items: Record<string, string>; regions?: unknown[]; customPanels?: unknown[] }>;
+            presets?: Array<{
+              id: string;
+              greetingIndex?: number;
+              items: Record<string, string>;
+              regions?: unknown[];
+              customPanels?: unknown[];
+            }>;
             items?: Record<string, string>;
             regions?: unknown[];
             customPanels?: unknown[];
@@ -530,8 +580,22 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
         extra: {},
       };
 
+      // Mark local modifications so the chat-data sync effect (which fires when
+      // appendMessageMutation's onSuccess invalidates /chats/get) does NOT
+      // overwrite our optimistic message with stale server data mid-generation.
+      // Reset below once the server has actually persisted the message.
+      localModificationsRef.current = true;
       addMessage(userMsg);
-      await appendMessageMutation.mutateAsync({ fileId: activeChatId, message: userMsg });
+      try {
+        await appendMessageMutation.mutateAsync({ fileId: activeChatId, message: userMsg });
+      } finally {
+        // Re-enable sync once the refetch that fires from onSuccess has had a
+        // chance to run (next render cycle). The /chats/get refetch now includes
+        // the user message we just persisted, so it is safe to let it win.
+        setTimeout(() => {
+          localModificationsRef.current = false;
+        }, 0);
+      }
 
       const allMessages = [...useChatStore.getState().messages, userMsg];
 
@@ -613,9 +677,7 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
       setIsThinkingStream(false);
       startStreaming();
       isRegeneratingRef.current = false;
-      dripRef.current.bodyDripEmitted = 0;
-      dripRef.current.thinkingSoFar = undefined;
-      dripRef.current.inThinking = false;
+      resetDrip();
 
       abortRef.current = new AbortController();
 
@@ -794,11 +856,26 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
             send_date: new Date().toISOString(),
             extra: thinkingDuration !== undefined ? { thinkingDuration } : {},
           };
+          // Same optimistic-write guard as the user message above: the mutation's
+          // onSuccess invalidates /chats/get, and the resulting refetch can beat
+          // the server's persistence of this very message. Hold localModifications
+          // until the refetch has settled so the sync effect cannot wipe the
+          // committed assistant message.
+          localModificationsRef.current = true;
           addMessage(assistantMsg);
           setStreamingContent('');
           setStreamingThinking(undefined);
           setIsThinkingStream(false);
-          await appendMessageMutation.mutateAsync({ fileId: activeChatId, message: assistantMsg });
+          try {
+            await appendMessageMutation.mutateAsync({
+              fileId: activeChatId,
+              message: assistantMsg,
+            });
+          } finally {
+            setTimeout(() => {
+              localModificationsRef.current = false;
+            }, 0);
+          }
         }
       } catch (err) {
         const error = err as Error;
@@ -819,14 +896,21 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
               send_date: new Date().toISOString(),
               extra: thinkingDuration !== undefined ? { thinkingDuration } : {},
             };
+            localModificationsRef.current = true;
             addMessage(assistantMsg);
             setStreamingContent('');
             setStreamingThinking(undefined);
             setIsThinkingStream(false);
-            await appendMessageMutation.mutateAsync({
-              fileId: activeChatId,
-              message: assistantMsg,
-            });
+            try {
+              await appendMessageMutation.mutateAsync({
+                fileId: activeChatId,
+                message: assistantMsg,
+              });
+            } finally {
+              setTimeout(() => {
+                localModificationsRef.current = false;
+              }, 0);
+            }
           }
         }
       } finally {
@@ -858,6 +942,7 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
       smoothStreaming,
       scheduleDrip,
       flushDrip,
+      resetDrip,
       reasoningSettings,
       fullContentRef,
     ],
@@ -982,9 +1067,7 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
       setIsThinkingStream(false);
       startStreaming();
       isRegeneratingRef.current = true;
-      dripRef.current.bodyDripEmitted = 0;
-      dripRef.current.thinkingSoFar = undefined;
-      dripRef.current.inThinking = false;
+      resetDrip();
       abortRef.current = new AbortController();
 
       const genParams: Record<string, unknown> = {
@@ -1246,15 +1329,24 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
             // Non-fatal: local state is already correct via setMessages below.
           }
           const newMessages = [...truncatedMessages, assistantMsg];
+          // Guard the in-flight regen against the /chats/get sync effect: the
+          // prior sendMessage's invalidation can race with this commit.
+          localModificationsRef.current = true;
           setMessages(newMessages);
           setStreamingContent('');
           setStreamingThinking(undefined);
           setIsThinkingStream(false);
-          await apiPost('/chats/message', {
-            fileId: activeChatId,
-            action: 'append',
-            message: assistantMsg,
-          });
+          try {
+            await apiPost('/chats/message', {
+              fileId: activeChatId,
+              action: 'append',
+              message: assistantMsg,
+            });
+          } finally {
+            setTimeout(() => {
+              localModificationsRef.current = false;
+            }, 0);
+          }
         }
       } catch (err) {
         const error = err as Error;
@@ -1294,26 +1386,38 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
       smoothStreaming,
       scheduleDrip,
       flushDrip,
+      resetDrip,
       reasoningSettings,
       fullContentRef,
     ],
   );
 
-  const displayMessages = useMemo(() => [
-    ...messages,
-    ...(streamingContent || isThinkingStream || isGenerating
-      ? [
-          {
-            name: character?.name ?? '',
-            is_user: false,
-            mes: streamingContent,
-            thinking: streamingThinking,
-            send_date: streamingSendDate,
-            extra: {},
-          } as ChatMessageType,
-        ]
-      : []),
-  ], [messages, streamingContent, isThinkingStream, isGenerating, character?.name, streamingThinking, streamingSendDate]);
+  const displayMessages = useMemo(
+    () => [
+      ...messages,
+      ...(streamingContent || isThinkingStream || isGenerating
+        ? [
+            {
+              name: character?.name ?? '',
+              is_user: false,
+              mes: streamingContent,
+              thinking: streamingThinking,
+              send_date: streamingSendDate,
+              extra: {},
+            } as ChatMessageType,
+          ]
+        : []),
+    ],
+    [
+      messages,
+      streamingContent,
+      isThinkingStream,
+      isGenerating,
+      character?.name,
+      streamingThinking,
+      streamingSendDate,
+    ],
+  );
 
   if (charLoading) {
     return <LoadingSpinner size="lg" label="retrieving persona" className="h-full" />;
@@ -1388,7 +1492,11 @@ const setActiveGreetingIndex = useChatStore((s) => s.setActiveGreetingIndex);
       </header>
 
       {/* Messages stream */}
-      <div ref={scrollContainerRef} onScroll={handleScroll} className="relative flex-1 overflow-y-auto scroll-mobile">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="scroll-mobile relative flex-1 overflow-y-auto"
+      >
         <div className="relative mx-auto max-w-6xl space-y-3 px-3 py-3 sm:space-y-4 sm:px-10 sm:py-4">
           {displayMessages.map((msg, i) => (
             <ChatMessage
