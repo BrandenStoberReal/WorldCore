@@ -14,7 +14,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       <button
         ref={ref}
         className={cn(
-          'flex items-center gap-1 rounded-md p-0.5 transition-colors',
+          'flex items-center gap-1 rounded-md touch-target p-0.5 transition-colors',
           active ? 'bg-accent/40 text-foreground' : 'text-foreground/40 hover:bg-accent/30',
           variant === 'destructive' && 'hover:text-destructive hover:bg-destructive/10',
           variant === 'default' && 'hover:text-ember',

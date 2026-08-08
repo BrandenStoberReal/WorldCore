@@ -120,4 +120,72 @@ describe('Presets routes', () => {
     );
     expect(res.status).toBe(404);
   });
+
+  it('rename returns ok', async () => {
+    await presetsRoutes.save(
+      new Request('http://localhost/api/v1/presets/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preset: testPreset }),
+      }),
+    );
+
+    const res = await presetsRoutes.rename(
+      new Request('http://localhost/api/v1/presets/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: 'sysprompt',
+          oldName: 'route-test-preset-t14',
+          newName: 'route-test-preset-t14-renamed',
+        }),
+      }),
+    );
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as Record<string, unknown>;
+    expect(data.ok).toBe(true);
+
+    const getRes = await presetsRoutes.get(
+      new Request('http://localhost/api/v1/presets/get', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: 'sysprompt',
+          name: 'route-test-preset-t14-renamed',
+        }),
+      }),
+    );
+    expect(getRes.status).toBe(200);
+    const getData = (await getRes.json()) as {
+      category: string;
+      data: Record<string, unknown>;
+    };
+    expect(getData.data.name).toBe('route-test-preset-t14-renamed');
+
+    await presetsRoutes.delete(
+      new Request('http://localhost/api/v1/presets/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: 'sysprompt',
+          name: 'route-test-preset-t14-renamed',
+        }),
+      }),
+    );
+  });
+
+  it('rename non-existent returns error', async () => {
+    const res = await presetsRoutes.rename(
+      new Request('http://localhost/api/v1/presets/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: 'sysprompt',
+          oldName: 'nonexistent-route-t14',
+          newName: 'new-name',
+        }),
+      }),
+    );
+    expect(res.status).toBe(500);
+  });
 });

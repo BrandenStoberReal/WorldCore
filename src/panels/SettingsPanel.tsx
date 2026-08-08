@@ -226,7 +226,7 @@ export function SettingsPanel() {
               size="sm"
               onClick={handleScan}
               disabled={scanQuery.isFetching}
-              className="h-8 shrink-0"
+              className="h-8 touch-target shrink-0"
             >
               {scanQuery.isFetching ? (
                 <LoadingSpinner size="sm" />
@@ -283,7 +283,7 @@ export function SettingsPanel() {
           {!scanQuery.isFetching && orphans.length > 0 && (
             <div className="space-y-1">
               {/* Select-all row */}
-              <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[12px] select-none">
+              <label className="touch-target flex cursor-pointer items-center gap-2 px-1 py-1 text-[12px] select-none">
                 <input
                   type="checkbox"
                   checked={allSelected}
@@ -301,7 +301,7 @@ export function SettingsPanel() {
               {orphans.map((orphan) => (
                 <label
                   key={orphan.absolutePath}
-                  className="hover:bg-accent/20 flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1.5 transition-colors"
+                  className="hover:bg-accent/20 touch-target flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1.5 transition-colors"
                 >
                   <input
                     type="checkbox"
@@ -337,7 +337,7 @@ export function SettingsPanel() {
                   size="sm"
                   onClick={() => setConfirmOpen(true)}
                   disabled={selected.size === 0}
-                  className="h-8"
+                  className="h-8 touch-target"
                 >
                   <FileX className="h-3.5 w-3.5" />
                   <span className="mono-tag font-bold">DELETE SELECTED ({selected.size})</span>

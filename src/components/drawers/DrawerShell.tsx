@@ -21,6 +21,10 @@ const SETTINGS_IMPORT = () => import('@/panels/SettingsPanel');
 const UI_SETTINGS_IMPORT = () => import('@/panels/UISettingsPanel');
 const PERSONAS_IMPORT = () => import('@/panels/persona/PersonaPanel');
 const GENERATION_IMPORT = () => import('@/panels/GenerationPanel');
+const GENERATION_MOBILE_IMPORT = () =>
+  import('@/panels/GenerationPanel').then((m) => ({ default: m.GenerationPanelMobile }));
+const GENERATION_DESKTOP_IMPORT = () =>
+  import('@/panels/GenerationPanel').then((m) => ({ default: m.GenerationPanelDesktop }));
 const OUTFIT_IMPORT = () => import('@/panels/OutfitPanel').then((m) => ({ default: m.OutfitPanel }));
 
 const WorldInfoPanel = lazy(WORLDINFO_IMPORT);
@@ -30,7 +34,8 @@ const TextOptionsPanel = lazy(TEXTOPTIONS_IMPORT);
 const SettingsPanel = lazy(SETTINGS_IMPORT);
 const UISettingsPanel = lazy(UI_SETTINGS_IMPORT);
 const PersonaPanel = lazy(PERSONAS_IMPORT);
-const GenerationPanel = lazy(GENERATION_IMPORT);
+const GenerationPanelMobile = lazy(GENERATION_MOBILE_IMPORT);
+const GenerationPanelDesktop = lazy(GENERATION_DESKTOP_IMPORT);
 const OutfitPanel = lazy(OUTFIT_IMPORT);
 
 const PREFETCH_MAP: Record<string, () => Promise<{ default: React.ComponentType }>> = {
@@ -205,7 +210,12 @@ export function DrawerShell() {
       >
         <DeviceGuard desktop>
           <Suspense fallback={null}>
-            <GenerationPanel closed={!genSidebarOpen} onToggle={toggleGenSidebar} />
+            <GenerationPanelDesktop closed={!genSidebarOpen} onToggle={toggleGenSidebar} />
+          </Suspense>
+        </DeviceGuard>
+        <DeviceGuard mobile>
+          <Suspense fallback={null}>
+            <GenerationPanelMobile closed={!genSidebarOpen} onToggle={toggleGenSidebar} />
           </Suspense>
         </DeviceGuard>
         <CenterPageHost />

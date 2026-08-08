@@ -412,7 +412,7 @@ export function CharacterBrowserPanel() {
                     disabled={state === 'downloading' || state === 'done'}
                     onClick={() => handleDownload(listing)}
                     className={cn(
-                      'absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-md border transition-colors',
+                      'touch-target absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-md border transition-colors',
                       state === 'idle' &&
                         'border-border/60 bg-background/80 text-muted-foreground hover:bg-background hover:text-foreground',
                       state === 'downloading' &&

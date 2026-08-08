@@ -70,8 +70,8 @@ export function PersonaPanel() {
           }
         />
 
-        <div className="mt-4 flex gap-4">
-          <div className="w-64 shrink-0">
+        <div className="mt-4 flex flex-col gap-4 md:flex-row">
+          <div className="w-full shrink-0 md:w-64">
             <PersonaList
               personas={personas}
               selectedId={selectedId}
@@ -80,7 +80,9 @@ export function PersonaPanel() {
             />
           </div>
           {selected ? (
-            <PersonaForm persona={selected} editor={editor} />
+            <div className="w-full md:w-72">
+              <PersonaForm persona={selected} editor={editor} />
+            </div>
           ) : (
             <div className="text-muted-foreground flex min-w-0 flex-1 items-center justify-center text-sm">
               Select a persona or create a new one.

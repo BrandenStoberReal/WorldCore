@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { ReactNode } from 'react';
+import { X } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useNavStore } from '@/lib/navStore';
 import { cn } from '@/lib/utils';
@@ -69,6 +70,29 @@ export function DrawerSlot({ direction, open, children }: DrawerSlotProps) {
       onTouchEnd={handleTouchEnd}
     >
       {children}
+      {/* Top-drawer close affordance — mobile only (sm:hidden).
+          Desktop relies on Escape key + clicking another nav icon.
+          Placed top-LEFT to avoid clashing with PageHeader's right-aligned action slot
+          (6 of 7 panels use it). Swipe-to-close also expects leftward motion on top drawers.
+          Characters drawer already has its own close affordance in DrawerShell. */}
+      {direction === 'top' && open && (
+        <button
+          type="button"
+          onClick={handleClose}
+          className={cn(
+            'touch-target absolute left-2.5 z-50 rounded-lg p-2 transition-colors sm:hidden',
+            'text-muted-foreground hover:text-ember hover:bg-muted',
+            'bg-background/80 backdrop-blur-sm border border-border/60 shadow-sm',
+          )}
+          style={{
+            top: 'calc(env(safe-area-inset-top, 0px) + 0.625rem)',
+          }}
+          aria-label="Close panel"
+          title="Close panel"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }

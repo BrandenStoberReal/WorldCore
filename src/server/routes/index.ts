@@ -185,6 +185,7 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   routes[`${PREFIX}/presets/all`] = presetsRoutes.all;
   routes[`${PREFIX}/presets/save`] = presetsRoutes.save;
   routes[`${PREFIX}/presets/delete`] = presetsRoutes.delete;
+  routes[`${PREFIX}/presets/rename`] = presetsRoutes.rename;
   routes[`${PREFIX}/presets/import`] = presetsRoutes.import;
   routes[`${PREFIX}/presets/export`] = presetsRoutes.export;
 

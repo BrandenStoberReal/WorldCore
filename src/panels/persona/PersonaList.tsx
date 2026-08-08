@@ -60,11 +60,11 @@ export function PersonaList({ personas, selectedId, onSelect, isLoading }: Perso
           {persona.isDefault && (
             <Star className="h-3 w-3 shrink-0 text-amber-500" fill="currentColor" />
           )}
-          <div className="hidden shrink-0 gap-0.5 group-hover:flex">
+          <div className="flex shrink-0 gap-0.5 sm:hidden sm:group-hover:flex">
             <Button
               variant="ghost"
               size="icon"
-              className="h-5 w-5"
+              className="touch-target h-auto w-auto rounded-md p-1"
               onClick={(e) => {
                 e.stopPropagation();
                 defaultMutation.mutate(persona.id);
@@ -76,7 +76,7 @@ export function PersonaList({ personas, selectedId, onSelect, isLoading }: Perso
             <Button
               variant="ghost"
               size="icon"
-              className="text-destructive h-5 w-5"
+              className="text-destructive touch-target h-auto w-auto rounded-md p-1"
               disabled={persona.isDefault}
               onClick={(e) => {
                 e.stopPropagation();

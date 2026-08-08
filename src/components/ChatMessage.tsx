@@ -319,7 +319,7 @@ export const ChatMessage = memo(function ChatMessage({
               type="button"
               onClick={() => onGreetingChange(Math.max(0, activeGreetingIndex - 1))}
               disabled={activeGreetingIndex === 0}
-              className="text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+              className="text-muted-foreground/40 hover:text-muted-foreground touch-target disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
               title="Previous greeting"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -332,7 +332,7 @@ export const ChatMessage = memo(function ChatMessage({
               type="button"
               onClick={() => onGreetingChange(Math.min(alternateGreetings.length, activeGreetingIndex + 1))}
               disabled={activeGreetingIndex >= alternateGreetings.length}
-              className="text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+              className="text-muted-foreground/40 hover:text-muted-foreground touch-target disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
               title="Next greeting"
             >
               <ChevronRight className="h-4 w-4" />
@@ -410,7 +410,7 @@ export const ChatMessage = memo(function ChatMessage({
                 setTimeout(() => setCopied(false), 2000);
                 setContextMenu(null);
               }}
-              className="hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+              className="touch-target hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
             >
               {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? 'Copied' : 'Copy'}
@@ -428,7 +428,7 @@ export const ChatMessage = memo(function ChatMessage({
                   }
                   setContextMenu(null);
                 }}
-                className="hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+                className="touch-target hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 {isEditing ? 'Save' : 'Edit'}
@@ -442,7 +442,7 @@ export const ChatMessage = memo(function ChatMessage({
                   onRegenerate(index);
                   setContextMenu(null);
                 }}
-                className="hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+                className="touch-target hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Regenerate
@@ -456,7 +456,7 @@ export const ChatMessage = memo(function ChatMessage({
                   onDelete(index);
                   setContextMenu(null);
                 }}
-                className="hover:bg-destructive/10 hover:text-destructive flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+                className="hover:bg-destructive/10 hover:text-destructive touch-target flex items-center gap-2 rounded-md px-3 py-2 text-xs"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete

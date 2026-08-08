@@ -219,7 +219,7 @@ export function ExtensionsPanel() {
                       size="sm"
                       onClick={() => updateMutation.mutate(ext.id)}
                       disabled={updateMutation.isPending}
-                      className="text-muted-foreground/50 hover:text-ember h-6 px-1.5 text-[11px]"
+                      className="text-muted-foreground/50 hover:text-ember touch-target h-6 px-1.5 text-[11px]"
                     >
                       <RefreshCw
                         className={cn(
@@ -236,7 +236,7 @@ export function ExtensionsPanel() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-muted-foreground/50 hover:text-destructive h-6 px-1.5 text-[11px]"
+                      className="text-muted-foreground/50 hover:text-destructive touch-target h-6 px-1.5 text-[11px]"
                       onClick={() => setUninstallId(ext.id)}
                       disabled={uninstallMutation.isPending}
                       aria-label="uninstall extension"

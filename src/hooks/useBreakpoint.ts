@@ -125,6 +125,7 @@ export function usePrefersReducedMotion(): boolean {
 
 /**
  * Hook to get safe area insets for notched devices.
+ * Reads CSS custom properties that reference env(safe-area-inset-*).
  */
 export function useSafeAreaInsets() {
   const [insets, setInsets] = useState({
@@ -137,11 +138,17 @@ export function useSafeAreaInsets() {
   useEffect(() => {
     const updateInsets = () => {
       const style = getComputedStyle(document.documentElement);
+      // Read CSS custom properties that map to env(safe-area-inset-*)
+      // These are defined in globals.css: --safe-area-top, --safe-area-bottom, etc.
+      const readPx = (prop: string) => {
+        const val = style.getPropertyValue(prop).trim();
+        return parseInt(val) || 0;
+      };
       setInsets({
-        top: parseInt(style.getPropertyValue('env(safe-area-inset-top)')) || 0,
-        right: parseInt(style.getPropertyValue('env(safe-area-inset-right)')) || 0,
-        bottom: parseInt(style.getPropertyValue('env(safe-area-inset-bottom)')) || 0,
-        left: parseInt(style.getPropertyValue('env(safe-area-inset-left)')) || 0,
+        top: readPx('--safe-area-top'),
+        right: readPx('--safe-area-right'),
+        bottom: readPx('--safe-area-bottom'),
+        left: readPx('--safe-area-left'),
       });
     };
 

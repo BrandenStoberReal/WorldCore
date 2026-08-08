@@ -47,6 +47,11 @@ function injectScript(extId: string, jsPath: string): HTMLScriptElement {
   script.type = 'module';
   script.dataset.worldcoreExt = extId;
   script.src = assetUrl(extId, jsPath);
+
+  script.onerror = () => {
+    console.error(`[worldcore-ext] failed to load script for extension "${extId}":`, jsPath);
+  };
+
   document.head.appendChild(script);
   return script;
 }
@@ -56,6 +61,11 @@ function injectStylesheet(extId: string, cssPath: string): HTMLLinkElement {
   link.rel = 'stylesheet';
   link.dataset.worldcoreExt = extId;
   link.href = assetUrl(extId, cssPath);
+
+  link.onerror = () => {
+    console.error(`[worldcore-ext] failed to load stylesheet for extension "${extId}":`, cssPath);
+  };
+
   document.head.appendChild(link);
   return link;
 }
@@ -85,6 +95,11 @@ export async function loadExtension(row: ExtensionRow): Promise<LoadResult> {
   const manifest = getManifest(row);
   if (!manifest) {
     return { row, status: 'failed', error: 'missing manifest cache' };
+  }
+
+  if (!manifest.js || manifest.js.trim().length === 0) {
+    console.warn(`[worldcore-ext] extension "${row.id}" has empty js path in manifest`);
+    return { row, status: 'failed', error: 'empty js path in manifest' };
   }
 
   if (manifest.css) {

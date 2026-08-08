@@ -606,13 +606,13 @@ export function TextOptionsPanel() {
             <Button
               variant="outline"
               onClick={handleImportClick}
-              className="h-8"
+              className="h-8 touch-target"
               disabled={importing}
             >
               {importing ? <LoadingSpinner size="sm" /> : <Upload className="h-3.5 w-3.5" />}
               <span className="mono-tag">{importing ? 'IMPORTING...' : 'IMPORT'}</span>
             </Button>
-            <Button variant="outline" onClick={handleReset} className="h-8">
+            <Button variant="outline" onClick={handleReset} className="h-8 touch-target">
               <RotateCcw className="h-3.5 w-3.5" />
               <span className="mono-tag">RESET</span>
             </Button>
@@ -782,7 +782,7 @@ export function TextOptionsPanel() {
                 </div>
 
                 {form.context.storyStringPosition === 'inchat' && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Depth</Label>
                       <Input
@@ -1020,7 +1020,7 @@ export function TextOptionsPanel() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">User Prefix</Label>
                       <Textarea
@@ -1049,7 +1049,7 @@ export function TextOptionsPanel() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">Assistant Prefix</Label>
                       <Textarea
@@ -1078,7 +1078,7 @@ export function TextOptionsPanel() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">System Prefix</Label>
                       <Textarea
@@ -1107,7 +1107,7 @@ export function TextOptionsPanel() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">System Sequence Prefix</Label>
                       <Textarea
@@ -1136,7 +1136,7 @@ export function TextOptionsPanel() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">First Assistant Prefix</Label>
                       <Textarea
@@ -1165,7 +1165,7 @@ export function TextOptionsPanel() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">First User Prefix</Label>
                       <Textarea
@@ -1194,7 +1194,7 @@ export function TextOptionsPanel() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium">System Instruction Prefix</Label>
                       <Textarea
@@ -1653,7 +1653,7 @@ export function TextOptionsPanel() {
                 </div>
               </div>
 
-              <div className="border-border/50 grid grid-cols-2 gap-2 border-t pt-2">
+              <div className="border-border/50 grid grid-cols-1 gap-2 border-t pt-2 sm:grid-cols-2">
                 {REASONING_CHECKBOXES.map(([key, label]) => (
                   <label key={key} className="flex items-center gap-2 text-[13px]">
                     <input

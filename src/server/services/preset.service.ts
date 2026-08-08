@@ -4,7 +4,7 @@ import { db } from '@/server/db/client';
 import { presets } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { paths } from '@/server/storage/paths';
-import { listFiles, removeFile, writeFileAtomic, mkdir } from '@/server/storage/fs';
+import { listFiles, removeFile, writeFileAtomic, rename as fsRename, mkdir } from '@/server/storage/fs';
 import type { Preset, PresetCategory } from '@/shared/types/preset';
 import { log } from '@/server/logger';
 
@@ -140,6 +140,47 @@ export class PresetService {
     const filePath = path.join(dir, `${safeName}.json`);
     await removeFile(filePath);
     await db.delete(presets).where(and(eq(presets.category, category), eq(presets.name, safeName)));
+  }
+
+  async rename(category: PresetCategory, oldName: string, newName: string): Promise<void> {
+    const dir = CATEGORY_DIR_MAP[category]!;
+    const safeOldName = this.sanitizeName(oldName);
+    const safeNewName = this.sanitizeName(newName);
+    const oldFilePath = path.join(dir, `${safeOldName}.json`);
+    const newFilePath = path.join(dir, `${safeNewName}.json`);
+
+    const existing = await db
+      .select({ isDefault: presets.isDefault })
+      .from(presets)
+      .where(and(eq(presets.category, category), eq(presets.name, safeOldName)))
+      .limit(1);
+    if (!existing[0]) {
+      throw new Error(`Preset "${oldName}" not found in category "${category}"`);
+    }
+    if (existing[0].isDefault) {
+      throw new Error(`Cannot rename default preset "${oldName}"`);
+    }
+
+    const newExists = await db
+      .select({ isDefault: presets.isDefault })
+      .from(presets)
+      .where(and(eq(presets.category, category), eq(presets.name, safeNewName)))
+      .limit(1);
+    if (newExists[0]) {
+      throw new Error(`Preset "${newName}" already exists in category "${category}"`);
+    }
+
+    const content = await Bun.file(oldFilePath).text();
+    const data = JSON.parse(content) as Record<string, unknown>;
+    data.name = safeNewName;
+    await writeFileAtomic(newFilePath, JSON.stringify(data, null, 2));
+
+    await removeFile(oldFilePath);
+
+    await db
+      .update(presets)
+      .set({ name: safeNewName, data })
+      .where(and(eq(presets.category, category), eq(presets.name, safeOldName)));
   }
 
   async importPreset(preset: Preset): Promise<void> {

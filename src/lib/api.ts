@@ -108,6 +108,15 @@ export async function deletePreset(category: string, name: string): Promise<unkn
   return await apiPost('/presets/delete', { category, name });
 }
 
+/** Rename a preset by category, old name, and new name. */
+export async function renamePreset(
+  category: string,
+  oldName: string,
+  newName: string,
+): Promise<unknown> {
+  return await apiPost('/presets/rename', { category, oldName, newName });
+}
+
 /** Check if onboarding is needed (first boot). */
 export async function checkOnboardingStatus(): Promise<boolean> {
   const res = await apiFetch('/onboarding/status', { method: 'GET' });

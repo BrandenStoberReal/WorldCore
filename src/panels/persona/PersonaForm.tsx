@@ -80,7 +80,7 @@ function PersonaFormFields() {
       </div>
 
       {/* Personality + Scenario row */}
-      <div className="grid max-w-2xl grid-cols-2 gap-4">
+      <div className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label className="text-sm font-medium">Personality</Label>
           <Textarea
@@ -147,7 +147,7 @@ function PersonaSidebar() {
   const previewInitial = name && name.length > 0 ? name[0]!.toUpperCase() : '?';
 
   return (
-    <div className="w-72 shrink-0 space-y-4">
+    <div className="w-full space-y-4 sm:w-72 sm:shrink-0">
       {/* Avatar upload */}
       <div className="flex flex-col items-center gap-2">
         <div
@@ -192,9 +192,9 @@ function PersonaSidebar() {
           <button
             type="button"
             onClick={handleRemoveAvatar}
-            className="text-muted-foreground hover:text-foreground text-xs"
+            className="touch-target text-muted-foreground hover:text-foreground text-xs"
           >
-            <X className="inline h-3 w-3" /> Remove
+            <X className="h-3 w-3" /> Remove
           </button>
         )}
       </div>

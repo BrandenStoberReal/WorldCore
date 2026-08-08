@@ -68,7 +68,7 @@ export function MobileChatInput({ onSend, onStop, disabled, isGenerating }: Mobi
               onKeyDown={handleKeyDown}
               placeholder={isGenerating ? 'generating...' : 'message...'}
               rows={1}
-              className="placeholder:text-muted-foreground/50 flex max-h-40 min-h-5 flex-1 resize-none bg-transparent font-mono text-[11px] leading-tight outline-none disabled:opacity-50"
+              className="placeholder:text-muted-foreground/50 flex max-h-40 min-h-5 flex-1 resize-none bg-transparent font-mono text-[11px] leading-tight outline-none disabled:opacity-50 text-mobile-base"
               disabled={disabled && !isGenerating}
             />
             <Button

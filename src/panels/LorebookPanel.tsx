@@ -97,7 +97,7 @@ function PanelHeader({
           <button
             type="button"
             onClick={onBack}
-            className="text-foreground/40 hover:text-foreground hover:bg-accent/30 rounded-md p-0.5 transition-colors"
+            className="text-foreground/40 hover:text-foreground hover:bg-accent/30 touch-target rounded-md p-0.5 transition-colors"
             title="Back to chats"
             aria-label="Back to chats"
           >
@@ -262,7 +262,7 @@ function EntryRow({
             type="button"
             variant="ghost"
             size="sm"
-            className="text-muted-foreground/40 hover:text-destructive h-auto shrink-0 opacity-0 transition-opacity group-hover/entry:opacity-100"
+            className="text-muted-foreground/40 hover:text-destructive touch-target shrink-0 rounded-md p-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/entry:opacity-100"
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
@@ -343,7 +343,7 @@ function EntryRow({
           </div>
 
           {/* Toggles */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Toggle
               checked={entry.constant}
               onChange={(v) => onUpdate({ constant: v })}
@@ -377,7 +377,7 @@ function EntryRow({
           </div>
 
           {/* Number fields */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">Insertion Order</Label>
               <Input
@@ -562,7 +562,7 @@ function LorebookEditor({ characterId }: { characterId: number }) {
                       rows={2}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-sm font-medium">Scan Depth</Label>
                       <Input

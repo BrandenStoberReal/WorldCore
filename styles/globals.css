@@ -147,8 +147,10 @@
   --sidebar-width-generation: 340px;
   --nav-height-mobile: 60px;
   --touch-target-min: 44px;
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
 }
 
 /* Mobile-first responsive overrides */
@@ -601,13 +603,39 @@
 
 /* Mobile-first responsive utilities */
 @layer utilities {
-  /* Touch-friendly minimum target size */
+  /* Touch-friendly minimum target size — mobile/touch only.
+     Desktop reverts to natural element sizing (mouse doesn't need 44px min). */
   .touch-target {
     min-height: var(--touch-target-min);
     min-width: var(--touch-target-min);
   }
 
-  /* Safe area padding for notched devices */
+  @media (min-width: 768px) {
+    .touch-target {
+      min-height: revert;
+      min-width: revert;
+    }
+  }
+
+  /* Larger slider thumb — mobile/touch only. Desktop keeps the original 16px thumb. */
+  input[type='range'].gen-slider::-webkit-slider-thumb {
+    @apply h-5 w-5 cursor-pointer appearance-none rounded-full;
+    background: var(--ember);
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--ember) 30%, transparent);
+  }
+  input[type='range'].gen-slider::-moz-range-thumb {
+    @apply h-5 w-5 cursor-pointer rounded-full border-0;
+    background: var(--ember);
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--ember) 30%, transparent);
+  }
+  @media (min-width: 768px) {
+    input[type='range'].gen-slider::-webkit-slider-thumb {
+      @apply h-4 w-4;
+    }
+    input[type='range'].gen-slider::-moz-range-thumb {
+      @apply h-4 w-4;
+    }
+  }
   .pb-safe {
     padding-bottom: max(var(--safe-area-bottom), 16px);
   }

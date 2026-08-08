@@ -96,6 +96,7 @@ export function parseOutfitChanges(response: string, currentOutfit: Record<strin
 
     const actionMatch = line.match(/^(PUT_ON|TAKE_OFF|CHANGE)\s*\(\s*"([^"]*?)"\s*\)\s*SLOT\s*\(\s*(\w+)\s*\)$/i);
     if (!actionMatch) {
+      console.debug('[OutfitAnalyzer] Skipping unparseable line:', line.slice(0, 100));
       continue;
     }
 
@@ -104,6 +105,7 @@ export function parseOutfitChanges(response: string, currentOutfit: Record<strin
     const slot = actionMatch[3]?.toLowerCase();
 
     if (!actionRaw || !slot || !OUTFIT_SLOTS.includes(slot)) {
+      console.debug('[OutfitAnalyzer] Invalid action/slot:', { actionRaw, slot });
       continue;
     }
 
@@ -164,20 +166,46 @@ export async function analyzeOutfitChanges(params: OutfitAnalyzerParams): Promis
     });
 
     if (!response.ok) {
-      console.error('[OutfitAnalyzer] LLM request failed:', response.status);
+      const errorBody = await response.text().catch(() => 'unable to read body');
+      console.error('[OutfitAnalyzer] LLM request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody.slice(0, 500),
+        apiUrl: connectionSettings.apiUrl,
+        model: connectionSettings.model,
+      });
       return { changes: [], updatedOutfit: currentOutfit };
     }
 
     const data = await response.json();
+
+    if (!data || typeof data !== 'object') {
+      console.error('[OutfitAnalyzer] Invalid response structure: expected object', {
+        type: typeof data,
+        apiUrl: connectionSettings.apiUrl,
+      });
+      return { changes: [], updatedOutfit: currentOutfit };
+    }
+
     const content = data.choices?.[0]?.message?.content;
 
-    if (!content) {
+    if (typeof content !== 'string' || content.length === 0) {
+      console.warn('[OutfitAnalyzer] No content in LLM response:', {
+        hasChoices: Array.isArray(data.choices),
+        choicesLength: data.choices?.length,
+        apiUrl: connectionSettings.apiUrl,
+      });
       return { changes: [], updatedOutfit: currentOutfit };
     }
 
     return parseOutfitChanges(content, currentOutfit);
   } catch (err) {
-    console.error('[OutfitAnalyzer] Error:', err);
+    console.error('[OutfitAnalyzer] Error:', {
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      apiUrl: connectionSettings.apiUrl,
+      model: connectionSettings.model,
+    });
     return { changes: [], updatedOutfit: currentOutfit };
   }
 }

@@ -127,7 +127,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
                     isGenerating ? 'generating...' : 'type a message... (⏎ send, ⇧⏎ newline)'
                   }
                   rows={1}
-                  className="placeholder:text-muted-foreground/50 flex max-h-40 min-h-5 flex-1 resize-none bg-transparent font-mono text-[11px] leading-tight outline-none disabled:opacity-50 sm:min-h-9 sm:text-[13.5px] sm:leading-relaxed"
+                  className="placeholder:text-muted-foreground/50 flex max-h-40 min-h-5 flex-1 resize-none bg-transparent font-mono text-[11px] leading-tight outline-none disabled:opacity-50 sm:min-h-9 sm:text-[13.5px] sm:leading-relaxed text-mobile-base"
                   disabled={disabled && !isGenerating}
                 />
                 <div className="mono-tag text-muted-foreground/60 hidden shrink-0 text-xs tabular-nums sm:block sm:text-sm">

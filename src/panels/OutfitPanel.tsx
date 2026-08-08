@@ -3,6 +3,7 @@ import { Shirt, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { useChatStore } from '@/lib/stores';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import type { Character } from '@/shared/types/character';
 
 type BodySlot =
@@ -161,6 +162,7 @@ export function OutfitPanel() {
   const [disabled, setDisabled] = useState(false);
   const [savedDisabled, setSavedDisabled] = useState(false);
   const [selectedGreetingIndex, setSelectedGreetingIndex] = useState<number | undefined>(undefined);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   const { data: character } = useQuery<Character & { id: number }>({
     queryKey: ['/api/v1/characters/get', characterId],
@@ -408,7 +410,7 @@ export function OutfitPanel() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden md:flex-row">
       <div className="flex-1 overflow-y-auto p-4">
         {disabled ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
@@ -419,46 +421,59 @@ export function OutfitPanel() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-            {regions.map((region) => (
-              <RegionCard
-                key={region.id}
-                region={region}
-                outfit={outfit}
-                onSlotChange={handleSlotChange}
-                onAddField={() => handleAddCustomField(region.id, false)}
-                onRemoveField={(fieldId) => handleRemoveCustomField(region.id, fieldId, false)}
-                onUpdateFieldLabel={(fieldId, label) => handleUpdateFieldLabel(region.id, fieldId, label, false)}
-              />
-            ))}
-            {customPanels.map((panel) => (
-              <CustomPanelCard
-                key={panel.id}
-                panel={panel}
-                outfit={outfit}
-                onSlotChange={handleSlotChange}
-                onAddField={() => handleAddCustomField(panel.id, true)}
-                onRemoveField={(fieldId) => handleRemoveCustomField(panel.id, fieldId, true)}
-                onUpdateFieldLabel={(fieldId, label) => handleUpdateFieldLabel(panel.id, fieldId, label, true)}
-                onUpdateLabel={(label) => handleUpdatePanelLabel(panel.id, label)}
-                onRemove={() => handleRemoveCustomPanel(panel.id)}
-              />
-            ))}
+          <>
             <button
               type="button"
-              onClick={handleAddCustomPanel}
-              className="border-border/30 hover:border-border/60 hover:bg-muted/20 flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-colors"
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="md:hidden border-border/60 bg-background/60 hover:bg-accent/40 mb-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-colors"
             >
-              <Plus className="text-muted-foreground/40 h-5 w-5" />
-              <span className="text-muted-foreground/50 text-[10px] font-medium uppercase tracking-wider">
-                Add Panel
-              </span>
+              <span className="text-muted-foreground">{showSidebar ? 'Hide' : 'Show'} Settings</span>
+              <span className="mono-tag text-foreground/60">{filledCount}/{totalFieldCount}</span>
             </button>
-          </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {regions.map((region) => (
+                <RegionCard
+                  key={region.id}
+                  region={region}
+                  outfit={outfit}
+                  onSlotChange={handleSlotChange}
+                  onAddField={() => handleAddCustomField(region.id, false)}
+                  onRemoveField={(fieldId) => handleRemoveCustomField(region.id, fieldId, false)}
+                  onUpdateFieldLabel={(fieldId, label) => handleUpdateFieldLabel(region.id, fieldId, label, false)}
+                />
+              ))}
+              {customPanels.map((panel) => (
+                <CustomPanelCard
+                  key={panel.id}
+                  panel={panel}
+                  outfit={outfit}
+                  onSlotChange={handleSlotChange}
+                  onAddField={() => handleAddCustomField(panel.id, true)}
+                  onRemoveField={(fieldId) => handleRemoveCustomField(panel.id, fieldId, true)}
+                  onUpdateFieldLabel={(fieldId, label) => handleUpdateFieldLabel(panel.id, fieldId, label, true)}
+                  onUpdateLabel={(label) => handleUpdatePanelLabel(panel.id, label)}
+                  onRemove={() => handleRemoveCustomPanel(panel.id)}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={handleAddCustomPanel}
+                className="border-border/30 hover:border-border/60 hover:bg-muted/20 flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-colors"
+              >
+                <Plus className="text-muted-foreground/40 h-5 w-5" />
+                <span className="text-muted-foreground/50 text-[10px] font-medium uppercase tracking-wider">
+                  Add Panel
+                </span>
+              </button>
+            </div>
+          </>
         )}
       </div>
 
-      <div className="flex w-72 shrink-0 flex-col overflow-y-auto border-l">
+      <div className={cn(
+        "flex w-full shrink-0 flex-col overflow-y-auto border-t md:w-72 md:border-t-0 md:border-l",
+        !showSidebar && "hidden md:flex"
+      )}>
         <div className="space-y-3 border-b p-4">
           <div className="flex items-center justify-between">
             <span className="text-foreground/80 text-xs font-medium">
@@ -468,7 +483,7 @@ export function OutfitPanel() {
               <button
                 type="button"
                 onClick={() => setShowPrompt(!showPrompt)}
-                className="text-muted-foreground hover:text-foreground rounded px-2 py-1 text-[10px] transition-colors"
+                className="text-muted-foreground hover:text-foreground touch-target rounded px-2 py-1 text-[10px] transition-colors"
               >
                 {showPrompt ? 'Hide' : 'Show'} Prompt
               </button>
@@ -476,7 +491,7 @@ export function OutfitPanel() {
                 type="button"
                 onClick={handleSave}
                 disabled={!isDirty || saveStatus === 'saving'}
-                className={`rounded px-3 py-1 text-[10px] font-medium transition-colors ${
+                className={`touch-target rounded px-3 py-1 text-[10px] font-medium transition-colors ${
                   isDirty
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                     : 'bg-muted text-muted-foreground cursor-not-allowed'
@@ -486,13 +501,16 @@ export function OutfitPanel() {
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={disabled}
-              onClick={() => setDisabled(!disabled)}
-              className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+          <button
+            type="button"
+            role="switch"
+            aria-checked={disabled}
+            onClick={() => setDisabled(!disabled)}
+            className="touch-target flex w-full items-center justify-between rounded px-1 text-left transition-colors hover:bg-accent/30 sm:w-auto sm:gap-2"
+          >
+            <span className="text-muted-foreground text-[10px]">Disabled</span>
+            <span
+              className={`relative inline-flex h-4 w-7 shrink-0 rounded-full border-2 border-transparent transition-colors ${
                 disabled ? 'bg-primary' : 'bg-muted'
               }`}
             >
@@ -501,9 +519,8 @@ export function OutfitPanel() {
                   disabled ? 'translate-x-3' : 'translate-x-0'
                 }`}
               />
-            </button>
-            <label className="text-muted-foreground text-[10px]">Disabled</label>
-          </div>
+            </span>
+          </button>
         </div>
 
         {showPrompt && (
@@ -578,7 +595,7 @@ export function OutfitPanel() {
                     <button
                       type="button"
                       onClick={() => handleApplyPreset(preset.id)}
-                      className="text-primary hover:bg-primary/10 rounded px-1.5 py-0.5 text-[10px] transition-colors"
+                      className="text-primary hover:bg-primary/10 touch-target rounded px-2 py-0.5 text-[10px] transition-colors"
                     >
                       Apply
                     </button>
@@ -587,14 +604,14 @@ export function OutfitPanel() {
                         <button
                           type="button"
                           onClick={confirmDeletePreset}
-                          className="text-destructive hover:bg-destructive/10 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors"
+                          className="text-destructive hover:bg-destructive/10 touch-target rounded px-2 py-0.5 text-[10px] font-medium transition-colors"
                         >
                           Yes
                         </button>
                         <button
                           type="button"
                           onClick={cancelDeletePreset}
-                          className="text-muted-foreground hover:bg-muted/50 rounded px-1.5 py-0.5 text-[10px] transition-colors"
+                          className="text-muted-foreground hover:bg-muted/50 touch-target rounded px-2 py-0.5 text-[10px] transition-colors"
                         >
                           No
                         </button>
@@ -603,7 +620,7 @@ export function OutfitPanel() {
                       <button
                         type="button"
                         onClick={() => handleDeletePreset(preset.id)}
-                        className="text-destructive hover:bg-destructive/10 rounded px-1.5 py-0.5 text-[10px] transition-colors"
+                        className="text-destructive hover:bg-destructive/10 touch-target rounded px-2 py-0.5 text-[10px] transition-colors"
                       >
                         Del
                       </button>
@@ -708,7 +725,7 @@ function CustomPanelCard({
         <button
           type="button"
           onClick={onRemove}
-          className="text-muted-foreground/40 hover:text-destructive transition-colors"
+          className="text-muted-foreground/40 hover:text-destructive touch-target -mr-1 rounded p-1 transition-colors"
         >
           <Trash2 className="h-3 w-3" />
         </button>
@@ -761,7 +778,7 @@ function CustomFieldRow({
         <button
           type="button"
           onClick={onRemove}
-          className="text-muted-foreground/30 hover:text-destructive ml-auto transition-colors"
+          className="text-muted-foreground/30 hover:text-destructive touch-target -mr-1 ml-auto rounded p-1 transition-colors"
         >
           <Trash2 className="h-2.5 w-2.5" />
         </button>
