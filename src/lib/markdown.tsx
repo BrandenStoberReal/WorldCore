@@ -342,7 +342,7 @@ function renderInlineTokens(
           tokens,
           <span key={`q${pos}`} style={{ color: 'var(--dialogue)' }}>
             {qChar}
-            {renderInlineTokens(inner, fences, codes, depth, highlight)}
+            {renderInlineTokens(inner, fences, codes, depth, false)}
             {qClose}
           </span>,
         );
@@ -355,7 +355,7 @@ function renderInlineTokens(
           tokens,
           <span key={`q${pos}`} style={{ color: 'var(--dialogue)' }}>
             {qChar}
-            {renderInlineTokens(rest, fences, codes, depth, highlight)}
+            {renderInlineTokens(rest, fences, codes, depth, false)}
           </span>,
         );
         pos = text.length;
