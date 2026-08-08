@@ -108,6 +108,15 @@ export const useAppStore = create<AppStore>((set) => ({
         if (settings.mobileNavPosition === 'top' || settings.mobileNavPosition === 'bottom') {
           set({ mobileNavPosition: settings.mobileNavPosition });
         }
+        // Restore generation mode/preset from backend (survives localStorage clear).
+        const genMode = settings.generationMode;
+        const genPreset = settings.generationPreset;
+        if (genMode === 'chat' || genMode === 'text') {
+          useGenerationStore.setState({ mode: genMode });
+        }
+        if (typeof genPreset === 'string' && genPreset) {
+          useGenerationStore.setState({ preset: genPreset });
+        }
       }
     } catch {
       /* leave defaults if backend unreachable */
@@ -491,9 +500,15 @@ export const useGenerationStore = create<GenerationState>()(
       setMode: (mode) => {
         const defaults = mode === 'chat' ? CHAT_GEN_DEFAULTS : TEXT_GEN_DEFAULTS;
         set({ mode, ...defaults });
+        void saveSettingsPatch({ generationMode: mode }).catch(() => {});
       },
 
-      updateParam: (key, value) => set({ [key]: value } as Partial<GenerationState>),
+      updateParam: (key, value) => {
+        set({ [key]: value } as Partial<GenerationState>);
+        if (key === 'preset' && typeof value === 'string') {
+          void saveSettingsPatch({ generationPreset: value }).catch(() => {});
+        }
+      },
 
       resetDefaults: () => {
         const { mode } = get();
@@ -513,6 +528,7 @@ export const useGenerationStore = create<GenerationState>()(
         }
         await savePreset({ name: trimmed, category: 'generation', data });
         set({ preset: trimmed });
+        void saveSettingsPatch({ generationPreset: trimmed }).catch(() => {});
       },
 
       loadPresetFromBackend: async (name) => {
@@ -540,6 +556,7 @@ export const useGenerationStore = create<GenerationState>()(
           throw new Error(`Preset "${trimmed}" has no loadable params`);
         }
         set({ ...params, preset: trimmed });
+        void saveSettingsPatch({ generationPreset: trimmed }).catch(() => {});
       },
 
       listAvailablePresets: async () => {
