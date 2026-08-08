@@ -1035,6 +1035,10 @@ export function ChatView({ characterId }: ChatViewProps) {
       if (!activeChatId || index < 0 || index >= messages.length) return;
       if (index === 0) return; // never delete the greeting (first message)
 
+      // Guard the optimistic local removal against the /chats/get sync effect
+      // until the server delete + refetch settles. Mirrors the sendMessage/
+      // stopGeneration guard: without invalidation, the stale cache re-syncs the
+      // deleted message when ChatView unmounts (Connections drawer) and remounts.
       localModificationsRef.current = true;
       removeMessage(index);
       emit('message_removed', { index });
@@ -1045,11 +1049,16 @@ export function ChatView({ characterId }: ChatViewProps) {
           action: 'delete',
           index,
         });
+        await queryClient.invalidateQueries({ queryKey: ['/api/v1/chats/get'] });
       } catch (err) {
         console.error('Failed to delete message:', err);
+      } finally {
+        setTimeout(() => {
+          localModificationsRef.current = false;
+        }, 0);
       }
     },
-    [activeChatId, messages, removeMessage],
+    [activeChatId, messages, removeMessage, queryClient],
   );
 
   const handleRegenerate = useCallback(
