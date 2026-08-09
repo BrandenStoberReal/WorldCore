@@ -322,6 +322,21 @@
     animation-delay: 0.4s;
   }
 
+  /* Newly imported character card — slide up + fade in */
+  @keyframes import-slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-import-slide-in {
+    animation: import-slide-in 400ms ease-out;
+  }
+
   /* Page chrome utility — section heading */
   .display-host {
     font-family: var(--font-display);

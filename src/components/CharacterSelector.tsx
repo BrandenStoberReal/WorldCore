@@ -15,7 +15,7 @@ import {
   Download,
 } from 'lucide-react';
 import { apiFetch, apiPost } from '@/lib/api';
-import { emit } from '@/lib/extensionEventBus';
+import { emit, on } from '@/lib/extensionEventBus';
 import { cn, estimateTokens } from '@/lib/utils';
 import { InlineEdit } from '@/components/InlineEdit';
 import { EditableTags } from '@/components/EditableTags';
@@ -48,6 +48,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
   const [bulkTagOpen, setBulkTagOpen] = useState(false);
   const [bulkTagValue, setBulkTagValue] = useState('');
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  const [newlyImportedId, setNewlyImportedId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -144,6 +145,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
       emit('character_import', { id: result.id });
+      setNewlyImportedId(result.id);
     },
   });
 
@@ -249,6 +251,24 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
       setSidebarMode('list');
     }
   }, [selectedId, sidebarMode]);
+
+  // Clear the highlight so the animation only plays once per import.
+  useEffect(() => {
+    if (newlyImportedId == null) return;
+    const timer = window.setTimeout(() => setNewlyImportedId(null), 1000);
+    return () => window.clearTimeout(timer);
+  }, [newlyImportedId]);
+
+  // DragDropOverlay (sibling component) emits character_import too — watch it
+  // so drag-dropped cards animate in as well.
+  useEffect(() => {
+    return on('character_import', (payload) => {
+      const id = (payload as { id?: number } | null)?.id;
+      if (typeof id === 'number') {
+        setNewlyImportedId(id);
+      }
+    });
+  }, []);
 
   /* ── derived list data ── */
   const searchLower = search.toLowerCase();
@@ -486,7 +506,10 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
                 const active = selectedId === char.id;
                 const isSelected = selectedIds.has(char.id);
                 return (
-                  <li key={char.id}>
+                  <li
+                    key={char.id}
+                    className={cn(char.id === newlyImportedId && 'animate-import-slide-in')}
+                  >
                     <button
                       onClick={() => handleSelect(char.id)}
                       onFocus={() => setFocusedIndex(idx)}

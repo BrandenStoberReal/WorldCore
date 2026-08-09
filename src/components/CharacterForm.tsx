@@ -1251,7 +1251,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
                 className="gap-1.5"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
-                <span className="mono-tag">REPLACE NAME WITH {`{{char}}`}</span>
+                <span className="mono-tag">Replace name with {`{{char}}`}</span>
               </Button>
             </CollapsibleCard>
 
