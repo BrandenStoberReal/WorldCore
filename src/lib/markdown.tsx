@@ -485,10 +485,10 @@ function tryMatchEmphasis(
       };
     }
   }
-  // Highlight unclosed **bold
+  // Highlight unclosed **bold — always render (streaming preview)
   if (highlight && text.slice(pos, pos + 2) === '**') {
     const content = text.slice(pos + 2);
-    if (content.length > 0 && isValidEmphContent(content)) {
+    if (content.length > 0) {
       return {
         node: (
           <strong key={`b${pos}`} data-depth={depth}>
@@ -530,7 +530,7 @@ function tryMatchEmphasis(
     isWordBoundaryAfter(text, pos + 2)
   ) {
     const content = text.slice(pos + 2);
-    if (content.length > 0 && isValidEmphContent(content)) {
+    if (content.length > 0) {
       return {
         node: (
           <strong key={`B${pos}`} data-depth={depth}>
@@ -563,7 +563,7 @@ function tryMatchEmphasis(
   // Highlight unclosed *italic* (but not if ** was already checked above)
   if (highlight && text.charCodeAt(pos) === 0x2a && text.charCodeAt(pos + 1) !== 0x2a) {
     const content = text.slice(pos + 1);
-    if (content.length > 0 && isValidEmphContent(content)) {
+    if (content.length > 0) {
       return {
         node: (
           <em key={`i${pos}`} data-depth={depth}>
@@ -596,7 +596,7 @@ function tryMatchEmphasis(
   // Highlight unclosed _italic_ at word boundary
   if (highlight && text.charCodeAt(pos) === 0x5f && isWordBoundaryBefore(text, pos)) {
     const content = text.slice(pos + 1);
-    if (content.length > 0 && isValidEmphContent(content)) {
+    if (content.length > 0) {
       return {
         node: (
           <em key={`I${pos}`} data-depth={depth}>
