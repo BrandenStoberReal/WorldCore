@@ -115,15 +115,18 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar, position =
       'border-border bg-background/95 supports-[backdrop-filter]:bg-background/80 relative backdrop-blur-md',
       isTop ? 'safe-area-top border-b' : 'safe-area-bottom border-t',
     )}>
+      {/* Backdrop — dims and dismisses on tap. Kept mounted so the fade animates on close too. */}
+      <div
+        className={cn(
+          'fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-200',
+          moreOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
+        )}
+        onClick={() => setMoreOpen(false)}
+        aria-hidden="true"
+      />
+
       {moreOpen && (
         <>
-          {/* Backdrop — dims and dismisses on tap */}
-          <div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-            onClick={() => setMoreOpen(false)}
-            aria-hidden="true"
-          />
-
           {/* More menu bottom sheet */}
           <div
             role="menu"

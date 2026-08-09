@@ -94,31 +94,44 @@ function CharactersPanel() {
   if (isMobile) {
     return (
       <>
-        {charactersOpen && (
-          <div className="fixed inset-0 z-40">
+        {/* Kept mounted (hidden) so the backdrop fade + panel slide animate on close too. */}
+        <div
+          className={cn(
+            'fixed inset-0 z-40',
+            !charactersOpen && 'pointer-events-none',
+          )}
+          inert={!charactersOpen}
+        >
+          <div
+            className={cn(
+              'absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300',
+              charactersOpen ? 'opacity-100' : 'opacity-0',
+            )}
+            onClick={toggleCharacters}
+            aria-hidden="true"
+          />
+          <div className="absolute inset-y-0 left-0 w-full">
             <div
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={toggleCharacters}
-              aria-hidden="true"
-            />
-            <div className="absolute inset-y-0 left-0 w-full">
-              <div className="bg-background h-full overflow-y-auto shadow-xl">
-                <div className="flex items-center justify-between border-b px-4 py-3">
-                  <span className="font-medium">Characters</span>
-                  <button
-                    type="button"
-                    onClick={toggleCharacters}
-                    className="hover:bg-muted rounded-lg p-2 transition-colors"
-                    aria-label="Close characters"
-                  >
-                    <Users className="h-5 w-5" />
-                  </button>
-                </div>
-                <CharactersSidebar />
+              className={cn(
+                'bg-background h-full overflow-y-auto shadow-xl transition-transform duration-300 ease-out',
+                charactersOpen ? 'translate-x-0' : '-translate-x-full',
+              )}
+            >
+              <div className="flex items-center justify-between border-b px-4 py-3">
+                <span className="font-medium">Characters</span>
+                <button
+                  type="button"
+                  onClick={toggleCharacters}
+                  className="hover:bg-muted rounded-lg p-2 transition-colors"
+                  aria-label="Close characters"
+                >
+                  <Users className="h-5 w-5" />
+                </button>
               </div>
+              <CharactersSidebar />
             </div>
           </div>
-        )}
+        </div>
       </>
     );
   }

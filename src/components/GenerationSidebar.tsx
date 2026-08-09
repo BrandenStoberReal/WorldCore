@@ -752,69 +752,84 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               <Zap className="text-ember h-3 w-3 shrink-0" strokeWidth={2} />
               <span className="display-host truncate text-[13px] leading-none">Generation</span>
             </div>
-            <div className="flex shrink-0 items-center gap-0.5">
-              {showSaveInput ? (
+            <div
+              className={cn(
+                'grid shrink-0 items-center transition-all duration-200 ease-out',
+                showSaveInput || showRenameInput ? 'grid-cols-[1fr_0fr]' : 'grid-cols-[0fr_1fr]',
+              )}
+            >
+              <div className="min-w-0 overflow-hidden">
                 <div className="flex items-center gap-1">
-                  <Input
-                    type="text"
-                    value={saveName}
-                    onChange={(e) => setSaveName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSavePreset();
-                      if (e.key === 'Escape') {
-                        setShowSaveInput(false);
-                        setSaveName('');
-                      }
-                    }}
-                    placeholder={isCurrentPresetDefault ? 'Clone as new name...' : 'Preset name'}
-                    className="touch-target h-5 w-20 text-[10px]"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSavePreset}
-                    disabled={!saveName.trim() || presetStatus === 'saving'}
-                    className={cn(
-                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors',
-                      'disabled:cursor-not-allowed disabled:opacity-40',
-                    )}
-                    title="Confirm save"
-                  >
-                    <Save className="h-2.5 w-2.5" strokeWidth={2} />
-                  </button>
+                  {showSaveInput ? (
+                    <>
+                      <Input
+                        type="text"
+                        value={saveName}
+                        onChange={(e) => setSaveName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSavePreset();
+                          if (e.key === 'Escape') {
+                            setShowSaveInput(false);
+                            setSaveName('');
+                          }
+                        }}
+                        placeholder={isCurrentPresetDefault ? 'Clone as new name...' : 'Preset name'}
+                        className="touch-target h-5 w-20 text-[10px]"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSavePreset}
+                        disabled={!saveName.trim() || presetStatus === 'saving'}
+                        className={cn(
+                          'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors',
+                          'disabled:cursor-not-allowed disabled:opacity-40',
+                        )}
+                        title="Confirm save"
+                      >
+                        <Save className="h-2.5 w-2.5" strokeWidth={2} />
+                      </button>
+                    </>
+                  ) : showRenameInput ? (
+                    <>
+                      <Input
+                        type="text"
+                        value={renameName}
+                        onChange={(e) => setRenameName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenamePreset();
+                          if (e.key === 'Escape') {
+                            setShowRenameInput(false);
+                            setRenameName('');
+                          }
+                        }}
+                        placeholder="New preset name"
+                        className="touch-target h-5 w-20 text-[10px]"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRenamePreset}
+                        disabled={!renameName.trim() || presetStatus === 'saving'}
+                        className={cn(
+                          'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors',
+                          'disabled:cursor-not-allowed disabled:opacity-40',
+                        )}
+                        title="Confirm rename"
+                      >
+                        <Save className="h-2.5 w-2.5" strokeWidth={2} />
+                      </button>
+                    </>
+                  ) : null}
                 </div>
-              ) : showRenameInput ? (
-                <div className="flex items-center gap-1">
-                  <Input
-                    type="text"
-                    value={renameName}
-                    onChange={(e) => setRenameName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleRenamePreset();
-                      if (e.key === 'Escape') {
-                        setShowRenameInput(false);
-                        setRenameName('');
-                      }
-                    }}
-                    placeholder="New preset name"
-                    className="touch-target h-5 w-20 text-[10px]"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRenamePreset}
-                    disabled={!renameName.trim() || presetStatus === 'saving'}
-                    className={cn(
-                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors',
-                      'disabled:cursor-not-allowed disabled:opacity-40',
-                    )}
-                    title="Confirm rename"
-                  >
-                    <Save className="h-2.5 w-2.5" strokeWidth={2} />
-                  </button>
-                </div>
-              ) : (
-                <>
+              </div>
+              <div
+                className={cn(
+                  'min-w-0 overflow-hidden transition-all duration-200 ease-out',
+                  showSaveInput || showRenameInput ? 'invisible opacity-0' : 'opacity-100',
+                )}
+              >
+                <div className="flex items-center gap-0.5">
                   <button
                     type="button"
                     onClick={handleImportClick}
@@ -879,8 +894,8 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                       <PanelLeftClose className="h-2.5 w-2.5" strokeWidth={2} />
                     </button>
                   )}
-                </>
-              )}
+                </div>
+              </div>
             </div>
           </div>
           {presetMessage && (

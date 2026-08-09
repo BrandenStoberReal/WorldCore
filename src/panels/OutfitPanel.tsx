@@ -471,8 +471,10 @@ export function OutfitPanel() {
       </div>
 
       <div className={cn(
-        "flex w-full shrink-0 flex-col overflow-y-auto border-t md:w-72 md:border-t-0 md:border-l",
-        !showSidebar && "hidden md:flex"
+        "flex w-full shrink-0 flex-col overflow-y-auto border-t transition-all duration-300 md:w-72 md:border-t-0 md:border-l md:max-h-none md:opacity-100 md:translate-y-0",
+        showSidebar
+          ? "max-h-[90vh] translate-y-0 opacity-100"
+          : "max-h-0 translate-y-2 border-t-transparent opacity-0",
       )}>
         <div className="space-y-3 border-b p-4">
           <div className="flex items-center justify-between">
@@ -524,7 +526,7 @@ export function OutfitPanel() {
         </div>
 
         {showPrompt && (
-          <div className="border-b p-4">
+          <div className="animate-in fade-in slide-in-from-top-1 border-b p-4 duration-300">
             <h3 className="text-muted-foreground mb-1 text-[10px] font-medium uppercase tracking-wider">
               Prompt Context
             </h3>

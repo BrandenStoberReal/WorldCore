@@ -778,3 +778,17 @@
     }
   }
 }
+
+/* Accessibility: disable animations/transitions for users who prefer reduced motion.
+   Standard a11y pattern — overrides animation/transition durations globally.
+   JS counterpart: usePrefersReducedMotion() in src/hooks/useBreakpoint.ts (for future use). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

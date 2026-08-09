@@ -119,7 +119,20 @@ export function AzureOpenAIForm({ config, onConfigChange, className }: AzureOpen
             aria-label={showKey ? 'Hide key' : 'Show key'}
             title={showKey ? 'Hide key' : 'Show key'}
           >
-            {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            <span className="relative block h-4 w-4">
+              <Eye
+                className={cn(
+                  'absolute inset-0 h-4 w-4 transition-all duration-200',
+                  showKey ? 'scale-75 opacity-0' : 'scale-100 opacity-100',
+                )}
+              />
+              <EyeOff
+                className={cn(
+                  'absolute inset-0 h-4 w-4 transition-all duration-200',
+                  showKey ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
+                )}
+              />
+            </span>
           </Button>
           <Button
             type="button"
@@ -133,7 +146,7 @@ export function AzureOpenAIForm({ config, onConfigChange, className }: AzureOpen
           </Button>
         </div>
         {showKeyManager && (
-          <div className="border-border/60 bg-muted/20 flex items-center gap-2 rounded-md border p-2">
+          <div className="border-border/60 bg-muted/20 animate-in fade-in slide-in-from-top-1 flex items-center gap-2 rounded-md border p-2 duration-200">
             <Input
               type="password"
               value={managedKey}

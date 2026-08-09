@@ -1623,39 +1623,43 @@ export function ChatView({ characterId }: ChatViewProps) {
       >
         <div className="relative mx-auto max-w-6xl space-y-3 px-3 py-3 sm:space-y-4 sm:px-10 sm:py-4">
           {displayMessages.map((msg, i) => (
-            <ChatMessage
+            <div
               key={`${i}-${msg.send_date ?? i}`}
-              msg={msg}
-              index={i}
-              characterAvatar={`/api/v1/characters/thumbnail?id=${characterId}`}
-              userAvatar={resolvedPersona.avatar ?? undefined}
-              userName={resolvedPersona.name}
-              characterName={character.name}
-              description={character.description}
-              personality={character.personality}
-              scenario={character.scenario}
-              first_mes={character.first_mes}
-              mes_example={character.mes_example}
-              creator_notes={character.creator_notes}
-              system_prompt={character.system_prompt}
-              post_history_instructions={character.post_history_instructions}
-              onCopy={handleCopyMessage}
-              onEdit={handleEditMessage}
-              onRegenerate={handleRegenerate}
-              onDelete={handleDeleteMessage}
-              canDelete={i !== 0}
-              autoExpandThinking={reasoningSettings.autoExpand}
-              showHidden={reasoningSettings.showHidden}
-              isStreaming={isGenerating && i === displayMessages.length - 1}
-              thinkingDuration={
-                typeof msg.extra?.thinkingDuration === 'number'
-                  ? msg.extra.thinkingDuration
-                  : undefined
-              }
-              alternateGreetings={character.alternate_greetings}
-              activeGreetingIndex={activeGreetingIndex}
-              onGreetingChange={handleGreetingChange}
-            />
+              className="animate-in fade-in slide-in-from-bottom-1 duration-300"
+            >
+              <ChatMessage
+                msg={msg}
+                index={i}
+                characterAvatar={`/api/v1/characters/thumbnail?id=${characterId}`}
+                userAvatar={resolvedPersona.avatar ?? undefined}
+                userName={resolvedPersona.name}
+                characterName={character.name}
+                description={character.description}
+                personality={character.personality}
+                scenario={character.scenario}
+                first_mes={character.first_mes}
+                mes_example={character.mes_example}
+                creator_notes={character.creator_notes}
+                system_prompt={character.system_prompt}
+                post_history_instructions={character.post_history_instructions}
+                onCopy={handleCopyMessage}
+                onEdit={handleEditMessage}
+                onRegenerate={handleRegenerate}
+                onDelete={handleDeleteMessage}
+                canDelete={i !== 0}
+                autoExpandThinking={reasoningSettings.autoExpand}
+                showHidden={reasoningSettings.showHidden}
+                isStreaming={isGenerating && i === displayMessages.length - 1}
+                thinkingDuration={
+                  typeof msg.extra?.thinkingDuration === 'number'
+                    ? msg.extra.thinkingDuration
+                    : undefined
+                }
+                alternateGreetings={character.alternate_greetings}
+                activeGreetingIndex={activeGreetingIndex}
+                onGreetingChange={handleGreetingChange}
+              />
+            </div>
           ))}
           {isGenerating && (streamingContent || isThinkingStream) && smoothStreaming > 0 && (
             <div className="flex justify-start">

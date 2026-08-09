@@ -818,7 +818,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
           TAB: OVERVIEW
           ═══════════════════════════════════════════════════════ */}
         {activeTab === 'overview' && (
-          <div className="space-y-5">
+          <div className="animate-in fade-in slide-in-from-top-1 space-y-5 duration-200">
             <CollapsibleCard title="Basic Info">
               <CollapsibleField
                 label="Name"
@@ -982,7 +982,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
           TAB: GREETINGS
           ═══════════════════════════════════════════════════════ */}
         {activeTab === 'greetings' && (
-          <div className="space-y-5">
+          <div className="animate-in fade-in slide-in-from-top-1 space-y-5 duration-200">
             <CollapsibleCard title="Greetings">
               <CollapsibleField
                 label="First Message"
@@ -1110,7 +1110,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
           TAB: PROMPTS
           ═══════════════════════════════════════════════════════ */}
         {activeTab === 'prompts' && (
-          <div className="space-y-5">
+          <div className="animate-in fade-in slide-in-from-top-1 space-y-5 duration-200">
             <CollapsibleCard title="System Prompt">
               <CollapsibleField label="System Prompt" count={systemPrompt.length}>
                 <Textarea
@@ -1221,7 +1221,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
           TAB: ADVANCED
           ═══════════════════════════════════════════════════════ */}
         {activeTab === 'advanced' && (
-          <div className="space-y-5">
+          <div className="animate-in fade-in slide-in-from-top-1 space-y-5 duration-200">
             {/* Nickname */}
             <CollapsibleCard title="Identity">
               <div className="space-y-1.5">

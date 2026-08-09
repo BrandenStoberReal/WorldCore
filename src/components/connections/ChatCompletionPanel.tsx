@@ -425,13 +425,25 @@ function ProviderFormArea({
 }) {
   // Complex providers with dedicated forms
   if (source === 'azure_openai') {
-    return <Suspense fallback={null}><AzureOpenAIForm /></Suspense>;
+    return (
+      <Suspense fallback={null}>
+        <AzureOpenAIForm />
+      </Suspense>
+    );
   }
   if (source === 'vertexai') {
-    return <Suspense fallback={null}><VertexAIForm /></Suspense>;
+    return (
+      <Suspense fallback={null}>
+        <VertexAIForm />
+      </Suspense>
+    );
   }
   if (source === 'openrouter') {
-    return <Suspense fallback={null}><OpenRouterForm /></Suspense>;
+    return (
+      <Suspense fallback={null}>
+        <OpenRouterForm />
+      </Suspense>
+    );
   }
 
   // All other sources use the simple provider form
@@ -497,7 +509,20 @@ function SimpleProviderForm({
             aria-label={showKey ? 'Hide key' : 'Show key'}
             title={showKey ? 'Hide key' : 'Show key'}
           >
-            {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            <span className="relative block h-3.5 w-3.5">
+              <Eye
+                className={cn(
+                  'absolute inset-0 h-3.5 w-3.5 transition-all duration-200',
+                  showKey ? 'scale-75 opacity-0' : 'scale-100 opacity-100',
+                )}
+              />
+              <EyeOff
+                className={cn(
+                  'absolute inset-0 h-3.5 w-3.5 transition-all duration-200',
+                  showKey ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
+                )}
+              />
+            </span>
           </Button>
         </div>
       </div>

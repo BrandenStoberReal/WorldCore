@@ -101,7 +101,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
         </div>
 
         {step === 'backend' && (
-          <div className="space-y-3">
+          <div className="animate-in fade-in slide-in-from-bottom-1 space-y-3 duration-300">
             {BACKENDS.map((backend) => {
               const Icon = backend.icon;
               const isSelected = selected === backend.id;
@@ -177,7 +177,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
         )}
 
         {step === 'persona' && (
-          <div className="space-y-4">
+          <div className="animate-in fade-in slide-in-from-bottom-1 space-y-4 duration-300">
             <Card className={cn(surfaceCard, 'rounded-md')}>
               <CardContent className="space-y-4 px-4 py-4">
                 <div className="space-y-2">
@@ -223,7 +223,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
         )}
 
         {error && (
-          <div className="border-destructive/40 bg-destructive/5 rounded-md border p-3">
+          <div className="border-destructive/40 bg-destructive/5 animate-in fade-in slide-in-from-top-1 rounded-md border p-3 duration-200">
             <p className="text-destructive text-[13px]">{error}</p>
           </div>
         )}
