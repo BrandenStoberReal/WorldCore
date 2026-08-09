@@ -20,6 +20,12 @@ export function registerCardSource(source: CardSource, extId: string): void {
   if (typeof source.fetchCard !== 'function') {
     throw new Error('CardSource.fetchCard must be a function');
   }
+  if (source.search !== undefined && typeof source.search !== 'function') {
+    throw new Error('CardSource.search must be a function');
+  }
+  if (source.browse !== undefined && typeof source.browse !== 'function') {
+    throw new Error('CardSource.browse must be a function');
+  }
   sourcesById.set(source.id, { source, extId });
   notifySources();
 }

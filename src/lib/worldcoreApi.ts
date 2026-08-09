@@ -91,11 +91,12 @@ function getSettingsStore(extId: string): Record<string, unknown> {
 async function setSetting(extId: string, key: string, value: unknown): Promise<void> {
   const store = getSettingsStore(extId);
   store[key] = value;
-  const existing = settingsDebounceTimers.get(extId);
+  const debounceKey = `${extId}:${key}`;
+  const existing = settingsDebounceTimers.get(debounceKey);
   if (existing) clearTimeout(existing);
   await new Promise<void>((resolve) => {
     const timer = setTimeout(async () => {
-      settingsDebounceTimers.delete(extId);
+      settingsDebounceTimers.delete(debounceKey);
       try {
         await apiFetch('/api/v1/extensions/patch-settings', {
           method: 'POST',
@@ -108,7 +109,7 @@ async function setSetting(extId: string, key: string, value: unknown): Promise<v
       }
       resolve();
     }, 500);
-    settingsDebounceTimers.set(extId, timer);
+    settingsDebounceTimers.set(debounceKey, timer);
   });
 }
 

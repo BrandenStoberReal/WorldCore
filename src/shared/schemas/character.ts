@@ -199,11 +199,7 @@ export const CardSearchOptionsSchema = z.object({
   sort: z.enum(['popular', 'newest', 'name']).optional(),
 });
 
-export const CardBrowseOptionsSchema = z.object({
-  cursor: z.string().optional(),
-  limit: z.number().int().positive().optional(),
-  sort: z.enum(['popular', 'newest', 'name']).optional(),
-});
+export const CardBrowseOptionsSchema = CardSearchOptionsSchema;
 
 export const CardListingSchema = z.object({
   sourceId: z.string().min(1),

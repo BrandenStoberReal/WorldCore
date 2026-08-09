@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 export const ManifestSchema = z.object({
-  id: z.string().regex(/^[a-z0-9-]+$/),
+  id: z.string().regex(/^[a-z0-9-]+$/).max(128),
   displayName: z.string(),
-  version: z.string(),
+  version: z.string().max(64),
   author: z.string(),
   description: z.string().default(''),
   js: z.string().default('index.tsx'),

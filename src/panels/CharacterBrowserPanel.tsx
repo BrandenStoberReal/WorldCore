@@ -171,7 +171,9 @@ export function CharacterBrowserPanel() {
         try {
           let result: CardSearchResult;
           if (hasQuery) {
-            result = await source.search!(debouncedQuery.trim(), opts);
+            result = source.search
+              ? await source.search(debouncedQuery.trim(), opts)
+              : { items: [] as CardListing[] };
           } else if (source.browse) {
             result = await source.browse(opts);
           } else if (source.search) {
@@ -231,7 +233,9 @@ export function CharacterBrowserPanel() {
   }
 
   function handleDownload(listing: CardListing) {
-    downloadChainRef.current = downloadChainRef.current.then(() => downloadSingle(listing));
+    downloadChainRef.current = downloadChainRef.current
+      .then(() => downloadSingle(listing))
+      .catch(() => {});
   }
 
   /* ── source chip toggle ── */
@@ -284,6 +288,7 @@ export function CharacterBrowserPanel() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            aria-label="Sort results"
             className="border-border/60 bg-background/80 text-muted-foreground h-8 cursor-pointer appearance-none rounded-md border pr-7 pl-2 text-[11px] font-medium"
           >
             <option value="popular">Popular</option>
@@ -405,12 +410,19 @@ export function CharacterBrowserPanel() {
                       alt={listing.name}
                       loading="lazy"
                       className="mb-2 aspect-square w-full rounded object-cover"
+                      onError={(e) => {
+                        e.currentTarget.hidden = true;
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
                     />
-                  ) : (
-                    <div className="bg-muted/40 text-muted-foreground/60 mb-2 flex aspect-square w-full items-center justify-center rounded text-lg font-bold uppercase">
-                      {listing.name.charAt(0)}
-                    </div>
-                  )}
+                  ) : null}
+                  <div
+                    className={`bg-muted/40 text-muted-foreground/60 mb-2 flex aspect-square w-full items-center justify-center rounded text-lg font-bold uppercase ${
+                      listing.avatarUrl ? 'hidden' : ''
+                    }`}
+                  >
+                    {listing.name.charAt(0)}
+                  </div>
 
                   {/* Name */}
                   <p className="truncate text-sm font-medium">{listing.name}</p>

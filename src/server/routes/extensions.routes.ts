@@ -306,7 +306,6 @@ export const extensionsRoutes = {
       if (!(await file.exists())) {
         throw new NotFoundError('Asset');
       }
-      const ext = path.extname(safeAbs).toLowerCase();
       const contentType = resolveMimeType(safeAbs);
       const isScript = contentType === 'application/javascript';
       const headers: Record<string, string> = {

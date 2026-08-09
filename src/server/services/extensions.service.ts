@@ -18,6 +18,7 @@ import type { Manifest } from '@/shared/types/extensions';
 import type { ExtensionRow, InstallExtensionInput } from '@/shared/types/extensions';
 import { ZodError } from 'zod';
 import { log } from '@/server/logger';
+import { emit } from '@/lib/extensionEventBus';
 
 const DIST_EXTENSIONS_DIR = path.join(process.cwd(), 'dist', 'extensions');
 
@@ -164,7 +165,12 @@ export async function installExtension(
     const branch = input.branch ?? await getDefaultBranch(tempDest);
     const manifestPath = path.join(extRoot, 'manifest.json');
     const manifestText = await Bun.file(manifestPath).text();
-    const manifestObj = JSON.parse(manifestText);
+    let manifestObj: unknown;
+    try {
+      manifestObj = JSON.parse(manifestText);
+    } catch {
+      throw new ValidationError('manifest.json is not valid JSON');
+    }
     const parsed = validateManifest(manifestObj);
 
     if (!subfolder && parsed.id !== slug) {
@@ -204,24 +210,31 @@ export async function installExtension(
     const timestamp = new Date().toISOString();
     const uid = scopeUserId(scope, userId);
 
-    await db.insert(extensions).values({
-      id: parsed.id,
-      name: parsed.id,
-      displayName: parsed.displayName,
-      version: parsed.version,
-      author: parsed.author,
-      description: parsed.description,
-      gitUrl: input.url,
-      branch: input.branch ?? null,
-      subfolder: subfolder,
-      scope,
-      enabled: true,
-      settings: {},
-      manifestCache: parsed,
-      installedAt: timestamp,
-      lastUpdatedAt: timestamp,
-      userId: uid,
-    });
+    try {
+      await db.insert(extensions).values({
+        id: parsed.id,
+        name: parsed.id,
+        displayName: parsed.displayName,
+        version: parsed.version,
+        author: parsed.author,
+        description: parsed.description,
+        gitUrl: input.url,
+        branch: input.branch ?? null,
+        subfolder: subfolder,
+        scope,
+        enabled: true,
+        settings: {},
+        manifestCache: parsed,
+        installedAt: timestamp,
+        lastUpdatedAt: timestamp,
+        userId: uid,
+      });
+    } catch (err) {
+      try {
+        await rmrf(dest);
+      } catch {}
+      throw err;
+    }
 
     await buildExtension(dest, parsed.id);
 
@@ -250,14 +263,22 @@ export async function uninstallExtension(userId: string, id: string): Promise<vo
   const r = row[0]!;
   const dir = scopeDir(r.scope, userId, id);
 
-  await rmrf(dir);
-
   if (r.scope === 'global') {
     await db
       .delete(extensions)
       .where(and(eq(extensions.id, id), eq(extensions.userId, 'default-user')));
   } else {
     await db.delete(extensions).where(and(eq(extensions.id, id), eq(extensions.userId, userId)));
+  }
+
+  try {
+    await rmrf(dir);
+  } catch (err) {
+    log.warn(
+      'ext',
+      `uninstallExtension: failed to remove dir for "${id}" (DB row already deleted):`,
+      err instanceof Error ? err.message : err,
+    );
   }
 }
 
@@ -275,7 +296,12 @@ export async function updateExtension(userId: string, id: string): Promise<Exten
   const extRoot = existing.subfolder ? path.join(dir, existing.subfolder) : dir;
   const manifestPath = path.join(extRoot, 'manifest.json');
   const manifestText = await Bun.file(manifestPath).text();
-  const manifestObj = JSON.parse(manifestText);
+  let manifestObj: unknown;
+  try {
+    manifestObj = JSON.parse(manifestText);
+  } catch {
+    throw new ValidationError('manifest.json is not valid JSON');
+  }
   const parsed = validateManifest(manifestObj);
 
   const timestamp = new Date().toISOString();
@@ -367,14 +393,15 @@ export async function toggleExtension(
           version: g.version,
           author: g.author,
           description: g.description,
-          gitUrl: g.gitUrl,
-          branch: g.branch,
+          gitUrl: null,
+          branch: null,
+          subfolder: null,
           scope: 'user',
           enabled: false,
-          settings: g.settings,
-          manifestCache: g.manifestCache,
-          installedAt: g.installedAt,
-          lastUpdatedAt: g.lastUpdatedAt,
+          settings: {},
+          manifestCache: null,
+          installedAt: null,
+          lastUpdatedAt: null,
           userId,
         });
       }
@@ -386,6 +413,7 @@ export async function toggleExtension(
     if (!result) {
       throw new NotFoundError(`Extension "${id}"`);
     }
+    emit(enabled ? 'ext_enabled' : 'ext_disabled', { id });
     return result;
   }
 
@@ -405,6 +433,7 @@ export async function toggleExtension(
   if (updated.length === 0) {
     throw new NotFoundError(`Extension "${id}"`);
   }
+  emit(enabled ? 'ext_enabled' : 'ext_disabled', { id });
   return rowToExtension(updated[0]!);
 }
 
@@ -555,7 +584,7 @@ export async function seedPreinstalledGlobalExtensions(): Promise<void> {
           manifestCache: parsed,
           lastUpdatedAt: timestamp,
         })
-        .where(eq(extensions.id, extId));
+        .where(and(eq(extensions.id, extId), eq(extensions.scope, 'global')));
       continue;
     }
 
