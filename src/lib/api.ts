@@ -384,13 +384,21 @@ export function trimStopStringTail(text: string, stops: string[] | undefined): s
  */
 export async function* streamTextCompletion(
   request: StreamTextCompletionRequest,
+  signal?: AbortSignal,
 ): AsyncGenerator<string> {
   if (request.streaming === false) {
-    const res = await fetch(`${BASE}/ai/1.1/api/openai/text/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}/ai/1.1/api/openai/text/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+        signal,
+      });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      throw err;
+    }
     if (!res.ok) {
       const errText = await res.text().catch(() => res.statusText);
       throw new Error(
@@ -404,11 +412,18 @@ export async function* streamTextCompletion(
     return;
   }
 
-  const res = await fetch(`${BASE}/ai/1.1/api/openai/text/stream`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/ai/1.1/api/openai/text/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+      signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return;
+    throw err;
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => res.statusText);
@@ -455,8 +470,17 @@ export async function* streamTextCompletion(
       for (const line of lines) {
         let trimmed = line.trim();
         if (!trimmed) continue;
+        // Skip SSE comment frames (`:`) and non-data fields (event:, id:,
+        // retry:) — only `data:` carries a payload. llama.cpp emits `:` keep-alive
+        // comments during slow generations; JSON.parse on those threw the
+        // "Unexpected token ':' is not valid JSON" warnings and stalled the
+        // text-completion dripper behind the parse-error branch.
+        if (trimmed.startsWith(':') || trimmed.startsWith('event:')) continue;
+        if (trimmed.startsWith('id:') || trimmed.startsWith('retry:')) continue;
         if (trimmed.startsWith('data: ')) trimmed = trimmed.slice(6);
+        else if (trimmed.startsWith('data:')) trimmed = trimmed.slice(5);
         if (trimmed === '[DONE]') return;
+        if (!trimmed.startsWith('{')) continue;
 
         try {
           const parsed = JSON.parse(trimmed) as Record<string, unknown>;
@@ -513,15 +537,25 @@ export async function* streamTextCompletion(
   }
 }
 
-export async function* streamChat(request: StreamChatRequest): AsyncGenerator<string> {
+export async function* streamChat(
+  request: StreamChatRequest,
+  signal?: AbortSignal,
+): AsyncGenerator<string> {
   // Non-streaming transport: server returns one whole JSON response.
   // Validate before parsing so 4xx/5xx surfaces as an error instead of an empty message.
   if (request.streaming === false) {
-    const res = await fetch(`${BASE}/ai/1.1/api/openai/chat/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}/ai/1.1/api/openai/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+        signal,
+      });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      throw err;
+    }
     if (!res.ok) {
       const errText = await res.text().catch(() => res.statusText);
       throw new Error(`streamChat non-streaming request failed (${res.status}): ${errText}`);
@@ -533,11 +567,18 @@ export async function* streamChat(request: StreamChatRequest): AsyncGenerator<st
     return;
   }
 
-  const res = await fetch(`${BASE}/ai/1.1/api/openai/chat/stream`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/ai/1.1/api/openai/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+      signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return;
+    throw err;
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => res.statusText);

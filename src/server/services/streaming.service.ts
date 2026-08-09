@@ -10,7 +10,30 @@ export function passthroughSSE(response: Response): ReadableStream<Uint8Array> {
   if (!response.body) {
     throw new Error('Response has no body');
   }
-  return response.body;
+  const reader = response.body.getReader();
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      function pump(): Promise<void> {
+        return reader
+          .read()
+          .then(({ done, value }) => {
+            if (done) {
+              controller.close();
+              return;
+            }
+            controller.enqueue(value);
+            return pump();
+          })
+          .catch((err) => {
+            controller.error(err);
+          });
+      }
+      pump();
+    },
+    cancel() {
+      reader.cancel().catch(() => {});
+    },
+  });
 }
 
 export async function* ollamaNDJSONToSSE(response: Response): AsyncGenerator<string> {

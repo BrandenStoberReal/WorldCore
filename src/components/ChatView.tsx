@@ -773,16 +773,19 @@ export function ChatView({ characterId }: ChatViewProps) {
           if (textOptions?.instruct?.enabled && textOptions.instruct.outputSequence) {
             flatPrompt += textOptions.instruct.outputSequence;
           }
-          generator = streamTextCompletion({
-            text_completion_source: textCompletionSource(source),
-            model: genModel || model,
-            prompt: flatPrompt,
-            max_context: genMaxContext,
-            reverse_proxy: reverseProxy,
-            ...genParams,
-          });
+          generator = streamTextCompletion(
+            {
+              text_completion_source: textCompletionSource(source),
+              model: genModel || model,
+              prompt: flatPrompt,
+              max_context: genMaxContext,
+              reverse_proxy: reverseProxy,
+              ...genParams,
+            },
+            abortRef.current?.signal,
+          );
         } else {
-          generator = streamChat(interceptedRequest);
+          generator = streamChat(interceptedRequest, abortRef.current?.signal);
         }
 
         let isFirstChunk = true;
@@ -1242,16 +1245,19 @@ export function ChatView({ characterId }: ChatViewProps) {
           if (textOptions?.instruct?.enabled && textOptions.instruct.outputSequence) {
             flatPrompt += textOptions.instruct.outputSequence;
           }
-          generator = streamTextCompletion({
-            text_completion_source: textCompletionSource(source),
-            model: genModel || (settings?.chat_completion_model as string) || 'gpt-3.5-turbo',
-            prompt: flatPrompt,
-            max_context: genMaxContext,
-            reverse_proxy: (settings?.reverse_proxy as string) || undefined,
-            ...genParams,
-          });
+          generator = streamTextCompletion(
+            {
+              text_completion_source: textCompletionSource(source),
+              model: genModel || (settings?.chat_completion_model as string) || 'gpt-3.5-turbo',
+              prompt: flatPrompt,
+              max_context: genMaxContext,
+              reverse_proxy: (settings?.reverse_proxy as string) || undefined,
+              ...genParams,
+            },
+            abortRef.current?.signal,
+          );
         } else {
-          generator = streamChat(interceptedRequest);
+          generator = streamChat(interceptedRequest, abortRef.current?.signal);
         }
 
         let isFirstChunk = true;
