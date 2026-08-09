@@ -14,6 +14,7 @@ import {
   CharacterEditAttributeInputSchema,
   CropSchema,
   CardSearchOptionsSchema,
+  CardBrowseOptionsSchema,
   CardListingSchema,
 } from '@/shared/schemas/character';
 
@@ -32,6 +33,7 @@ export type CharacterEditAttributeInput = z.infer<typeof CharacterEditAttributeI
 export type Crop = z.infer<typeof CropSchema>;
 
 export type CardSearchOptions = z.infer<typeof CardSearchOptionsSchema>;
+export type CardBrowseOptions = z.infer<typeof CardBrowseOptionsSchema>;
 export type CardListing = z.infer<typeof CardListingSchema>;
 
 // Result shape a CardSource.search() may return. The framework auto-detects
@@ -51,5 +53,7 @@ export interface CardSource {
   /** Lucide icon name. The framework resolves it via dynamic import; sources must not import React. */
   icon?: string;
   search?: (query: string, opts?: CardSearchOptions) => CardSearchResult;
+  /** Browse without a search query. Called when the search input is empty. Falls back to search('') if not provided. */
+  browse?: (opts?: CardBrowseOptions) => CardSearchResult;
   fetchCard: (listing: CardListing) => Promise<ArrayBuffer>;
 }

@@ -196,6 +196,13 @@ export const CropSchema = z.object({
 export const CardSearchOptionsSchema = z.object({
   cursor: z.string().optional(),
   limit: z.number().int().positive().optional(),
+  sort: z.enum(['popular', 'newest', 'name']).optional(),
+});
+
+export const CardBrowseOptionsSchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+  sort: z.enum(['popular', 'newest', 'name']).optional(),
 });
 
 export const CardListingSchema = z.object({

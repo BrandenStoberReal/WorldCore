@@ -1,6 +1,15 @@
 import { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, Download, Check, AlertCircle, Loader2, Compass, X } from 'lucide-react';
+import {
+  Search,
+  Download,
+  Check,
+  AlertCircle,
+  Loader2,
+  Compass,
+  X,
+  ChevronDown,
+} from 'lucide-react';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { emit } from '@/lib/extensionEventBus';
 import { cn } from '@/lib/utils';
@@ -14,6 +23,7 @@ import type {
   CardListing,
   CardSearchResult,
   ShallowCharacter,
+  CardBrowseOptions,
 } from '@/shared/types/character';
 
 /* ────────────────────────────────────────────────
@@ -47,16 +57,19 @@ function getSourcesSnapshot(): CardSource[] {
    Normalize CardSearchResult → CardListing[]
    ──────────────────────────────────────────────── */
 
-async function normalizeResult(result: CardSearchResult): Promise<CardListing[]> {
-  if (Array.isArray(result)) return result;
+async function normalizeResult(
+  result: CardSearchResult,
+): Promise<{ items: CardListing[]; nextCursor?: string }> {
+  if (Array.isArray(result)) return { items: result };
   if (result && typeof result === 'object' && 'items' in result) {
-    return (result as { items: CardListing[] }).items;
+    const r = result as { items: CardListing[]; nextCursor?: string };
+    return { items: r.items, nextCursor: r.nextCursor };
   }
   const items: CardListing[] = [];
   for await (const item of result as AsyncIterable<CardListing>) {
     items.push(item);
   }
-  return items;
+  return { items };
 }
 
 /* ────────────────────────────────────────────────
@@ -107,6 +120,7 @@ export function CharacterBrowserPanel() {
   const [activeSourceIds, setActiveSourceIds] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<CardListing[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [sortBy, setSortBy] = useState<'popular' | 'newest' | 'name'>('popular');
   const [downloadState, setDownloadState] = useState<
     Map<string, 'idle' | 'downloading' | 'done' | 'error'>
   >(new Map());
@@ -134,19 +148,13 @@ export function CharacterBrowserPanel() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  /* ── search effect ── */
+  /* ── search/browse effect ── */
   useEffect(() => {
-    if (!debouncedQuery.trim()) {
-      setResults([]);
-      setIsSearching(false);
-      return;
-    }
-
     let stale = false;
     setIsSearching(true);
 
     const activeSources = sources.filter(
-      (s) => (activeSourceIds.size === 0 || activeSourceIds.has(s.id)) && s.search,
+      (s) => (activeSourceIds.size === 0 || activeSourceIds.has(s.id)) && (s.search || s.browse),
     );
 
     if (activeSources.length === 0) {
@@ -155,13 +163,26 @@ export function CharacterBrowserPanel() {
       return;
     }
 
+    const hasQuery = debouncedQuery.trim().length > 0;
+    const opts = { sort: sortBy };
+
     Promise.all(
       activeSources.map(async (source) => {
         try {
-          const result = await source.search!(debouncedQuery.trim());
-          return { sourceId: source.id, items: await normalizeResult(result) };
+          let result: CardSearchResult;
+          if (hasQuery) {
+            result = await source.search!(debouncedQuery.trim(), opts);
+          } else if (source.browse) {
+            result = await source.browse(opts);
+          } else if (source.search) {
+            result = await source.search('', opts);
+          } else {
+            return { sourceId: source.id, items: [] as CardListing[] };
+          }
+          const { items, nextCursor } = await normalizeResult(result);
+          return { sourceId: source.id, items, nextCursor };
         } catch (err) {
-          console.error(`[browser] search error from "${source.id}":`, err);
+          console.error(`[browser] error from "${source.id}":`, err);
           return { sourceId: source.id, items: [] as CardListing[] };
         }
       }),
@@ -180,7 +201,7 @@ export function CharacterBrowserPanel() {
     return () => {
       stale = true;
     };
-  }, [debouncedQuery, activeSourceIds, sources]);
+  }, [debouncedQuery, activeSourceIds, sources, sortBy]);
 
   /* ── download (serialised) ── */
   async function downloadSingle(listing: CardListing): Promise<void> {
@@ -259,6 +280,18 @@ export function CharacterBrowserPanel() {
             className="h-8 pl-8 text-sm"
           />
         </div>
+        <div className="relative">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="border-border/60 bg-background/80 text-muted-foreground h-8 cursor-pointer appearance-none rounded-md border pr-7 pl-2 text-[11px] font-medium"
+          >
+            <option value="popular">Popular</option>
+            <option value="newest">Newest</option>
+            <option value="name">Name</option>
+          </select>
+          <ChevronDown className="text-muted-foreground/50 pointer-events-none absolute top-1/2 right-1.5 h-3 w-3 -translate-y-1/2" />
+        </div>
       </header>
 
       {/* ── Source filter chips ── */}
@@ -299,11 +332,11 @@ export function CharacterBrowserPanel() {
         )}
 
         {/* Prompt to type */}
-        {!noSources && !hasQuery && !isSearching && (
+        {!noSources && !hasQuery && !isSearching && results.length === 0 && (
           <EmptyState
-            icon={<Search className="text-muted-foreground/55 h-4 w-4" />}
-            title="Type to search"
-            description="Search across registered card sources to find new characters."
+            icon={<Compass className="text-muted-foreground/55 h-4 w-4" />}
+            title="Browse characters"
+            description="Browse across registered card sources. Type to search, or use the sort selector to order results."
           />
         )}
 
@@ -331,7 +364,7 @@ export function CharacterBrowserPanel() {
         )}
 
         {/* Empty state 3 — all results already in library */}
-        {!noSources && hasQuery && !isSearching && allInLibrary && (
+        {!noSources && !isSearching && allInLibrary && (
           <EmptyState
             icon={<Check className="text-muted-foreground/55 h-4 w-4" />}
             title="All cards in this view are already in your library"
@@ -340,7 +373,7 @@ export function CharacterBrowserPanel() {
         )}
 
         {/* Loading state — skeleton grid */}
-        {!noSources && hasQuery && isSearching && (
+        {!noSources && isSearching && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
@@ -356,7 +389,7 @@ export function CharacterBrowserPanel() {
         )}
 
         {/* Card grid */}
-        {!noSources && hasQuery && !isSearching && results.length > 0 && !allInLibrary && (
+        {!noSources && !isSearching && results.length > 0 && !allInLibrary && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {results.map((listing) => {
               const state = cardState(listing);
