@@ -149,6 +149,17 @@ export async function getCurrentHead(dir: string): Promise<string> {
   return stdout;
 }
 
+export async function getDefaultBranch(dir: string): Promise<string> {
+  const { exitCode, stdout } = await gitSpawn({
+    dir,
+    args: ['symbolic-ref', 'refs/remotes/origin/HEAD'],
+  });
+  if (exitCode === 0 && stdout) {
+    return stdout.replace('refs/remotes/origin/', '');
+  }
+  return 'main';
+}
+
 export async function rmrf(dir: string): Promise<void> {
   await rm(dir, { recursive: true, force: true });
 }

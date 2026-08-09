@@ -307,6 +307,7 @@ export const extensions = sqliteTable('extensions', {
   description: text('description').default(''),
   gitUrl: text('git_url'),
   branch: text('branch'),
+  subfolder: text('subfolder'),
   scope: text('scope').notNull().default('user'),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
   settings: text('settings', { mode: 'json' }).$type<Record<string, unknown>>().default({}),

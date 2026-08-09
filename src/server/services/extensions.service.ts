@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { db } from '@/server/db/client';
@@ -11,13 +11,69 @@ import {
   getUserExtensionPath,
   DATA_ROOT,
 } from '@/server/storage/paths';
-import { cloneRepo, fetchAndPull, validateGitUrl, rmrf } from '@/server/services/gitClone.service';
+import { cloneRepo, fetchAndPull, validateGitUrl, rmrf, getDefaultBranch } from '@/server/services/gitClone.service';
 import { ManifestSchema, ExtensionRowSchema } from '@/shared/schemas/extensions';
 import { NotFoundError, ValidationError, ConflictError } from '@/server/errors';
 import type { Manifest } from '@/shared/types/extensions';
 import type { ExtensionRow, InstallExtensionInput } from '@/shared/types/extensions';
 import { ZodError } from 'zod';
 import { log } from '@/server/logger';
+
+const DIST_EXTENSIONS_DIR = path.join(process.cwd(), 'dist', 'extensions');
+
+export async function buildExtension(extDir: string, extId: string): Promise<boolean> {
+  const manifestPath = path.join(extDir, 'manifest.json');
+  if (!existsSync(manifestPath)) return false;
+
+  let manifest: { js?: string; css?: string };
+  try {
+    manifest = JSON.parse(await Bun.file(manifestPath).text());
+  } catch {
+    log.warn('ext', `buildExtension: skipping "${extId}" (unreadable manifest)`);
+    return false;
+  }
+  if (!manifest.js || !manifest.js.trim()) {
+    log.warn('ext', `buildExtension: skipping "${extId}" (no js entrypoint)`);
+    return false;
+  }
+
+  const entry = path.join(extDir, manifest.js);
+  if (!existsSync(entry)) {
+    log.warn('ext', `buildExtension: skipping "${extId}" (entrypoint ${manifest.js} missing)`);
+    return false;
+  }
+
+  const extOutDir = path.join(DIST_EXTENSIONS_DIR, extId);
+  await fs.mkdir(extOutDir, { recursive: true });
+
+  const extResult = await Bun.build({
+    entrypoints: [entry],
+    outdir: extOutDir,
+    target: 'browser',
+    minify: true,
+    sourcemap: 'external',
+    naming: 'index.js',
+    define: {
+      'process.env.NODE_ENV': JSON.stringify('production'),
+    },
+  });
+
+  if (!extResult.success) {
+    for (const logEntry of extResult.logs) {
+      log.error('ext', `buildExtension:${extId}:`, logEntry.message ?? logEntry);
+    }
+    return false;
+  }
+
+  if (manifest.css && existsSync(path.join(extDir, manifest.css))) {
+    await fs.copyFile(
+      path.join(extDir, manifest.css),
+      path.join(extOutDir, manifest.css),
+    );
+  }
+
+  return true;
+}
 
 function extractSlug(url: string): string {
   let raw = url;
@@ -103,12 +159,15 @@ export async function installExtension(
   try {
     await cloneRepo(input.url, tempDest, { branch: input.branch, timeoutMs: 60000 });
 
-    const manifestPath = path.join(tempDest, 'manifest.json');
+    const subfolder = input.subfolder ?? null;
+    const extRoot = subfolder ? path.join(tempDest, subfolder) : tempDest;
+    const branch = input.branch ?? await getDefaultBranch(tempDest);
+    const manifestPath = path.join(extRoot, 'manifest.json');
     const manifestText = await Bun.file(manifestPath).text();
     const manifestObj = JSON.parse(manifestText);
     const parsed = validateManifest(manifestObj);
 
-    if (parsed.id !== slug) {
+    if (!subfolder && parsed.id !== slug) {
       throw new ValidationError('manifest.id does not match folder name');
     }
 
@@ -129,10 +188,13 @@ export async function installExtension(
     await fs.mkdir(destParent, { recursive: true });
 
     try {
-      await fs.rename(tempDest, dest);
+      await fs.rename(extRoot, dest);
+      if (subfolder) {
+        await rmrf(tempDest);
+      }
     } catch (err: unknown) {
       if (err instanceof Error && 'code' in err && (err as { code: string }).code === 'EXDEV') {
-        await fs.cp(tempDest, dest, { recursive: true });
+        await fs.cp(extRoot, dest, { recursive: true });
         await rmrf(tempDest);
       } else {
         throw err;
@@ -151,6 +213,7 @@ export async function installExtension(
       description: parsed.description,
       gitUrl: input.url,
       branch: input.branch ?? null,
+      subfolder: subfolder,
       scope,
       enabled: true,
       settings: {},
@@ -159,6 +222,8 @@ export async function installExtension(
       lastUpdatedAt: timestamp,
       userId: uid,
     });
+
+    await buildExtension(dest, parsed.id);
 
     const inserted = await db
       .select()
@@ -203,11 +268,12 @@ export async function updateExtension(userId: string, id: string): Promise<Exten
   }
 
   const dir = scopeDir(existing.scope, userId, id);
-  const branch = existing.branch ?? 'main';
+  const branch = existing.branch ?? await getDefaultBranch(dir);
 
   await fetchAndPull(dir, branch, { timeoutMs: 30000 });
 
-  const manifestPath = path.join(dir, 'manifest.json');
+  const extRoot = existing.subfolder ? path.join(dir, existing.subfolder) : dir;
+  const manifestPath = path.join(extRoot, 'manifest.json');
   const manifestText = await Bun.file(manifestPath).text();
   const manifestObj = JSON.parse(manifestText);
   const parsed = validateManifest(manifestObj);
@@ -218,11 +284,14 @@ export async function updateExtension(userId: string, id: string): Promise<Exten
   await db
     .update(extensions)
     .set({
+      branch: existing.branch ?? branch,
       version: parsed.version,
       manifestCache: parsed,
       lastUpdatedAt: timestamp,
     })
     .where(and(eq(extensions.id, id), eq(extensions.userId, uid)));
+
+  await buildExtension(dir, id);
 
   const updated = await db
     .select()

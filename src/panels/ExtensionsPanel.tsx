@@ -28,6 +28,7 @@ export function ExtensionsPanel() {
   const [installOpen, setInstallOpen] = useState(false);
   const [installUrl, setInstallUrl] = useState('');
   const [installScope, setInstallScope] = useState<'user' | 'global'>('user');
+  const [installSubfolder, setInstallSubfolder] = useState('');
   const [uninstallId, setUninstallId] = useState<string | null>(null);
 
   const {
@@ -54,7 +55,7 @@ export function ExtensionsPanel() {
   });
 
   const installMutation = useMutation({
-    mutationFn: async (params: { url: string; scope: 'user' | 'global' }) => {
+    mutationFn: async (params: { url: string; scope: 'user' | 'global'; subfolder?: string }) => {
       return await apiPost<unknown>('/extensions/install', params);
     },
     onSuccess: () => {
@@ -62,6 +63,7 @@ export function ExtensionsPanel() {
       setInstallOpen(false);
       setInstallUrl('');
       setInstallScope('user');
+      setInstallSubfolder('');
     },
   });
 
@@ -270,10 +272,10 @@ export function ExtensionsPanel() {
         open={installOpen}
         onClose={() => setInstallOpen(false)}
         title="Install Module"
-        className="max-w-xl"
+        className="max-w-md"
       >
-        <div className="space-y-4">
-          <div className="space-y-1.5">
+        <div className="space-y-3">
+          <div className="space-y-1">
             <label className="mono-tag text-muted-foreground/70">MODULE URL</label>
             <Input
               value={installUrl}
@@ -282,7 +284,7 @@ export function ExtensionsPanel() {
               className="font-mono text-[13px]"
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <label className="mono-tag text-muted-foreground/70">SCOPE</label>
             <div className="flex gap-2">
               <ScopeChoice
@@ -299,16 +301,31 @@ export function ExtensionsPanel() {
               />
             </div>
           </div>
+          <div className="space-y-1">
+            <label className="mono-tag text-muted-foreground/70">SUBFOLDER (optional)</label>
+            <Input
+              value={installSubfolder}
+              onChange={(e) => setInstallSubfolder(e.target.value)}
+              placeholder="extensions/my-ext — for monorepo repos"
+              className="font-mono text-[13px]"
+            />
+          </div>
           <p className="mono-tag text-muted-foreground/55">
             git repository or direct download link accepted
           </p>
 
-          <div className="border-border/60 flex justify-end gap-2 border-t pt-3">
+          <div className="border-border/60 flex justify-end gap-2 border-t pt-2.5">
             <Button variant="outline" onClick={() => setInstallOpen(false)}>
               <span className="mono-tag">cancel</span>
             </Button>
             <Button
-              onClick={() => installMutation.mutate({ url: installUrl, scope: installScope })}
+              onClick={() =>
+                installMutation.mutate({
+                  url: installUrl,
+                  scope: installScope,
+                  subfolder: installSubfolder || undefined,
+                })
+              }
               disabled={!installUrl.trim() || installMutation.isPending}
               className="ember-pulse"
             >

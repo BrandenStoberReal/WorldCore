@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { errorGuard } from '@/server/middleware/errorGuard';
 import { withExtensionUserId } from '@/server/auth/withExtensionUserId';
 import { requireAdminForGlobal } from '@/server/auth/extensionAdmin';
@@ -26,6 +27,33 @@ import { SHARED_CONST } from '@/shared/constants';
 
 const PREFIX = SHARED_CONST.API_VERSION_PREFIX;
 const ASSET_PREFIX = `${PREFIX}/extensions/assets/`;
+
+const DIST_EXTENSIONS_DIR = path.join(process.cwd(), 'dist', 'extensions');
+
+const SCRIPT_EXTS = new Set(['.ts', '.tsx', '.jsx', '.js']);
+
+/**
+ * Built artifact lookup for an extension asset request.
+ *
+ * `bun run build` bundles each extension's manifest entrypoint (eg. index.tsx)
+ * into a single self-contained ES module at dist/extensions/<extId>/index.js,
+ * with bare imports (react, react-dom, ...) resolved and JSX compiled. The
+ * loader still requests the source manifest's `js` filename
+ * (eg. /assets/outfit/index.tsx), so this maps the requested relPath onto the
+ * built .js when one exists. Returns null when no built artifact matches,
+ * leaving the caller to fall back to serving source (eg. CSS, PNG, dev mode
+ * where the build wasn't run).
+ */
+function resolveBuiltAsset(
+  extId: string,
+  relPath: string,
+): { abs: string; contentType: string } | null {
+  const reqExt = path.extname(relPath).toLowerCase();
+  if (!SCRIPT_EXTS.has(reqExt)) return null;
+  const builtJs = path.join(DIST_EXTENSIONS_DIR, extId, 'index.js');
+  if (!existsSync(builtJs)) return null;
+  return { abs: builtJs, contentType: 'application/javascript' };
+}
 
 /**
  * Resolve the on-disk directory for an extension row. Local-wins on collision
@@ -262,11 +290,23 @@ export const extensionsRoutes = {
       if (!dir) {
         throw new NotFoundError(`Extension "${extId}"`);
       }
+
+      const built = resolveBuiltAsset(extId, relPath);
+      if (built) {
+        const headers: Record<string, string> = {
+          'Content-Type': built.contentType,
+          'Cache-Control': 'no-cache',
+          'X-Content-Type-Options': 'nosniff',
+        };
+        return new Response(Bun.file(built.abs).stream(), { headers });
+      }
+
       const safeAbs = safeExtensionPath(dir, relPath);
       const file = Bun.file(safeAbs);
       if (!(await file.exists())) {
         throw new NotFoundError('Asset');
       }
+      const ext = path.extname(safeAbs).toLowerCase();
       const contentType = resolveMimeType(safeAbs);
       const isScript = contentType === 'application/javascript';
       const headers: Record<string, string> = {

@@ -24,6 +24,7 @@ export const InstallExtensionSchema = z.object({
     .refine((s) => !s.startsWith('-'), 'branch must not start with "-"')
     .optional(),
   scope: z.enum(['user', 'global']).default('user'),
+  subfolder: z.string().regex(/^[a-z0-9-\/]+$/i, 'subfolder must be alphanumeric/dot/dash/slash').optional(),
 });
 
 export const UpdateExtensionSchema = z.object({
@@ -51,6 +52,7 @@ export const ExtensionRowSchema = z.object({
   description: z.string().default(''),
   gitUrl: z.string().nullable(),
   branch: z.string().nullable(),
+  subfolder: z.string().nullable().default(null),
   scope: z.enum(['user', 'global']),
   enabled: z.boolean().default(true),
   settings: z.record(z.unknown()).default({}),
