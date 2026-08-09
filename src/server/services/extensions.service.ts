@@ -289,28 +289,56 @@ export async function updateExtension(userId: string, id: string): Promise<Exten
   }
 
   const dir = scopeDir(existing.scope, userId, id);
-  const branch = existing.branch ?? await getDefaultBranch(dir);
-
-  await fetchAndPull(dir, branch, { timeoutMs: 30000 });
-
-  const extRoot = existing.subfolder ? path.join(dir, existing.subfolder) : dir;
-  const manifestPath = path.join(extRoot, 'manifest.json');
-  const manifestText = await Bun.file(manifestPath).text();
-  let manifestObj: unknown;
-  try {
-    manifestObj = JSON.parse(manifestText);
-  } catch {
-    throw new ValidationError('manifest.json is not valid JSON');
-  }
-  const parsed = validateManifest(manifestObj);
-
-  const timestamp = new Date().toISOString();
   const uid = scopeUserId(existing.scope, userId);
+
+  let parsed: Manifest;
+  const timestamp = new Date().toISOString();
+
+  if (existing.subfolder && existing.gitUrl) {
+    const tempDest = mkdtempSync(path.join(tmpdir(), 'wc-ext-update-'));
+    try {
+      const branch = existing.branch ?? await getDefaultBranch(dir);
+      await cloneRepo(existing.gitUrl, tempDest, { branch, timeoutMs: 60000 });
+
+      const extRoot = path.join(tempDest, existing.subfolder);
+      const manifestPath = path.join(extRoot, 'manifest.json');
+      const manifestText = await Bun.file(manifestPath).text();
+      let manifestObj: unknown;
+      try {
+        manifestObj = JSON.parse(manifestText);
+      } catch {
+        throw new ValidationError('manifest.json is not valid JSON');
+      }
+      parsed = validateManifest(manifestObj);
+
+      await fs.rm(dir, { recursive: true, force: true });
+      await fs.cp(extRoot, dir, { recursive: true });
+      await rmrf(tempDest);
+    } catch (err) {
+      try { await rmrf(tempDest); } catch {}
+      throw err;
+    }
+  } else if (existing.gitUrl) {
+    const branch = existing.branch ?? await getDefaultBranch(dir);
+    await fetchAndPull(dir, branch, { timeoutMs: 30000 });
+
+    const manifestPath = path.join(dir, 'manifest.json');
+    const manifestText = await Bun.file(manifestPath).text();
+    let manifestObj: unknown;
+    try {
+      manifestObj = JSON.parse(manifestText);
+    } catch {
+      throw new ValidationError('manifest.json is not valid JSON');
+    }
+    parsed = validateManifest(manifestObj);
+  } else {
+    throw new ValidationError('extension has no git URL — cannot update');
+  }
 
   await db
     .update(extensions)
     .set({
-      branch: existing.branch ?? branch,
+      branch: existing.branch ?? await getDefaultBranch(dir),
       version: parsed.version,
       manifestCache: parsed,
       lastUpdatedAt: timestamp,

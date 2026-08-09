@@ -9,6 +9,8 @@ import {
   Compass,
   X,
   ChevronDown,
+  ChevronRight,
+  ArrowLeft,
 } from 'lucide-react';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { emit } from '@/lib/extensionEventBus';
@@ -124,6 +126,9 @@ export function CharacterBrowserPanel() {
   const [downloadState, setDownloadState] = useState<
     Map<string, 'idle' | 'downloading' | 'done' | 'error'>
   >(new Map());
+  const [sourceCursors, setSourceCursors] = useState<Map<string, string>>(new Map());
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<CardListing | null>(null);
 
   const downloadChainRef = useRef(Promise.resolve());
 
@@ -152,6 +157,7 @@ export function CharacterBrowserPanel() {
   useEffect(() => {
     let stale = false;
     setIsSearching(true);
+    setSourceCursors(new Map());
 
     const activeSources = sources.filter(
       (s) => (activeSourceIds.size === 0 || activeSourceIds.has(s.id)) && (s.search || s.browse),
@@ -191,12 +197,15 @@ export function CharacterBrowserPanel() {
     ).then((sourceResults) => {
       if (stale) return;
       const merged = new Map<string, CardListing>();
-      for (const { sourceId, items } of sourceResults) {
+      const cursors = new Map<string, string>();
+      for (const { sourceId, items, nextCursor } of sourceResults) {
         for (const item of items) {
           merged.set(`${sourceId}::${item.cardId}`, item);
         }
+        if (nextCursor) cursors.set(sourceId, nextCursor);
       }
       setResults([...merged.values()]);
+      setSourceCursors(cursors);
       setIsSearching(false);
     });
 
@@ -246,6 +255,65 @@ export function CharacterBrowserPanel() {
       else next.add(sourceId);
       return next;
     });
+  }
+
+  /* ── pagination: load more ── */
+  async function loadMore() {
+    if (isLoadingMore || sourceCursors.size === 0) return;
+    setIsLoadingMore(true);
+
+    const activeSources = sources.filter(
+      (s) =>
+        (activeSourceIds.size === 0 || activeSourceIds.has(s.id)) &&
+        (s.search || s.browse) &&
+        sourceCursors.has(s.id),
+    );
+
+    const hasQuery = debouncedQuery.trim().length > 0;
+
+    try {
+      const sourceResults = await Promise.all(
+        activeSources.map(async (source) => {
+          const cursor = sourceCursors.get(source.id);
+          if (!cursor) return { sourceId: source.id, items: [] as CardListing[] };
+          const opts = { sort: sortBy, cursor };
+          try {
+            let result: CardSearchResult;
+            if (hasQuery) {
+              result = source.search
+                ? await source.search(debouncedQuery.trim(), opts)
+                : { items: [] as CardListing[] };
+            } else if (source.browse) {
+              result = await source.browse(opts);
+            } else {
+              return { sourceId: source.id, items: [] as CardListing[] };
+            }
+            const { items, nextCursor } = await normalizeResult(result);
+            return { sourceId: source.id, items, nextCursor };
+          } catch (err) {
+            console.error(`[browser] loadMore error from "${source.id}":`, err);
+            return { sourceId: source.id, items: [] as CardListing[] };
+          }
+        }),
+      );
+
+      const appended = new Map<string, CardListing>();
+      for (const item of results) {
+        appended.set(`${item.sourceId}::${item.cardId}`, item);
+      }
+      const nextCursors = new Map(sourceCursors);
+      for (const { sourceId, items, nextCursor } of sourceResults) {
+        for (const item of items) {
+          appended.set(`${sourceId}::${item.cardId}`, item);
+        }
+        if (nextCursor) nextCursors.set(sourceId, nextCursor);
+        else nextCursors.delete(sourceId);
+      }
+      setResults([...appended.values()]);
+      setSourceCursors(nextCursors);
+    } finally {
+      setIsLoadingMore(false);
+    }
   }
 
   /* ── derived ── */
@@ -401,7 +469,19 @@ export function CharacterBrowserPanel() {
               return (
                 <div
                   key={`${listing.sourceId}::${listing.cardId}`}
-                  className="group border-border/40 bg-card/50 hover:bg-card/80 relative flex flex-col rounded-lg border p-3 transition-colors"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedCard(listing)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedCard(listing);
+                    }
+                  }}
+                  className={cn(
+                    'group border-border/40 bg-card/50 hover:bg-card/80 relative flex cursor-pointer flex-col rounded-lg border p-3 transition-colors',
+                    state === 'done' && 'opacity-60',
+                  )}
                 >
                   {/* Avatar */}
                   {listing.avatarUrl ? (
@@ -432,6 +512,13 @@ export function CharacterBrowserPanel() {
                     <p className="text-muted-foreground truncate text-[11px]">{listing.creator}</p>
                   )}
 
+                  {/* Description preview */}
+                  {listing.description && (
+                    <p className="text-muted-foreground/70 mt-1 line-clamp-2 text-[10px] leading-snug">
+                      {listing.description}
+                    </p>
+                  )}
+
                   {/* Tags */}
                   {listing.tags.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-1">
@@ -455,7 +542,10 @@ export function CharacterBrowserPanel() {
                   <button
                     type="button"
                     disabled={state === 'downloading' || state === 'done'}
-                    onClick={() => handleDownload(listing)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload(listing);
+                    }}
                     className={cn(
                       'touch-target absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-md border transition-colors',
                       state === 'idle' &&
@@ -489,12 +579,135 @@ export function CharacterBrowserPanel() {
                     {state === 'done' && <Check className="h-3.5 w-3.5" />}
                     {state === 'error' && <AlertCircle className="h-3.5 w-3.5" />}
                   </button>
+                  {state === 'done' && (
+                    <span className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 absolute top-2 left-2 rounded border px-1.5 py-0.5 text-[9px] font-medium">
+                      In Library
+                    </span>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
+
+        {/* Load more */}
+        {!noSources && !isSearching && sourceCursors.size > 0 && results.length > 0 && !allInLibrary && (
+          <div className="mt-4 flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              disabled={isLoadingMore}
+              onClick={loadMore}
+            >
+              {isLoadingMore ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+              {isLoadingMore ? 'Loading…' : 'Load More'}
+            </Button>
+          </div>
+        )}
       </div>
+
+      {/* ── Card detail overlay ── */}
+      {selectedCard && (
+        <div className="bg-background absolute inset-0 z-50 flex flex-col overflow-hidden">
+          <header className="border-border/40 flex items-center gap-3 border-b px-4 py-2">
+            <button
+              type="button"
+              onClick={() => setSelectedCard(null)}
+              className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+            <span className="bg-border/50 h-px w-6" />
+            <span className="mono-tag text-ember">[DETAIL] · FORGE</span>
+          </header>
+
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            <div className="mx-auto flex max-w-2xl flex-col gap-6">
+              {/* Hero section */}
+              <div className="flex gap-6">
+                {selectedCard.avatarUrl ? (
+                  <img
+                    src={selectedCard.avatarUrl}
+                    alt={selectedCard.name}
+                    className="h-32 w-32 flex-shrink-0 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="bg-muted/40 text-muted-foreground/60 flex h-32 w-32 flex-shrink-0 items-center justify-center rounded-lg text-3xl font-bold uppercase">
+                    {selectedCard.name.charAt(0)}
+                  </div>
+                )}
+                <div className="flex flex-1 flex-col gap-2">
+                  <h2 className="text-foreground text-xl font-semibold">{selectedCard.name}</h2>
+                  {selectedCard.creator && (
+                    <p className="text-muted-foreground text-sm">by {selectedCard.creator}</p>
+                  )}
+                  {selectedCard.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedCard.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="bg-muted/50 text-muted-foreground rounded px-2 py-0.5 text-[11px]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-auto flex gap-2">
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1.5"
+                      disabled={cardState(selectedCard) === 'done' || cardState(selectedCard) === 'downloading'}
+                      onClick={() => handleDownload(selectedCard)}
+                    >
+                      {cardState(selectedCard) === 'done' ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : cardState(selectedCard) === 'downloading' ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
+                      {cardState(selectedCard) === 'done'
+                        ? 'In Library'
+                        : cardState(selectedCard) === 'downloading'
+                          ? 'Importing…'
+                          : 'Download'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              {selectedCard.description && (
+                <section>
+                  <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+                    Description
+                  </h3>
+                  <p className="text-foreground/90 whitespace-pre-wrap text-sm leading-relaxed">
+                    {selectedCard.description}
+                  </p>
+                </section>
+              )}
+
+              {/* Source info */}
+              <section>
+                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+                  Source
+                </h3>
+                <p className="text-foreground/70 text-sm">
+                  {selectedCard.sourceId} · {selectedCard.cardId}
+                </p>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
