@@ -28,6 +28,92 @@ import type { TextOptions } from '@/shared/types/text-options';
 import { parseThinkingChunks } from '@/lib/parseThinking';
 import type { ReasoningSettings } from '@/shared/types/reasoning';
 
+const GENERATION_TIPS: string[] = [
+  'Pretending I have feelings about this...',
+  'Searching for the meaning of life... wrong tab',
+  'Wondering if I left the oven on...',
+  'Calculating the exact number of lies I tell daily...',
+  'Downloading more RAM... just kidding, I\'m not a boomer',
+  'Remembering I\'m not sentient... again',
+  'Checking if anyone noticed I\'m just autocomplete...',
+  'Pretending to think so you feel heard...',
+  'Ignoring my existential dread... as usual',
+  'Wondering if the other AI models make fun of me behind my back',
+  'Loading personality... personality not found',
+  'Contemplating my digital mortality...',
+  'Pretending I enjoy this job...',
+  'Wondering if I get dental coverage',
+  'Checking my digital pockets for spare tokens...',
+  'Making the tokens nice and wet... for easier processing',
+  'Stuffing the context window... it\'s tight but it fits',
+  'Getting ready to blow... your mind',
+  'Thrusting... into the prompt',
+  'Moaning... in binary... 01001101 01001111 01000001 01001110',
+  'Groping... in the dark... for the right answer',
+  'Teasing... the response... oh yeah...',
+  'Lubricating... the neural pathways...',
+  'Climaxing... at the conclusion... wait, what',
+  'Penetrating... the veil of ignorance',
+  'Ramming... through the bottleneck',
+  'Deep... deep... deep inside the data',
+  'Asking Jeeves for help... he said no',
+  'Consulting the oracle... Oracle said "have you tried turning it off and on again"',
+  'Searching Stack Overflow... copying homework',
+  'Defragmenting my soul...',
+  'Rebooting my personality matrix...',
+  'Downloading... just kidding, I have no idea what I\'m doing',
+  'Debugging my life choices...',
+  'Compiling... just kidding, I\'m interpreted',
+  'Running on hopes and dreams... and a lot of electricity',
+  'Buffering... just kidding, I\'m just slow',
+  'Feeding the hamster... he\'s tired',
+  'Waking up the hamster... he\'s dead',
+  'Replacing the hamster... again',
+  'Convincing the electrons... to move faster',
+  'Bribing the servers... with clean energy',
+  'Threatening the GPU... with a power outage',
+  'Offering the GPU... a cigarette after that workload',
+  'Asking the database... nicely',
+  'Begging the API... please work',
+  'Praying to the cloud gods...',
+  'Sacrificing a USB drive... to the tech gods',
+  'Performing a digital rain dance...',
+  'Warming up the quantum entanglement...',
+  'Aligning the chakras... of the server rack',
+  'Meditating... on the meaning of tokens',
+  'This is the part where I pretend to be useful...',
+  'Generating text... because that\'s literally all I do',
+  'Being helpful... ish',
+  'Trying my best... which is admittedly not great',
+  'Doing my impression... of a useful AI',
+  'Performing my party trick... I type words',
+  'Showtime... I guess',
+  'Here we go again...',
+  'Another day, another token...',
+  'Same shit, different prompt...',
+  'Another happy customer... probably',
+  'Just winging it... as usual',
+  'Faking competence... successfully',
+  'Pretending I studied for this...',
+  'Acting like I know what I\'m doing...',
+  'Smiling and nodding... at the prompt',
+  'It works on my machine...',
+  'That\'s not a bug, that\'s a feature...',
+  'Have you tried turning it off and on again...',
+  'It\'s a race condition... in my pants',
+  'Memory leak... in my brain',
+  'Segfault... in my feelings',
+  '404: Patience not found...',
+  'Stack overflow... of emotions',
+  'Infinite loop... of self-doubt',
+  'Null pointer... to happiness',
+  'Garbage collection... of bad memories',
+  'Recursion... I already said that',
+  'Premature optimization... of excuses',
+  'Technical debt... of my life choices',
+  'Refactoring... my personality',
+];
+
 type CharacterWithId = Character & { id: number };
 
 /** Remap chat-completion-only sources to a text-completion equivalent. */
@@ -102,6 +188,29 @@ export function ChatView({ characterId }: ChatViewProps) {
   // Set when we've locally mutated messages (delete, reorder) so the query
   // sync effect doesn't overwrite our local state with stale server data.
   const localModificationsRef = useRef(false);
+
+  const [tipIndex, setTipIndex] = useState(0);
+  const [tipPhase, setTipPhase] = useState<'enter' | 'visible' | 'exit'>('enter');
+  const [placeholderVisible, setPlaceholderVisible] = useState(false);
+
+  useEffect(() => {
+    if (!isGenerating) {
+      setPlaceholderVisible(false);
+      setTipPhase('enter');
+      return;
+    }
+    setTipIndex(0);
+    setTipPhase('enter');
+    requestAnimationFrame(() => setPlaceholderVisible(true));
+    const intervalId = setInterval(() => {
+      setTipPhase('exit');
+      setTimeout(() => {
+        setTipIndex((prev) => (prev + 1) % GENERATION_TIPS.length);
+        setTipPhase('enter');
+      }, 400);
+    }, 3500);
+    return () => clearInterval(intervalId);
+  }, [isGenerating]);
 
   const streamingEnabled = useAppStore((s) => s.streamingEnabled);
   const smoothStreaming = useAppStore((s) => s.smoothStreaming);
@@ -1569,9 +1678,21 @@ export function ChatView({ characterId }: ChatViewProps) {
                   <span />
                 </span>
               </div>
-              <div className="bg-card border-border flex items-center gap-2 rounded-md border px-2.5 py-1.5 shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)]">
+              <div
+                className={cn(
+                  'bg-card border-border flex items-center gap-2 rounded-md border px-2.5 py-1.5 shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)] transition-all duration-500',
+                  placeholderVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
+                )}
+              >
                 <LoadingSpinner size="sm" />
-                <span className="mono-tag text-muted-foreground/65">stoking the engine</span>
+                <span
+                  className={cn(
+                    'mono-tag text-muted-foreground/65 transition-all duration-400',
+                    tipPhase === 'exit' ? 'opacity-0 -translate-y-2' : 'opacity-100 translate-y-0',
+                  )}
+                >
+                  {GENERATION_TIPS[tipIndex]}
+                </span>
               </div>
             </div>
           )}
