@@ -64,6 +64,7 @@ export function ExtensionsPanel() {
       setInstallUrl('');
       setInstallScope('user');
       setInstallSubfolder('');
+      window.location.reload();
     },
   });
 
@@ -73,6 +74,7 @@ export function ExtensionsPanel() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/extensions/list'] });
+      window.location.reload();
     },
   });
 
@@ -82,6 +84,7 @@ export function ExtensionsPanel() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/extensions/list'] });
+      window.location.reload();
     },
   });
 

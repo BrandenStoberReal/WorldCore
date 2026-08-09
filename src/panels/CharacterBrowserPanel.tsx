@@ -276,6 +276,7 @@ export function CharacterBrowserPanel() {
         activeSources.map(async (source) => {
           const cursor = sourceCursors.get(source.id);
           if (!cursor) return { sourceId: source.id, items: [] as CardListing[] };
+          console.log(`[browser] loadMore: source="${source.id}" cursor="${cursor}"`);
           const opts = { sort: sortBy, cursor };
           try {
             let result: CardSearchResult;
@@ -289,6 +290,7 @@ export function CharacterBrowserPanel() {
               return { sourceId: source.id, items: [] as CardListing[] };
             }
             const { items, nextCursor } = await normalizeResult(result);
+            console.log(`[browser] loadMore: source="${source.id}" got ${items.length} items, nextCursor="${nextCursor}"`);
             return { sourceId: source.id, items, nextCursor };
           } catch (err) {
             console.error(`[browser] loadMore error from "${source.id}":`, err);
@@ -302,15 +304,21 @@ export function CharacterBrowserPanel() {
         appended.set(`${item.sourceId}::${item.cardId}`, item);
       }
       const nextCursors = new Map(sourceCursors);
+      let newCount = 0;
       for (const { sourceId, items, nextCursor } of sourceResults) {
         for (const item of items) {
-          appended.set(`${sourceId}::${item.cardId}`, item);
+          const key = `${sourceId}::${item.cardId}`;
+          if (!appended.has(key)) newCount++;
+          appended.set(key, item);
         }
         if (nextCursor) nextCursors.set(sourceId, nextCursor);
         else nextCursors.delete(sourceId);
       }
+      console.log(`[browser] loadMore: ${newCount} new items, ${appended.size} total`);
       setResults([...appended.values()]);
       setSourceCursors(nextCursors);
+    } catch (err) {
+      console.error('[browser] loadMore failed:', err);
     } finally {
       setIsLoadingMore(false);
     }
