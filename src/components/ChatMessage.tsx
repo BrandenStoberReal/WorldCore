@@ -349,10 +349,10 @@ export const ChatMessage = memo(function ChatMessage({
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
-            className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-8 w-8 items-center justify-center rounded border p-0 transition-colors"
+            className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-7 w-7 items-center justify-center rounded border p-0 transition-colors"
             title="Copy message"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
           </button>
 
           {onEdit && (
@@ -366,10 +366,10 @@ export const ChatMessage = memo(function ChatMessage({
                   setIsEditing(true);
                 }
               }}
-              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-8 w-8 items-center justify-center rounded border p-0 transition-colors"
+              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-7 w-7 items-center justify-center rounded border p-0 transition-colors"
               title={isEditing ? 'Save edit' : 'Edit message'}
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <Pencil className="h-3 w-3" />
             </button>
           )}
 
@@ -377,10 +377,10 @@ export const ChatMessage = memo(function ChatMessage({
             <button
               type="button"
               onClick={() => onRegenerate(index)}
-              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-8 w-8 items-center justify-center rounded border p-0 transition-colors"
+              className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-7 w-7 items-center justify-center rounded border p-0 transition-colors"
               title="Regenerate response"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
+              <RotateCcw className="h-3 w-3" />
             </button>
           )}
 
@@ -388,10 +388,10 @@ export const ChatMessage = memo(function ChatMessage({
             <button
               type="button"
               onClick={() => onDelete(index)}
-              className="bg-background/80 hover:bg-destructive/10 hover:text-destructive border-border/60 flex h-8 w-8 items-center justify-center rounded border p-0 transition-colors"
+              className="bg-background/80 hover:bg-destructive/10 hover:text-destructive border-border/60 flex h-7 w-7 items-center justify-center rounded border p-0 transition-colors"
               title="Delete message"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-3 w-3" />
             </button>
           )}
         </div>
