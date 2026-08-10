@@ -290,6 +290,7 @@ export async function updateExtension(userId: string, id: string): Promise<Exten
 
   const dir = scopeDir(existing.scope, userId, id);
   const uid = scopeUserId(existing.scope, userId);
+  const branch = existing.branch ?? await getDefaultBranch(dir);
 
   let parsed: Manifest;
   const timestamp = new Date().toISOString();
@@ -297,7 +298,6 @@ export async function updateExtension(userId: string, id: string): Promise<Exten
   if (existing.subfolder && existing.gitUrl) {
     const tempDest = mkdtempSync(path.join(tmpdir(), 'wc-ext-update-'));
     try {
-      const branch = existing.branch ?? await getDefaultBranch(dir);
       await cloneRepo(existing.gitUrl, tempDest, { branch, timeoutMs: 60000 });
 
       const extRoot = path.join(tempDest, existing.subfolder);
@@ -319,7 +319,6 @@ export async function updateExtension(userId: string, id: string): Promise<Exten
       throw err;
     }
   } else if (existing.gitUrl) {
-    const branch = existing.branch ?? await getDefaultBranch(dir);
     await fetchAndPull(dir, branch, { timeoutMs: 30000 });
 
     const manifestPath = path.join(dir, 'manifest.json');
@@ -338,7 +337,7 @@ export async function updateExtension(userId: string, id: string): Promise<Exten
   await db
     .update(extensions)
     .set({
-      branch: existing.branch ?? await getDefaultBranch(dir),
+      branch: existing.branch ?? branch,
       version: parsed.version,
       manifestCache: parsed,
       hasUpdate: false,
@@ -565,12 +564,8 @@ export async function seedPreinstalledGlobalExtensions(): Promise<void> {
     try {
       const text = await Bun.file(manifestPath).text();
       manifestObj = JSON.parse(text);
-    } catch (err) {
-      log.warn(
-        'ext',
-        `Preinstalled seed: skipping "${extId}" (failed to read manifest):`,
-        err instanceof Error ? err.message : err,
-      );
+    } catch {
+      // No manifest or unreadable — skip silently (empty/orphan dirs are common)
       continue;
     }
 

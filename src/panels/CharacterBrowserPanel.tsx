@@ -29,6 +29,64 @@ import type {
 } from '@/shared/types/character';
 
 /* ────────────────────────────────────────────────
+   File type detection from magic bytes
+   ──────────────────────────────────────────────── */
+
+function detectFileType(bytes: ArrayBuffer): { ext: string; mime: string } {
+  const view = new Uint8Array(bytes.slice(0, 16));
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    view[0] === 0x89 &&
+    view[1] === 0x50 &&
+    view[2] === 0x4e &&
+    view[3] === 0x47 &&
+    view[4] === 0x0d &&
+    view[5] === 0x0a &&
+    view[6] === 0x1a &&
+    view[7] === 0x0a
+  ) {
+    return { ext: '.png', mime: 'image/png' };
+  }
+  // JPEG: FF D8 FF
+  if (view[0] === 0xff && view[1] === 0xd8 && view[2] === 0xff) {
+    return { ext: '.jpg', mime: 'image/jpeg' };
+  }
+  // GIF: 47 49 46 38
+  if (view[0] === 0x47 && view[1] === 0x49 && view[2] === 0x46 && view[3] === 0x38) {
+    return { ext: '.gif', mime: 'image/gif' };
+  }
+  // WEBP: 52 49 46 46 ... 57 45 42 50
+  if (
+    view[0] === 0x52 &&
+    view[1] === 0x49 &&
+    view[2] === 0x46 &&
+    view[3] === 0x46 &&
+    view[8] === 0x57 &&
+    view[9] === 0x45 &&
+    view[10] === 0x42 &&
+    view[11] === 0x50
+  ) {
+    return { ext: '.webp', mime: 'image/webp' };
+  }
+  // ZIP (covers .zip, .charx, .byaf): 50 4B 03 04
+  if (view[0] === 0x50 && view[1] === 0x4b && view[2] === 0x03 && view[3] === 0x04) {
+    return { ext: '.zip', mime: 'application/zip' };
+  }
+  // JSON: starts with { or [
+  const firstChar = String.fromCharCode(view[0] ?? 0);
+  if (firstChar === '{' || firstChar === '[') {
+    return { ext: '.json', mime: 'application/json' };
+  }
+  // YAML: starts with --- or common YAML indicators
+  const head = new TextDecoder().decode(bytes.slice(0, 256)).trimStart();
+  if (head.startsWith('---') || head.startsWith('%YAML') || /^\w+:/m.test(head)) {
+    return { ext: '.yaml', mime: 'text/yaml' };
+  }
+  // Fallback: treat as PNG (matches legacy behavior)
+  return { ext: '.png', mime: 'image/png' };
+}
+
+/* ────────────────────────────────────────────────
    useSyncExternalStore – snapshot stability
    ──────────────────────────────────────────────── */
 
@@ -222,9 +280,9 @@ export function CharacterBrowserPanel() {
       const source = getCardSource(listing.sourceId);
       if (!source) throw new Error('Source not found');
       const bytes = await source.fetchCard(listing);
-      const file = new File([bytes], `${listing.name.replace(/[^a-zA-Z0-9]/g, '_')}.png`, {
-        type: 'image/png',
-      });
+      const safeName = listing.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const { ext, mime } = detectFileType(bytes);
+      const file = new File([bytes], `${safeName}${ext}`, { type: mime });
       const fd = new FormData();
       fd.append('file', file);
       const body = (await apiFetch('/characters/import', {

@@ -1,14 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '@/lib/api';
-
-interface ExtensionRow {
-  id: string;
-  enabled: boolean;
-}
+import type { ExtensionRow } from '@/shared/types/extensions';
 
 export function useExtensionEnabled(extId: string): boolean {
-  const { data } = useQuery({
-    queryKey: ['extensions', 'list'],
+  const { data } = useQuery<ExtensionRow[]>({
+    queryKey: ['/api/v1/extensions/list'],
     queryFn: () => apiGet<ExtensionRow[]>('/extensions/list'),
     staleTime: 30_000,
   });

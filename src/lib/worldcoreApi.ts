@@ -22,7 +22,7 @@ import type { Character, ShallowCharacter } from '@/shared/types/character';
 import type { ChatMessage } from '@/shared/types/chat';
 import { queryClient } from '@/lib/queryClient';
 import { toastError, toastSuccess, toastInfo } from '@/lib/toast';
-import { extensionEventBus } from '@/lib/extensionEventBus';
+import { extensionEventBus, onForExt } from '@/lib/extensionEventBus';
 import { useAppStore, useGenerationStore, useChatStore } from '@/lib/stores';
 import { useNavStore } from '@/lib/navStore';
 import {
@@ -77,6 +77,7 @@ function makeLogger(extId: string): WorldCoreAPI['logger'] {
 }
 
 const settingsRegistry = new Map<string, Record<string, unknown>>();
+const settingsLoadedFromDb = new Set<string>();
 const settingsDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function getSettingsStore(extId: string): Record<string, unknown> {
@@ -86,6 +87,21 @@ function getSettingsStore(extId: string): Record<string, unknown> {
     settingsRegistry.set(extId, store);
   }
   return store;
+}
+
+async function ensureSettingsLoaded(extId: string): Promise<void> {
+  if (settingsLoadedFromDb.has(extId)) return;
+  settingsLoadedFromDb.add(extId);
+  try {
+    const res = await apiFetch(`/extensions/get-settings?id=${extId}`);
+    const data = (await (res as Response).json()) as { ok: boolean; settings: Record<string, unknown> };
+    if (data?.ok && data.settings) {
+      const store = getSettingsStore(extId);
+      for (const [k, v] of Object.entries(data.settings)) {
+        if (store[k] === undefined) store[k] = v;
+      }
+    }
+  } catch {}
 }
 
 async function setSetting(extId: string, key: string, value: unknown): Promise<void> {
@@ -114,6 +130,9 @@ async function setSetting(extId: string, key: string, value: unknown): Promise<v
 }
 
 function getSetting<T>(extId: string, key: string): T | undefined {
+  if (!settingsLoadedFromDb.has(extId)) {
+    ensureSettingsLoaded(extId);
+  }
   return getSettingsStore(extId)[key] as T | undefined;
 }
 
@@ -191,7 +210,7 @@ export function createWorldCoreApi(opts: CreateWorldCoreApiOptions): WorldCoreAP
       set: (key: string, value: unknown) => setSetting(extId, key, value),
     },
     events: {
-      on: (type, handler) => extensionEventBus.on(type, handler),
+      on: (type, handler) => onForExt(extId, type, handler),
       off: (type, handler) => extensionEventBus.off(type, handler),
       emit: (type, payload) => extensionEventBus.emit(type, payload),
       types: extensionEventBus.types,

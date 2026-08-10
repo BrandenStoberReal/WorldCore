@@ -3,6 +3,7 @@ import type { WorldCoreEventTypes } from '@/shared/types/worldcore-api';
 type Handler = (payload: unknown) => void;
 
 const listeners = new Map<WorldCoreEventTypes, Set<Handler>>();
+const extListeners = new Map<string, (() => void)[]>();
 
 export function on(type: WorldCoreEventTypes, handler: Handler): () => void {
   let set = listeners.get(type);
@@ -16,10 +17,30 @@ export function on(type: WorldCoreEventTypes, handler: Handler): () => void {
   };
 }
 
-export function off(type: WorldCoreEventTypes, handler: Handler): void {
+export function onForExt(extId: string, type: WorldCoreEventTypes, handler: Handler): () => void {
+  const unsub = on(type, handler);
+  let list = extListeners.get(extId);
+  if (!list) {
+    list = [];
+    extListeners.set(extId, list);
+  }
+  list.push(unsub);
+  return unsub;
+}
+
+export function off(type: WorldCoreEventTypes, handler: (payload: unknown) => void): void {
   const set = listeners.get(type);
   if (!set) return;
-  set.delete(handler);
+  set.delete(handler as Handler);
+}
+
+export function clearExtListeners(extId: string): void {
+  const list = extListeners.get(extId);
+  if (!list) return;
+  for (const unsub of list) {
+    unsub();
+  }
+  extListeners.delete(extId);
 }
 
 export function emit(type: WorldCoreEventTypes, payload?: unknown): void {

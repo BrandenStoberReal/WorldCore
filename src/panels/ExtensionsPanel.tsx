@@ -11,6 +11,8 @@ import {
   Trash2,
   Search,
   Settings,
+  Package,
+  ExternalLink,
 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PageHeader } from '@/components/ui/page-header';
@@ -139,19 +141,28 @@ export function ExtensionsPanel() {
   }
 
   if (isLoading) {
-    return <LoadingSpinner size="lg" label="indexing modules" className="h-64" />;
+    return (
+      <div data-panel="extensions" className="flex h-64 flex-col items-center justify-center gap-3">
+        <LoadingSpinner size="lg" label="indexing modules" />
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className={cn(surfaceCard, 'flex h-64 items-center justify-center')}>
-        <span className="mono-tag text-destructive">{error.message}</span>
+      <div
+        data-panel="extensions"
+        className="border-destructive/40 bg-card flex h-64 flex-col items-center justify-center gap-2 rounded-md border p-8"
+      >
+        <span className="mono-tag text-destructive">error</span>
+        <p className="text-muted-foreground text-sm">{error.message}</p>
       </div>
     );
   }
 
   return (
-    <div className="section-rhythm relative isolate" data-panel="extensions">
+    <div data-panel="extensions" className="flex h-full flex-col gap-3">
+      {/* Header */}
       <PageHeader
         tag="[05] — MODULES"
         title="Extensions"
@@ -177,12 +188,13 @@ export function ExtensionsPanel() {
         }
       />
 
+      {/* Search & filter */}
       <InlineSection panelId="extensions" sectionId="search" title="Search & Filter">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[220px] flex-1">
             <Search className="text-muted-foreground/55 absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
             <Input
-              placeholder="query · name, author, or id fragment..."
+              placeholder="query — name, author, or id fragment..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-8 pl-8 font-mono text-[12px] tracking-tight"
@@ -201,158 +213,86 @@ export function ExtensionsPanel() {
         </div>
       </InlineSection>
 
+      {/* Extension cards */}
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filtered?.map((ext) => (
-          <Card
+          <ExtensionCard
             key={ext.id}
-            className={cn(
-              surfaceCard,
-              subtleEdge,
-              'group relative flex flex-col overflow-hidden rounded-md py-0 transition-all',
-              'hover:-translate-y-0.5 hover:shadow-[0_6px_20px_-8px_color-mix(in_oklch,var(--ember)_35%,transparent)]',
-              ext.enabled ? '' : 'opacity-50',
-            )}
-          >
-            <CardHeader className="px-3.5 pt-3 pb-0">
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle
-                  className={cn(
-                    'display-host min-w-0 truncate text-[14px] leading-tight',
-                    ext.hasUpdate ? 'text-emerald-400' : 'text-foreground/90',
-                  )}
-                >
-                  {ext.displayName || ext.id}
-                </CardTitle>
-                <StatusToggle
-                  enabled={ext.enabled}
-                  onToggle={() => toggleMutation.mutate({ id: ext.id, enable: !ext.enabled })}
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="mono-tag text-muted-foreground/45">v{ext.version}</span>
-                <span className="text-muted-foreground/25">·</span>
-                <span className="mono-tag text-muted-foreground/45 truncate">
-                  {ext.author || 'anon'}
-                </span>
-                {ext.scope === 'global' && (
-                  <>
-                    <span className="text-muted-foreground/25">·</span>
-                    <span className="mono-tag text-ember/60">global</span>
-                  </>
-                )}
-              </div>
-            </CardHeader>
-
-            <CardContent className="flex flex-1 flex-col px-3.5 pt-1.5 pb-2.5">
-              <p className="text-muted-foreground/60 line-clamp-2 text-[11.5px] leading-snug">
-                {ext.description || (
-                  <span className="text-muted-foreground/30 italic">no description</span>
-                )}
-              </p>
-
-              <div className="border-border/40 mt-auto flex items-center justify-between gap-1 border-t pt-2">
-                <span className="mono-tag text-muted-foreground/35 truncate">
-                  {ext.lastUpdatedAt
-                    ? new Date(ext.lastUpdatedAt).toLocaleDateString()
-                    : ''}
-                </span>
-                <div className="flex shrink-0 items-center gap-0.5">
-                  {ext.gitUrl && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => updateMutation.mutate(ext.id)}
-                      disabled={updateMutation.isPending}
-                      className="text-muted-foreground/50 hover:text-ember touch-target h-6 px-1.5 text-[11px]"
-                    >
-                      <RefreshCw
-                        className={cn(
-                          'h-2.5 w-2.5',
-                          updateMutation.isPending &&
-                            updateMutation.variables === ext.id &&
-                            'animate-spin',
-                        )}
-                      />
-                      <span className="mono-tag">update</span>
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openSettings(ext.id)}
-                    className="text-muted-foreground/50 hover:text-ember touch-target h-6 px-1.5 text-[11px]"
-                  >
-                    <Settings className="h-2.5 w-2.5" />
-                    <span className="mono-tag">config</span>
-                  </Button>
-                  {ext.scope !== 'global' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground/50 hover:text-destructive touch-target h-6 px-1.5 text-[11px]"
-                      onClick={() => setUninstallId(ext.id)}
-                      disabled={uninstallMutation.isPending}
-                      aria-label="uninstall extension"
-                    >
-                      <Trash2 className="h-2.5 w-2.5" />
-                      <span className="mono-tag">remove</span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            ext={ext}
+            onToggle={() => toggleMutation.mutate({ id: ext.id, enable: !ext.enabled })}
+            onUpdate={() => updateMutation.mutate(ext.id)}
+            onSettings={() => openSettings(ext.id)}
+            onUninstall={() => setUninstallId(ext.id)}
+            isUpdating={updateMutation.isPending && updateMutation.variables === ext.id}
+            isToggling={toggleMutation.isPending}
+          />
         ))}
       </div>
 
+      {/* Empty state */}
       {filtered?.length === 0 && (
         <EmptyState
-          icon={<span className="display-host text-ember text-xl">∅</span>}
-          title="forge cold"
-          description="no modules forged — install a module from URL to extend WorldCore"
+          icon={<Package className="text-ember h-5 w-5" />}
+          title="no modules found"
+          description={
+            search
+              ? 'no modules match your query — try a different search'
+              : 'install a module from a git URL or local path to extend WorldCore'
+          }
           action={
-            <Button size="sm" onClick={() => setInstallOpen(true)}>
-              <Plus className="h-3.5 w-3.5" />
-              Install Module
-            </Button>
+            !search ? (
+              <Button size="sm" onClick={() => setInstallOpen(true)}>
+                <Plus className="h-3.5 w-3.5" />
+                <span className="mono-tag">INSTALL MODULE</span>
+              </Button>
+            ) : undefined
           }
         />
       )}
 
+      {/* Install modal */}
       <Modal
         open={installOpen}
         onClose={() => setInstallOpen(false)}
         title="Install Module"
         className="max-w-md max-h-[92vh]"
       >
-        <div className="space-y-3">
-          <div className="space-y-1">
+        <div className="space-y-4">
+          {/* Module URL */}
+          <div className="space-y-1.5">
             <label className="mono-tag text-muted-foreground/70">MODULE URL</label>
             <Input
               value={installUrl}
               onChange={(e) => setInstallUrl(e.target.value)}
-              placeholder="https://github.com/...  or local path"
+              placeholder="https://github.com/... or local path"
               className="font-mono text-[13px]"
             />
+            <p className="text-muted-foreground/50 text-[11px]">
+              git repository or direct download link accepted
+            </p>
           </div>
-          <div className="space-y-1">
+
+          {/* Scope */}
+          <div className="space-y-1.5">
             <label className="mono-tag text-muted-foreground/70">SCOPE</label>
             <div className="flex gap-2">
               <ScopeChoice
                 label="user"
-                hint="private forge (per-user)"
+                hint="private — per-user"
                 selected={installScope === 'user'}
                 onClick={() => setInstallScope('user')}
               />
               <ScopeChoice
                 label="global"
-                hint="shared smithy (admin-only)"
+                hint="shared — admin-only"
                 selected={installScope === 'global'}
                 onClick={() => setInstallScope('global')}
               />
             </div>
           </div>
-          <div className="space-y-1">
+
+          {/* Subfolder */}
+          <div className="space-y-1.5">
             <label className="mono-tag text-muted-foreground/70">SUBFOLDER (optional)</label>
             <Input
               value={installSubfolder}
@@ -361,11 +301,9 @@ export function ExtensionsPanel() {
               className="font-mono text-[13px]"
             />
           </div>
-          <p className="mono-tag text-muted-foreground/55">
-            git repository or direct download link accepted
-          </p>
 
-          <div className="border-border/60 flex justify-end gap-2 border-t pt-2.5">
+          {/* Footer */}
+          <div className="border-border/60 flex justify-end gap-2 border-t pt-3">
             <Button variant="outline" onClick={() => setInstallOpen(false)}>
               <span className="mono-tag">cancel</span>
             </Button>
@@ -393,59 +331,26 @@ export function ExtensionsPanel() {
         </div>
       </Modal>
 
+      {/* Settings modal */}
       <Modal
         open={settingsExtId != null}
         onClose={closeSettings}
         title="Extension Settings"
         className="max-w-md max-h-[92vh]"
       >
-        {settingsExtId && (() => {
-          const RegisteredPanel = getExtensionSettingsPanel(settingsExtId);
-          if (RegisteredPanel) {
-            return <RegisteredPanel />;
-          }
-          return (
-            <div className="space-y-3">
-              <p className="mono-tag text-muted-foreground/60">
-                {settingsExtId}
-              </p>
-              {extSettings && Object.keys(extSettings).length === 0 && (
-                <p className="text-muted-foreground/50 text-sm italic">No settings configured</p>
-              )}
-              {extSettings && Object.entries(extSettings).map(([key, value]) => (
-                <div key={key} className="space-y-1">
-                  <label className="mono-tag text-muted-foreground/70">{key}</label>
-                  <Input
-                    value={settingsDraft[key] ?? String(value ?? '')}
-                    onChange={(e) => setSettingsDraft((prev) => ({ ...prev, [key]: e.target.value }))}
-                    className="font-mono text-[13px]"
-                  />
-                </div>
-              ))}
-              <div className="border-border/60 flex justify-end gap-2 border-t pt-2.5">
-                <Button variant="outline" onClick={closeSettings}>
-                  <span className="mono-tag">cancel</span>
-                </Button>
-                <Button
-                  onClick={async () => {
-                    for (const [key, value] of Object.entries(settingsDraft)) {
-                      await saveSettingsMutation.mutateAsync({ id: settingsExtId, key, value });
-                    }
-                    closeSettings();
-                  }}
-                  disabled={saveSettingsMutation.isPending || Object.keys(settingsDraft).length === 0}
-                  className="ember-pulse"
-                >
-                  <span className="mono-tag font-bold">
-                    {saveSettingsMutation.isPending ? 'SAVING...' : 'SAVE'}
-                  </span>
-                </Button>
-              </div>
-            </div>
-          );
-        })()}
+        {settingsExtId && (
+          <SettingsModalBody
+            extId={settingsExtId}
+            extSettings={extSettings}
+            settingsDraft={settingsDraft}
+            setSettingsDraft={setSettingsDraft}
+            saveSettingsMutation={saveSettingsMutation}
+            closeSettings={closeSettings}
+          />
+        )}
       </Modal>
 
+      {/* Uninstall confirm */}
       <ConfirmDialog
         open={uninstallId != null}
         onClose={() => setUninstallId(null)}
@@ -462,6 +367,209 @@ export function ExtensionsPanel() {
     </div>
   );
 }
+
+/* ── Extension Card ── */
+
+function ExtensionCard({
+  ext,
+  onToggle,
+  onUpdate,
+  onSettings,
+  onUninstall,
+  isUpdating,
+  isToggling,
+}: {
+  ext: ExtensionRow;
+  onToggle: () => void;
+  onUpdate: () => void;
+  onSettings: () => void;
+  onUninstall: () => void;
+  isUpdating: boolean;
+  isToggling: boolean;
+}) {
+  return (
+    <Card
+      className={cn(
+        surfaceCard,
+        subtleEdge,
+        'group relative flex flex-col overflow-hidden rounded-md py-0 transition-all',
+        'hover:-translate-y-0.5 hover:shadow-[0_6px_20px_-8px_color-mix(in_oklch,var(--ember)_35%,transparent)]',
+        ext.enabled ? '' : 'opacity-50',
+      )}
+    >
+      {/* Card header */}
+      <CardHeader className="px-3.5 pt-3 pb-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <CardTitle
+              className={cn(
+                'display-host truncate text-[14px] leading-tight',
+                ext.hasUpdate ? 'text-emerald-400' : 'text-foreground/90',
+              )}
+            >
+              {ext.displayName || ext.id}
+            </CardTitle>
+            <div className="mt-1 flex items-center gap-1.5">
+              <span className="mono-tag text-muted-foreground/45">v{ext.version}</span>
+              <span className="text-muted-foreground/25">·</span>
+              <span className="mono-tag text-muted-foreground/45 truncate">
+                {ext.author || 'anon'}
+              </span>
+              {ext.scope === 'global' && (
+                <>
+                  <span className="text-muted-foreground/25">·</span>
+                  <span className="mono-tag text-ember/60">global</span>
+                </>
+              )}
+            </div>
+          </div>
+          <StatusToggle enabled={ext.enabled} onToggle={onToggle} />
+        </div>
+      </CardHeader>
+
+      {/* Card body */}
+      <CardContent className="flex flex-1 flex-col px-3.5 pt-1.5 pb-2.5">
+        <p className="text-muted-foreground/60 line-clamp-2 text-[11.5px] leading-snug">
+          {ext.description || (
+            <span className="text-muted-foreground/30 italic">no description</span>
+          )}
+        </p>
+
+        {/* Card footer */}
+        <div className="border-border/40 mt-auto flex items-center justify-between gap-1 border-t pt-2">
+          <span className="mono-tag text-muted-foreground/35 truncate">
+            {ext.lastUpdatedAt
+              ? new Date(ext.lastUpdatedAt).toLocaleDateString()
+              : ''}
+          </span>
+          <div className="flex shrink-0 items-center gap-0.5">
+            {ext.gitUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onUpdate}
+                disabled={isUpdating}
+                className="text-muted-foreground/50 hover:text-ember touch-target h-6 px-1.5 text-[11px]"
+              >
+                <RefreshCw
+                  className={cn('h-2.5 w-2.5', isUpdating && 'animate-spin')}
+                />
+                <span className="mono-tag">update</span>
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSettings}
+              className="text-muted-foreground/50 hover:text-ember touch-target h-6 px-1.5 text-[11px]"
+            >
+              <Settings className="h-2.5 w-2.5" />
+              <span className="mono-tag">config</span>
+            </Button>
+            {ext.scope !== 'global' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground/50 hover:text-destructive touch-target h-6 px-1.5 text-[11px]"
+                onClick={onUninstall}
+                disabled={isToggling}
+                aria-label="uninstall extension"
+              >
+                <Trash2 className="h-2.5 w-2.5" />
+                <span className="mono-tag">remove</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ── Settings Modal Body ── */
+
+function SettingsModalBody({
+  extId,
+  extSettings,
+  settingsDraft,
+  setSettingsDraft,
+  saveSettingsMutation,
+  closeSettings,
+}: {
+  extId: string;
+  extSettings: Record<string, string> | undefined;
+  settingsDraft: Record<string, string>;
+  setSettingsDraft: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  saveSettingsMutation: {
+    mutateAsync: (vars: { id: string; key: string; value: string }) => Promise<unknown>;
+    isPending: boolean;
+  };
+  closeSettings: () => void;
+}) {
+  const RegisteredPanel = getExtensionSettingsPanel(extId);
+  if (RegisteredPanel) {
+    return <RegisteredPanel />;
+  }
+
+  const hasChanges = Object.keys(settingsDraft).length > 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Extension ID label */}
+      <div className="flex items-center gap-2">
+        <span className="mono-tag text-muted-foreground/55">{extId}</span>
+        {extSettings && Object.keys(extSettings).length > 0 && (
+          <span className="mono-tag text-muted-foreground/35">
+            {Object.keys(extSettings).length} setting(s)
+          </span>
+        )}
+      </div>
+
+      {/* No settings state */}
+      {extSettings && Object.keys(extSettings).length === 0 && (
+        <p className="text-muted-foreground/50 text-sm italic">No settings configured</p>
+      )}
+
+      {/* Settings key/value pairs */}
+      {extSettings &&
+        Object.entries(extSettings).map(([key, value]) => (
+          <div key={key} className="space-y-1.5">
+            <label className="mono-tag text-muted-foreground/70">{key}</label>
+            <Input
+              value={settingsDraft[key] ?? String(value ?? '')}
+              onChange={(e) =>
+                setSettingsDraft((prev) => ({ ...prev, [key]: e.target.value }))
+              }
+              className="font-mono text-[13px]"
+            />
+          </div>
+        ))}
+
+      {/* Footer */}
+      <div className="border-border/60 flex justify-end gap-2 border-t pt-3">
+        <Button variant="outline" onClick={closeSettings}>
+          <span className="mono-tag">cancel</span>
+        </Button>
+        <Button
+          onClick={async () => {
+            for (const [key, value] of Object.entries(settingsDraft)) {
+              await saveSettingsMutation.mutateAsync({ id: extId, key, value });
+            }
+            closeSettings();
+          }}
+          disabled={saveSettingsMutation.isPending || !hasChanges}
+          className="ember-pulse"
+        >
+          <span className="mono-tag font-bold">
+            {saveSettingsMutation.isPending ? 'SAVING...' : 'SAVE'}
+          </span>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Scope Choice ── */
 
 function ScopeChoice({
   label,
