@@ -292,7 +292,11 @@ export function CharacterBrowserPanel() {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/characters/all'] });
       emit('character_import', { id: body.id, name: listing.name });
       toastSuccess('Character imported', listing.name);
-      setDownloadState((prev) => new Map(prev).set(key, 'done'));
+      setDownloadState((prev) => {
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
     } catch (err) {
       setDownloadState((prev) => new Map(prev).set(key, 'error'));
       toastError(err);
