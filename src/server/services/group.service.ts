@@ -137,9 +137,13 @@ export class GroupService {
       .where(and(eq(groups.id, id), eq(groups.userId, userId)));
 
     const filePath = this.groupPath(userId, id);
-    if (await exists(filePath)) {
-      const current = JSON.parse(await readFile(filePath, 'utf-8')) as Group;
-      await writeFile(filePath, JSON.stringify({ ...current, ...data }, null, 2));
+    try {
+      if (await exists(filePath)) {
+        const current = JSON.parse(await readFile(filePath, 'utf-8')) as Group;
+        await writeFile(filePath, JSON.stringify({ ...current, ...data }, null, 2));
+      }
+    } catch (err) {
+      console.error(`[group] Failed to sync update to file for ${id}:`, err);
     }
   }
 
@@ -153,8 +157,12 @@ export class GroupService {
       throw new NotFoundError(`Group with id ${id}`);
     }
 
-    await removeFile(this.groupPath(userId, id));
     await db.delete(groups).where(and(eq(groups.id, id), eq(groups.userId, userId)));
+    try {
+      await removeFile(this.groupPath(userId, id));
+    } catch (err) {
+      console.error(`[group] Failed to remove file for ${id}:`, err);
+    }
   }
 
   async addMember(userId: string, id: string, characterFileName: string): Promise<void> {
@@ -177,11 +185,15 @@ export class GroupService {
       .set({ members: newMembers })
       .where(and(eq(groups.id, id), eq(groups.userId, userId)));
 
-    const filePath = this.groupPath(userId, id);
-    if (await exists(filePath)) {
-      const current = JSON.parse(await readFile(filePath, 'utf-8')) as Group;
-      current.members = newMembers;
-      await writeFile(filePath, JSON.stringify(current, null, 2));
+    try {
+      const filePath = this.groupPath(userId, id);
+      if (await exists(filePath)) {
+        const current = JSON.parse(await readFile(filePath, 'utf-8')) as Group;
+        current.members = newMembers;
+        await writeFile(filePath, JSON.stringify(current, null, 2));
+      }
+    } catch (err) {
+      console.error(`[group] Failed to sync addMember to file for ${id}:`, err);
     }
   }
 
@@ -205,11 +217,15 @@ export class GroupService {
       .set({ members: newMembers })
       .where(and(eq(groups.id, id), eq(groups.userId, userId)));
 
-    const filePath = this.groupPath(userId, id);
-    if (await exists(filePath)) {
-      const current = JSON.parse(await readFile(filePath, 'utf-8')) as Group;
-      current.members = newMembers;
-      await writeFile(filePath, JSON.stringify(current, null, 2));
+    try {
+      const filePath = this.groupPath(userId, id);
+      if (await exists(filePath)) {
+        const current = JSON.parse(await readFile(filePath, 'utf-8')) as Group;
+        current.members = newMembers;
+        await writeFile(filePath, JSON.stringify(current, null, 2));
+      }
+    } catch (err) {
+      console.error(`[group] Failed to sync removeMember to file for ${id}:`, err);
     }
   }
 

@@ -509,8 +509,10 @@ export class CharacterService {
     const chatPath = path.join(getUserPath(userId), 'chats', chatFileName);
     await removeFile(chatPath);
 
-    await db.delete(chats).where(eq(chats.characterId, id));
-    await db.delete(characters).where(and(eq(characters.id, id), eq(characters.userId, userId)));
+    await db.transaction(async (tx) => {
+      await tx.delete(chats).where(eq(chats.characterId, id));
+      await tx.delete(characters).where(and(eq(characters.id, id), eq(characters.userId, userId)));
+    });
   }
 
   async deleteByFileNameIfExists(fileName: string, userId: string): Promise<boolean> {

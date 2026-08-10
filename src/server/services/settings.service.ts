@@ -9,10 +9,9 @@ import { USER_ROOT } from '@/server/storage/paths';
 const SETTINGS_FILE = path.join(USER_ROOT, 'settings.json');
 
 export class SettingsService {
-  private userId = 'default-user';
-
-  async get(): Promise<Record<string, unknown>> {
-    if (await exists(SETTINGS_FILE)) {
+  async get(userId: string = 'default-user'): Promise<Record<string, unknown>> {
+    const settingsFile = path.join(USER_ROOT, userId === 'default-user' ? 'settings.json' : `${userId}_settings.json`);
+    if (userId === 'default-user' && await exists(SETTINGS_FILE)) {
       try {
         const content = await readFile(SETTINGS_FILE, 'utf-8');
         return JSON.parse(content) as Record<string, unknown>;
@@ -21,7 +20,7 @@ export class SettingsService {
       }
     }
 
-    const row = await db.select().from(settings).where(eq(settings.userId, this.userId)).limit(1);
+    const row = await db.select().from(settings).where(eq(settings.userId, userId)).limit(1);
     if (row.length > 0) {
       return row[0]!.data as Record<string, unknown>;
     }
@@ -29,30 +28,32 @@ export class SettingsService {
     return {};
   }
 
-  async save(data: Record<string, unknown>): Promise<void> {
-    await writeFileAtomic(SETTINGS_FILE, JSON.stringify(data, null, 2));
+  async save(data: Record<string, unknown>, userId: string = 'default-user'): Promise<void> {
+    if (userId === 'default-user') {
+      await writeFileAtomic(SETTINGS_FILE, JSON.stringify(data, null, 2));
+    }
 
     const existing = await db
       .select({ id: settings.id })
       .from(settings)
-      .where(eq(settings.userId, this.userId))
+      .where(eq(settings.userId, userId))
       .limit(1);
 
     if (existing.length > 0) {
       await db
         .update(settings)
         .set({ data: data as unknown as Record<string, unknown>, updatedAt: Date.now() })
-        .where(eq(settings.userId, this.userId));
+        .where(eq(settings.userId, userId));
     } else {
       await db.insert(settings).values({
-        userId: this.userId,
+        userId,
         data: data as unknown as Record<string, unknown>,
         updatedAt: Date.now(),
       });
     }
   }
 
-  async getSnapshots(): Promise<Array<{ id: string; name: string; createdAt: number }>> {
+  async getSnapshots(userId: string = 'default-user'): Promise<Array<{ id: string; name: string; createdAt: number }>> {
     const rows = await db
       .select({
         id: settingsSnapshots.id,
@@ -60,17 +61,17 @@ export class SettingsService {
         createdAt: settingsSnapshots.createdAt,
       })
       .from(settingsSnapshots)
-      .where(eq(settingsSnapshots.userId, this.userId));
+      .where(eq(settingsSnapshots.userId, userId));
     return rows;
   }
 
-  async makeSnapshot(name: string): Promise<string> {
-    const currentSettings = await this.get();
+  async makeSnapshot(name: string, userId: string = 'default-user'): Promise<string> {
+    const currentSettings = await this.get(userId);
     const id = randomUUID();
     await db.insert(settingsSnapshots).values({
       id,
       name,
-      userId: this.userId,
+      userId,
       data: currentSettings as unknown as Record<string, unknown>,
       createdAt: Date.now(),
     });
@@ -91,7 +92,7 @@ export class SettingsService {
 
   async restoreSnapshot(id: string, userId: string): Promise<void> {
     const data = await this.loadSnapshot(id, userId);
-    await this.save(data);
+    await this.save(data, userId);
   }
 }
 

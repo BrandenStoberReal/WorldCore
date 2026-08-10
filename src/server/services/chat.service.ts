@@ -15,6 +15,7 @@ import {
 } from '@/server/storage/jsonl';
 import { listFiles, removeFile, exists } from '@/server/storage/fs';
 import { assertValidFileId } from '@/server/util/ids';
+import { ValidationError } from '@/server/errors';
 import type {
   ChatMetadata,
   ChatMessage,
@@ -145,7 +146,7 @@ export class ChatService {
   async rename(userId: string, fileId: string, newName: string): Promise<void> {
     assertValidFileId(fileId);
     if (!newName || newName.length > 200) {
-      throw new Error('Invalid character name: must be 1-200 characters');
+      throw new ValidationError({ message: 'Invalid character name: must be 1-200 characters' });
     }
     const chatDir = getUserChatPath(userId);
     const filePath = path.join(chatDir, `${fileId}.jsonl`);

@@ -203,15 +203,25 @@ export class WorldInfoService {
       throw new NotFoundError(`World Info file "${fileRow.fileName}" on disk`);
     }
 
-    const currentData = JSON.parse(await readFile(filePath, 'utf-8')) as WorldInfo;
+    // Read current data with retry for concurrent access
+    let currentData: WorldInfo;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        currentData = JSON.parse(await readFile(filePath, 'utf-8')) as WorldInfo;
+        break;
+      } catch {
+        if (attempt === 2) throw new NotFoundError(`World Info file "${fileRow.fileName}" on disk`);
+        await new Promise((r) => setTimeout(r, 10 * (attempt + 1)));
+      }
+    }
+
     const updatedData: WorldInfo = {
-      name: data.name ?? currentData.name,
-      entries: data.entries ?? currentData.entries,
-      extensions: data.extensions ?? currentData.extensions,
+      name: data.name ?? currentData!.name,
+      entries: data.entries ?? currentData!.entries,
+      extensions: data.extensions ?? currentData!.extensions,
     };
 
-    await writeFile(filePath, JSON.stringify(updatedData, null, 2));
-
+    // DB is source of truth; file write is best-effort
     if (data.name !== undefined) {
       await db
         .update(worldinfoFiles)
@@ -232,6 +242,13 @@ export class WorldInfoService {
         );
       }
     }
+
+    // File write is secondary; log failure but don't fail request
+    try {
+      await writeFile(filePath, JSON.stringify(updatedData, null, 2));
+    } catch (err) {
+      console.error(`[worldinfo] Failed to write file ${fileRow.fileName}:`, err);
+    }
   }
 
   async delete(fileId: number, userId: string): Promise<void> {
@@ -248,11 +265,16 @@ export class WorldInfoService {
     const fileRow = fileRows[0]!;
     const filePath = this.wiFilePath(fileRow.fileName);
 
-    await removeFile(filePath);
     await db.delete(worldinfoEntries).where(eq(worldinfoEntries.fileId, fileId));
     await db
       .delete(worldinfoFiles)
       .where(and(eq(worldinfoFiles.id, fileId), eq(worldinfoFiles.userId, userId)));
+
+    try {
+      await removeFile(filePath);
+    } catch (err) {
+      console.error(`[worldinfo] Failed to remove file ${fileRow.fileName}:`, err);
+    }
   }
 
   async addEntry(fileId: number, entry: WorldInfoEntry, userId: string): Promise<void> {
@@ -269,19 +291,20 @@ export class WorldInfoService {
     const fileRow = fileRows[0]!;
     const filePath = this.wiFilePath(fileRow.fileName);
 
-    const currentData = JSON.parse(await readFile(filePath, 'utf-8')) as WorldInfo;
-
-    if (currentData.entries[entry.uid]) {
-      throw new ConflictError(`Entry with uid "${entry.uid}" already exists`);
-    }
-
-    currentData.entries[entry.uid] = entry;
-    await writeFile(filePath, JSON.stringify(currentData, null, 2));
-
     await db.insert(worldinfoEntries).values({
       ...this.entryToDb(entry),
       fileId,
     });
+
+    try {
+      const currentData = JSON.parse(await readFile(filePath, 'utf-8')) as WorldInfo;
+      if (!currentData.entries[entry.uid]) {
+        currentData.entries[entry.uid] = entry;
+      }
+      await writeFile(filePath, JSON.stringify(currentData, null, 2));
+    } catch (err) {
+      console.error(`[worldinfo] Failed to sync entry to file for ${fileRow.fileName}:`, err);
+    }
   }
 
   async updateEntry(
@@ -303,19 +326,20 @@ export class WorldInfoService {
     const fileRow = fileRows[0]!;
     const filePath = this.wiFilePath(fileRow.fileName);
 
-    const currentData = JSON.parse(await readFile(filePath, 'utf-8')) as WorldInfo;
-
-    if (!currentData.entries[uid]) {
-      throw new NotFoundError(`Entry with uid "${uid}"`);
-    }
-
-    currentData.entries[uid] = entry;
-    await writeFile(filePath, JSON.stringify(currentData, null, 2));
-
     await db
       .update(worldinfoEntries)
       .set(this.entryToDb(entry))
       .where(and(eq(worldinfoEntries.uid, uid), eq(worldinfoEntries.fileId, fileId)));
+
+    try {
+      const currentData = JSON.parse(await readFile(filePath, 'utf-8')) as WorldInfo;
+      if (currentData.entries[uid]) {
+        currentData.entries[uid] = entry;
+      }
+      await writeFile(filePath, JSON.stringify(currentData, null, 2));
+    } catch (err) {
+      console.error(`[worldinfo] Failed to sync entry update to file for ${fileRow.fileName}:`, err);
+    }
   }
 
   async deleteEntry(fileId: number, uid: string, userId: string): Promise<void> {
@@ -332,18 +356,19 @@ export class WorldInfoService {
     const fileRow = fileRows[0]!;
     const filePath = this.wiFilePath(fileRow.fileName);
 
-    const currentData = JSON.parse(await readFile(filePath, 'utf-8')) as WorldInfo;
-
-    if (!currentData.entries[uid]) {
-      throw new NotFoundError(`Entry with uid "${uid}"`);
-    }
-
-    delete currentData.entries[uid];
-    await writeFile(filePath, JSON.stringify(currentData, null, 2));
-
     await db
       .delete(worldinfoEntries)
       .where(and(eq(worldinfoEntries.uid, uid), eq(worldinfoEntries.fileId, fileId)));
+
+    try {
+      const currentData = JSON.parse(await readFile(filePath, 'utf-8')) as WorldInfo;
+      if (currentData.entries[uid]) {
+        delete currentData.entries[uid];
+        await writeFile(filePath, JSON.stringify(currentData, null, 2));
+      }
+    } catch (err) {
+      console.error(`[worldinfo] Failed to sync entry deletion to file for ${fileRow.fileName}:`, err);
+    }
   }
 
   async importWi(jsonPath: string, userId: string): Promise<number> {
