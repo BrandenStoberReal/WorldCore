@@ -449,6 +449,7 @@
     transform: translateY(0) scale(1);
     opacity: 1;
     pointer-events: auto;
+    min-height: 65dvh;
   }
 
   @media (max-width: 767px) {
