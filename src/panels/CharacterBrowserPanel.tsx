@@ -351,7 +351,7 @@ export function CharacterBrowserPanel() {
       toastSuccess('Character imported', listing.name);
       setDownloadState((prev) => {
         const next = new Map(prev);
-        next.delete(key);
+        next.set(key, 'done');
         return next;
       });
     } catch (err) {
