@@ -140,12 +140,22 @@ export async function importFromPng(uploadPath: string, userId: string): Promise
   return characterService.importCharacter(pngBuffer, normalizedJson, userId);
 }
 
-export async function importFromJson(uploadPath: string, userId: string): Promise<number> {
+export async function importFromJson(
+  uploadPath: string,
+  userId: string,
+  avatarPath?: string,
+): Promise<number> {
   const content = await fs.readFile(uploadPath, 'utf-8');
   const parsed = safeJsonParse(content, 'JSON character data');
 
   const normalized = normalizeToV3(parsed);
-  const pngBuffer = await generatePlaceholderPng();
+
+  let pngBuffer: Buffer;
+  if (avatarPath) {
+    pngBuffer = await fs.readFile(avatarPath);
+  } else {
+    pngBuffer = await generatePlaceholderPng();
+  }
 
   await removeFile(uploadPath).catch(() => {});
 
@@ -153,7 +163,11 @@ export async function importFromJson(uploadPath: string, userId: string): Promis
   return characterService.importCharacter(pngBuffer, normalizedJson, userId);
 }
 
-export async function importFromYaml(uploadPath: string, userId: string): Promise<number> {
+export async function importFromYaml(
+  uploadPath: string,
+  userId: string,
+  avatarPath?: string,
+): Promise<number> {
   const content = await fs.readFile(uploadPath, 'utf-8');
   let parsed: Record<string, unknown>;
   try {
@@ -190,7 +204,13 @@ export async function importFromYaml(uploadPath: string, userId: string): Promis
   };
 
   const normalized = normalizeToV3(mapped);
-  const pngBuffer = await generatePlaceholderPng();
+
+  let pngBuffer: Buffer;
+  if (avatarPath) {
+    pngBuffer = await fs.readFile(avatarPath);
+  } else {
+    pngBuffer = await generatePlaceholderPng();
+  }
 
   await removeFile(uploadPath).catch(() => {});
 
@@ -327,15 +347,16 @@ export async function importCharacter(
   uploadPath: string,
   fileName: string,
   userId: string,
+  avatarPath?: string,
 ): Promise<number> {
   const format = detectImportFormat(fileName);
   switch (format) {
     case 'png':
       return importFromPng(uploadPath, userId);
     case 'json':
-      return importFromJson(uploadPath, userId);
+      return importFromJson(uploadPath, userId, avatarPath);
     case 'yaml':
-      return importFromYaml(uploadPath, userId);
+      return importFromYaml(uploadPath, userId, avatarPath);
     case 'charx':
       return importFromCharX(uploadPath, userId);
     case 'byaf':

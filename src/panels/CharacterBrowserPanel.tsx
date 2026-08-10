@@ -317,6 +317,22 @@ export function CharacterBrowserPanel() {
       const file = new File([bytes], `${safeName}${ext}`, { type: mime });
       const fd = new FormData();
       fd.append('file', file);
+
+      if (listing.avatarUrl) {
+        try {
+          const res = await fetch(listing.avatarUrl);
+          if (res.ok) {
+            const blob = await res.blob();
+            fd.append(
+              'avatar',
+              new File([blob], `${safeName}_avatar`, { type: blob.type || 'image/png' }),
+            );
+          }
+        } catch {
+          // non-fatal — import proceeds without avatar
+        }
+      }
+
       const body = (await apiFetch('/characters/import', {
         method: 'POST',
         body: fd,
@@ -736,8 +752,8 @@ export function CharacterBrowserPanel() {
                   {selectedCard.name.charAt(0)}
                 </div>
               )}
-              <div className="flex flex-1 flex-col gap-2">
-                <h2 className="text-foreground text-xl font-semibold">{selectedCard.name}</h2>
+              <div className="flex flex-1 flex-col items-center gap-2">
+                <h2 className="text-foreground text-xl font-semibold text-center">{selectedCard.name}</h2>
                 {selectedCard.creator && (
                   <p className="text-muted-foreground text-sm">by {selectedCard.creator}</p>
                 )}

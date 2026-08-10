@@ -237,11 +237,19 @@ export const characterRoutes = {
       const tempPath = `/tmp/WorldCore_import_${Date.now()}_${randomUUID()}`;
       await Bun.write(tempPath, buffer);
 
+      const avatarFile = formData.get('avatar');
+      let avatarPath: string | undefined;
+      if (avatarFile instanceof File) {
+        avatarPath = `/tmp/WorldCore_avatar_${Date.now()}_${randomUUID()}`;
+        await Bun.write(avatarPath, Buffer.from(await avatarFile.arrayBuffer()));
+      }
+
       try {
-        const id = await importCharacter(tempPath, file.name, userId);
+        const id = await importCharacter(tempPath, file.name, userId, avatarPath);
         return Response.json({ ok: true, id });
       } finally {
         await removeFile(tempPath).catch(() => {});
+        if (avatarPath) await removeFile(avatarPath).catch(() => {});
       }
     }),
   ),
