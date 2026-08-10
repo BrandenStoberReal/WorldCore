@@ -19,9 +19,10 @@ const HOST =
 log.info('boot', `Config: port=${PORT} host=${HOST} onboarding=${needsOnboarding}`);
 
 const distDir = path.join(process.cwd(), 'dist');
-const distHtml = Bun.file(path.join(distDir, 'index.html'));
-const htmlContent = await distHtml.text();
-log.info('boot', 'Loaded frontend bundle');
+const distFile = Bun.file(path.join(distDir, 'index.html'));
+const distExists = await distFile.exists();
+const htmlContent = distExists ? await distFile.text() : '<!DOCTYPE html><html><body>Frontend not built. Run bun run build.</body></html>';
+log.info('boot', distExists ? 'Loaded frontend bundle' : 'Frontend not built — serving placeholder');
 
 const apiRoutes = buildApiRoutes();
 log.info('boot', `Registered ${Object.keys(apiRoutes).length} API routes`);

@@ -708,7 +708,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
               <img
                 src={`/api/v1/characters/thumbnail?id=${selectedId}&v=${Date.now()}`}
                 alt={infoCharacter.name}
-                className="h-16 w-16 rounded-full object-cover"
+                className="h-[calc(100%-2px)] w-[calc(100%-2px)] rounded-full object-cover"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}

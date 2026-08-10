@@ -208,6 +208,17 @@ export function CharacterBrowserPanel() {
     [installedChars],
   );
 
+  /* ── persistent installed mappings (survives restarts) ── */
+  const { data: persistentInstalled } = useQuery<Array<{ sourceId: string; cardId: string; characterId: number }>>({
+    queryKey: ['/api/v1/browser-installed/list'],
+    queryFn: () => apiFetch('/browser-installed/list') as Promise<Array<{ sourceId: string; cardId: string; characterId: number }>>,
+  });
+
+  const persistentInstalledKeys = useMemo(
+    () => new Set(persistentInstalled?.map((item) => `${item.sourceId}::${item.cardId}`) ?? []),
+    [persistentInstalled],
+  );
+
   /* ── debounce effect (200 ms) ── */
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), 200);
@@ -354,6 +365,21 @@ export function CharacterBrowserPanel() {
         next.set(key, 'done');
         return next;
       });
+
+      // Persist the installed mapping so "In Library" badge survives restarts
+      try {
+        await apiFetch('/browser-installed/add', {
+          method: 'POST',
+          body: JSON.stringify({
+            sourceId: listing.sourceId,
+            cardId: listing.cardId,
+            characterId: body.id,
+          }),
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/v1/browser-installed/list'] });
+      } catch {
+        // Non-critical: badge still shows for this session via dedup query
+      }
     } catch (err) {
       setDownloadState((prev) => new Map(prev).set(key, 'error'));
       toastError(err);
@@ -453,6 +479,7 @@ export function CharacterBrowserPanel() {
     const key = `${listing.sourceId}::${listing.cardId}`;
     const explicit = downloadState.get(key);
     if (explicit) return explicit;
+    if (persistentInstalledKeys.has(key)) return 'done';
     if (dedupKeys.has(dedupKey(listing.name, listing.creator))) return 'done';
     return 'idle';
   }

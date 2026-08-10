@@ -15,46 +15,32 @@ async function tryReadBody(reqOrRes: Request | Response): Promise<unknown> {
 
 export function errorGuard(handler: GuardedHandler): GuardedHandler {
   return async (req: Request, _ctx?: unknown): Promise<Response> => {
-    if (req.method === 'POST') {
-      const url = new URL(req.url);
-      try {
-        const res = await handler(req, _ctx);
-        if (res.status >= 400) {
-          const body = await tryReadBody(req);
-          const resBody = await tryReadBody(res.clone());
-          console.error(`[POST ${url.pathname}] ${res.status}`, {
-            reqBody: body,
-            resBody,
-          });
-        }
-        return res;
-      } catch (err) {
-        const body = await tryReadBody(req);
-        if (err instanceof ApiError) {
-          console.error(`[POST ${url.pathname}] ${err.httpStatus}`, {
-            reqBody: body,
-            errCode: err.code,
-            errMsg: err.message,
-          });
-          return err.toResponse();
-        }
-        console.error(`[POST ${url.pathname}] 500 unhandled`, {
-          reqBody: body,
-          err,
-        });
-        return Response.json(
-          { error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } },
-          { status: 500, headers: securityHeaders },
-        );
-      }
-    }
+    const url = new URL(req.url);
     try {
-      return await handler(req, _ctx);
+      const res = await handler(req, _ctx);
+      if (res.status >= 400) {
+        const body = await tryReadBody(req);
+        const resBody = await tryReadBody(res.clone());
+        console.error(`[${req.method} ${url.pathname}] ${res.status}`, {
+          reqBody: body,
+          resBody,
+        });
+      }
+      return res;
     } catch (err) {
+      const body = await tryReadBody(req);
       if (err instanceof ApiError) {
+        console.error(`[${req.method} ${url.pathname}] ${err.httpStatus}`, {
+          reqBody: body,
+          errCode: err.code,
+          errMsg: err.message,
+        });
         return err.toResponse();
       }
-      console.error('Unhandled error:', err);
+      console.error(`[${req.method} ${url.pathname}] 500 unhandled`, {
+        reqBody: body,
+        err,
+      });
       return Response.json(
         { error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } },
         { status: 500, headers: securityHeaders },
