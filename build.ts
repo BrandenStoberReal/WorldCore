@@ -28,28 +28,46 @@ for (const output of result.outputs) {
 
 // === Extension build pass ===
 //
-// Preinstalled extensions live under data/extensions/<extId>/ and ship raw
-// .ts/.tsx source. Browsers can't load them as-is: bare `import 'react'`
-// specifiers don't resolve, `.tsx` isn't valid JS, and per-module transpile
-// can't bundle CSS imports. So the build bundles each extension's manifest
-// entrypoint (eg. index.tsx) into a single self-contained ES module at
-// dist/extensions/<extId>/index.js. The asset route serves these built
-// artifacts, mapping the source manifest's `js` field onto the built .js.
+// Extensions ship raw .ts/.tsx source. Browsers can't load them as-is:
+// bare `import 'react'` specifiers don't resolve, `.tsx` isn't valid JS,
+// and per-module transpile can't bundle CSS imports. So the build bundles
+// each extension's manifest entrypoint (eg. index.tsx) into a single
+// self-contained ES module at dist/extensions/<extId>/index.js.
 //
-// CSS is copied verbatim into dist/extensions/<extId>/ so the loader's existing
-// `assetUrl(extId, manifest.css)` path still resolves.
-const extensionsRoot = path.join(process.cwd(), 'data', 'extensions');
-let extEntries: import('node:fs').Dirent[] = [];
-try {
-  extEntries = await readdir(extensionsRoot, { withFileTypes: true });
-} catch {
-  extEntries = [];
-}
-const extDirs = extEntries.filter((e) => e.isDirectory() && /^[a-z0-9-]+$/.test(e.name));
+// Both global (data/extensions/) and user (data/*/extensions/) extensions
+// are built. User extensions take precedence on id collision.
+const DATA_ROOT = path.join(process.cwd(), 'data');
+const extDirMap = new Map<string, string>(); // extId → source dir
 
-for (const dir of extDirs) {
-  const extId = dir.name;
-  const extDir = path.join(extensionsRoot, extId);
+const globalExtRoot = path.join(DATA_ROOT, 'extensions');
+try {
+  const entries = await readdir(globalExtRoot, { withFileTypes: true });
+  for (const e of entries) {
+    if (e.isDirectory() && /^[a-z0-9-]+$/.test(e.name)) {
+      extDirMap.set(e.name, path.join(globalExtRoot, e.name));
+    }
+  }
+} catch {}
+
+try {
+  const userDirs = await readdir(DATA_ROOT, { withFileTypes: true });
+  for (const u of userDirs) {
+    if (!u.isDirectory() || u.name === 'extensions') continue;
+    const userExtRoot = path.join(DATA_ROOT, u.name, 'extensions');
+    try {
+      const entries = await readdir(userExtRoot, { withFileTypes: true });
+      for (const e of entries) {
+        if (e.isDirectory() && /^[a-z0-9-]+$/.test(e.name)) {
+          extDirMap.set(e.name, path.join(userExtRoot, e.name));
+        }
+      }
+    } catch {}
+  }
+} catch {}
+
+const extDirs = [...extDirMap.entries()].map(([id, dir]) => ({ id, dir }));
+
+for (const { id: extId, dir: extDir } of extDirs) {
   const manifestPath = path.join(extDir, 'manifest.json');
   if (!existsSync(manifestPath)) continue;
 

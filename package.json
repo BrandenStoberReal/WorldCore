@@ -19,6 +19,7 @@
   "dependencies": {
     "@agnai/sentencepiece-js": "^1.1.1",
     "@agnai/web-tokenizers": "^0.1.6-pre3",
+    "@napi-rs/canvas": "^1.0.5",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
