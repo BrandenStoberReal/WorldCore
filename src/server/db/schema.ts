@@ -312,6 +312,7 @@ export const extensions = sqliteTable('extensions', {
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
   settings: text('settings', { mode: 'json' }).$type<Record<string, unknown>>().default({}),
   manifestCache: text('manifest_cache', { mode: 'json' }).$type<unknown>(),
+  hasUpdate: integer('has_update', { mode: 'boolean' }).notNull().default(false),
   installedAt: text('installed_at'),
   lastUpdatedAt: text('last_updated_at'),
   userId: text('user_id').notNull().default('default-user'),

@@ -1,0 +1,1 @@
+ALTER TABLE `extensions` ADD `has_update` integer NOT NULL DEFAULT 0;

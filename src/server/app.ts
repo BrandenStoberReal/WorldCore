@@ -62,6 +62,11 @@ export async function start(): Promise<void> {
   log.info('boot', 'Seeding default presets...');
   await presetService.seedDefaults();
   log.info('boot', 'Default presets seeded');
+
+  const { checkForUpdates } = await import('./services/extensions.service');
+  log.info('boot', 'Checking for extension updates...');
+  await checkForUpdates();
+  log.info('boot', 'Extension update check complete');
 }
 
 setStartFn(start);

@@ -57,6 +57,7 @@ export const ExtensionRowSchema = z.object({
   enabled: z.boolean().default(true),
   settings: z.record(z.unknown()).default({}),
   manifestCache: z.unknown().nullable(),
+  hasUpdate: z.boolean().default(false),
   installedAt: z.string().nullable(),
   lastUpdatedAt: z.string().nullable(),
   userId: z.string().default('default-user'),

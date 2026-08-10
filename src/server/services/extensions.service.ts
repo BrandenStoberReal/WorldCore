@@ -4,7 +4,7 @@ import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { db } from '@/server/db/client';
 import { extensions } from '@/server/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNotNull } from 'drizzle-orm';
 import {
   getGlobalExtensionPath,
   getGlobalExtensionRoot,
@@ -341,6 +341,7 @@ export async function updateExtension(userId: string, id: string): Promise<Exten
       branch: existing.branch ?? await getDefaultBranch(dir),
       version: parsed.version,
       manifestCache: parsed,
+      hasUpdate: false,
       lastUpdatedAt: timestamp,
     })
     .where(and(eq(extensions.id, id), eq(extensions.userId, uid)));
@@ -633,5 +634,81 @@ export async function seedPreinstalledGlobalExtensions(): Promise<void> {
       lastUpdatedAt: timestamp,
       userId: DEFAULT_USER,
     });
+  }
+}
+
+function parseGitHubUrl(gitUrl: string): { owner: string; repo: string } | null {
+  const https = gitUrl.match(/github\.com\/([^/]+)\/([^/.]+)/);
+  if (https) return { owner: https[1]!, repo: https[2]! };
+  const ssh = gitUrl.match(/github\.com:([^/]+)\/([^/.]+)/);
+  if (ssh) return { owner: ssh[1]!, repo: ssh[2]! };
+  return null;
+}
+
+export async function checkForUpdates(): Promise<void> {
+  const rows = await db
+    .select()
+    .from(extensions)
+    .where(isNotNull(extensions.gitUrl));
+
+  if (rows.length === 0) return;
+  log.info('ext', `Checking ${rows.length} extensions for updates...`);
+
+  let updated = 0;
+  for (const row of rows) {
+    if (!row.gitUrl) continue;
+    try {
+      const gh = parseGitHubUrl(row.gitUrl);
+      let remoteManifest: Manifest | null = null;
+
+      if (gh) {
+        const branch = row.branch || 'main';
+        const manifestPath = row.subfolder ? `${row.subfolder}/manifest.json` : 'manifest.json';
+        const url = `https://raw.githubusercontent.com/${gh.owner}/${gh.repo}/${branch}/${manifestPath}`;
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'SlopForge/1.0' },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (res.ok) {
+          const text = await res.text();
+          try {
+            remoteManifest = validateManifest(JSON.parse(text));
+          } catch {}
+        }
+      }
+
+      if (!remoteManifest) {
+        const tempDest = mkdtempSync(path.join(tmpdir(), 'wc-ext-check-'));
+        try {
+          const branch = row.branch || await getDefaultBranch(
+            path.join(DATA_ROOT, row.scope === 'global' ? 'extensions' : `${row.userId}/extensions`, row.id),
+          );
+          await cloneRepo(row.gitUrl, tempDest, { branch, timeoutMs: 15000 });
+          const extRoot = row.subfolder ? path.join(tempDest, row.subfolder) : tempDest;
+          const manifestText = await Bun.file(path.join(extRoot, 'manifest.json')).text();
+          remoteManifest = validateManifest(JSON.parse(manifestText));
+        } catch {}
+        try { await rmrf(tempDest); } catch {}
+      }
+
+      if (remoteManifest && remoteManifest.version !== row.version) {
+        await db
+          .update(extensions)
+          .set({ hasUpdate: true })
+          .where(eq(extensions.id, row.id));
+        updated++;
+      } else {
+        await db
+          .update(extensions)
+          .set({ hasUpdate: false })
+          .where(eq(extensions.id, row.id));
+      }
+    } catch (err) {
+      log.warn('ext', `Update check failed for "${row.id}":`, err instanceof Error ? err.message : err);
+    }
+  }
+
+  if (updated > 0) {
+    log.info('ext', `${updated} extension(s) have updates available`);
   }
 }

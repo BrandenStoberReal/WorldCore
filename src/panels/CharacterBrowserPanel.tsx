@@ -599,7 +599,7 @@ export function CharacterBrowserPanel() {
         )}
 
         {/* Load more */}
-        {!noSources && !isSearching && sourceCursors.size > 0 && results.length > 0 && !allInLibrary && (
+        {!noSources && !isSearching && sourceCursors.size > 0 && results.length > 0 && !allInLibrary && !selectedCard && (
           <div className="mt-4 flex justify-center">
             <Button
               variant="outline"
@@ -617,105 +617,94 @@ export function CharacterBrowserPanel() {
             </Button>
           </div>
         )}
-      </div>
 
-      {/* ── Card detail overlay ── */}
-      {selectedCard && (
-        <div className="bg-background absolute inset-0 z-50 flex flex-col overflow-hidden">
-          <header className="border-border/40 flex items-center gap-3 border-b px-4 py-2">
+        {/* Card detail view */}
+        {selectedCard && (
+          <div className="flex flex-col gap-6">
             <button
               type="button"
               onClick={() => setSelectedCard(null)}
-              className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm transition-colors"
+              className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 self-start text-sm transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back
+              Back to results
             </button>
-            <span className="bg-border/50 h-px w-6" />
-            <span className="mono-tag text-ember">[DETAIL] · FORGE</span>
-          </header>
 
-          <div className="flex-1 overflow-y-auto px-6 py-6">
-            <div className="mx-auto flex max-w-2xl flex-col gap-6">
-              {/* Hero section */}
-              <div className="flex gap-6">
-                {selectedCard.avatarUrl ? (
-                  <img
-                    src={selectedCard.avatarUrl}
-                    alt={selectedCard.name}
-                    className="h-32 w-32 flex-shrink-0 rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="bg-muted/40 text-muted-foreground/60 flex h-32 w-32 flex-shrink-0 items-center justify-center rounded-lg text-3xl font-bold uppercase">
-                    {selectedCard.name.charAt(0)}
+            <div className="flex gap-6">
+              {selectedCard.avatarUrl ? (
+                <img
+                  src={selectedCard.avatarUrl}
+                  alt={selectedCard.name}
+                  className="h-32 w-32 flex-shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="bg-muted/40 text-muted-foreground/60 flex h-32 w-32 flex-shrink-0 items-center justify-center rounded-lg text-3xl font-bold uppercase">
+                  {selectedCard.name.charAt(0)}
+                </div>
+              )}
+              <div className="flex flex-1 flex-col gap-2">
+                <h2 className="text-foreground text-xl font-semibold">{selectedCard.name}</h2>
+                {selectedCard.creator && (
+                  <p className="text-muted-foreground text-sm">by {selectedCard.creator}</p>
+                )}
+                {selectedCard.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedCard.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="bg-muted/50 text-muted-foreground rounded px-2 py-0.5 text-[11px]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
                   </div>
                 )}
-                <div className="flex flex-1 flex-col gap-2">
-                  <h2 className="text-foreground text-xl font-semibold">{selectedCard.name}</h2>
-                  {selectedCard.creator && (
-                    <p className="text-muted-foreground text-sm">by {selectedCard.creator}</p>
-                  )}
-                  {selectedCard.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedCard.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="bg-muted/50 text-muted-foreground rounded px-2 py-0.5 text-[11px]"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="mt-auto flex gap-2">
-                    <Button
-                      size="sm"
-                      className="h-8 gap-1.5"
-                      disabled={cardState(selectedCard) === 'done' || cardState(selectedCard) === 'downloading'}
-                      onClick={() => handleDownload(selectedCard)}
-                    >
-                      {cardState(selectedCard) === 'done' ? (
-                        <Check className="h-3.5 w-3.5" />
-                      ) : cardState(selectedCard) === 'downloading' ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Download className="h-3.5 w-3.5" />
-                      )}
-                      {cardState(selectedCard) === 'done'
-                        ? 'In Library'
-                        : cardState(selectedCard) === 'downloading'
-                          ? 'Importing…'
-                          : 'Download'}
-                    </Button>
-                  </div>
+                <div className="mt-auto flex gap-2">
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    disabled={cardState(selectedCard) === 'done' || cardState(selectedCard) === 'downloading'}
+                    onClick={() => handleDownload(selectedCard)}
+                  >
+                    {cardState(selectedCard) === 'done' ? (
+                      <Check className="h-3.5 w-3.5" />
+                    ) : cardState(selectedCard) === 'downloading' ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    {cardState(selectedCard) === 'done'
+                      ? 'In Library'
+                      : cardState(selectedCard) === 'downloading'
+                        ? 'Importing…'
+                        : 'Download'}
+                  </Button>
                 </div>
               </div>
+            </div>
 
-              {/* Description */}
-              {selectedCard.description && (
-                <section>
-                  <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
-                    Description
-                  </h3>
-                  <p className="text-foreground/90 whitespace-pre-wrap text-sm leading-relaxed">
-                    {selectedCard.description}
-                  </p>
-                </section>
-              )}
-
-              {/* Source info */}
+            {selectedCard.description && (
               <section>
                 <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
-                  Source
+                  Description
                 </h3>
-                <p className="text-foreground/70 text-sm">
-                  {selectedCard.sourceId} · {selectedCard.cardId}
+                <p className="text-foreground/90 whitespace-pre-wrap text-sm leading-relaxed">
+                  {selectedCard.description}
                 </p>
               </section>
-            </div>
+            )}
+
+            <section>
+              <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+                Source
+              </h3>
+              <p className="text-foreground/70 text-sm">
+                {selectedCard.sourceId} · {selectedCard.cardId}
+              </p>
+            </section>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

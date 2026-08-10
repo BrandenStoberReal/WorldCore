@@ -10,6 +10,7 @@ import {
   Plus,
   Trash2,
   Search,
+  Settings,
 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PageHeader } from '@/components/ui/page-header';
@@ -30,6 +31,8 @@ export function ExtensionsPanel() {
   const [installScope, setInstallScope] = useState<'user' | 'global'>('user');
   const [installSubfolder, setInstallSubfolder] = useState('');
   const [uninstallId, setUninstallId] = useState<string | null>(null);
+  const [settingsExtId, setSettingsExtId] = useState<string | null>(null);
+  const [settingsDraft, setSettingsDraft] = useState<Record<string, string>>({});
 
   const {
     data: extensions,
@@ -97,12 +100,42 @@ export function ExtensionsPanel() {
     },
   });
 
+  const { data: extSettings } = useQuery<Record<string, string>>({
+    queryKey: ['/api/v1/extensions/settings', settingsExtId],
+    queryFn: async () => {
+      const res = await apiGet<{ ok: boolean; settings: Record<string, string> }>(
+        `/extensions/settings?id=${settingsExtId}`,
+      );
+      return res.settings ?? {};
+    },
+    enabled: settingsExtId != null,
+  });
+
+  const saveSettingsMutation = useMutation({
+    mutationFn: async ({ id, key, value }: { id: string; key: string; value: string }) => {
+      return await apiPost<unknown>('/extensions/settings', { id, key, value });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/extensions/settings'] });
+    },
+  });
+
   const filtered = extensions?.filter(
     (e) =>
       e.displayName.toLowerCase().includes(search.toLowerCase()) ||
       e.id.toLowerCase().includes(search.toLowerCase()) ||
       e.author.toLowerCase().includes(search.toLowerCase()),
   );
+
+  function openSettings(extId: string) {
+    setSettingsExtId(extId);
+    setSettingsDraft({});
+  }
+
+  function closeSettings() {
+    setSettingsExtId(null);
+    setSettingsDraft({});
+  }
 
   if (isLoading) {
     return <LoadingSpinner size="lg" label="indexing modules" className="h-64" />;
@@ -181,7 +214,12 @@ export function ExtensionsPanel() {
           >
             <CardHeader className="px-3.5 pt-3 pb-0">
               <div className="flex items-start justify-between gap-2">
-                <CardTitle className="display-host text-foreground/90 min-w-0 truncate text-[14px] leading-tight">
+                <CardTitle
+                  className={cn(
+                    'display-host min-w-0 truncate text-[14px] leading-tight',
+                    ext.hasUpdate ? 'text-emerald-400' : 'text-foreground/90',
+                  )}
+                >
                   {ext.displayName || ext.id}
                 </CardTitle>
                 <StatusToggle
@@ -237,6 +275,15 @@ export function ExtensionsPanel() {
                       <span className="mono-tag">update</span>
                     </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openSettings(ext.id)}
+                    className="text-muted-foreground/50 hover:text-ember touch-target h-6 px-1.5 text-[11px]"
+                  >
+                    <Settings className="h-2.5 w-2.5" />
+                    <span className="mono-tag">config</span>
+                  </Button>
                   {ext.scope !== 'global' && (
                     <Button
                       variant="ghost"
@@ -275,7 +322,7 @@ export function ExtensionsPanel() {
         open={installOpen}
         onClose={() => setInstallOpen(false)}
         title="Install Module"
-        className="max-w-md"
+        className="max-w-md max-h-[85vh]"
       >
         <div className="space-y-3">
           <div className="space-y-1">
@@ -343,6 +390,53 @@ export function ExtensionsPanel() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={settingsExtId != null}
+        onClose={closeSettings}
+        title="Extension Settings"
+        className="max-w-md max-h-[85vh]"
+      >
+        {settingsExtId && (
+          <div className="space-y-3">
+            <p className="mono-tag text-muted-foreground/60">
+              {settingsExtId}
+            </p>
+            {extSettings && Object.keys(extSettings).length === 0 && (
+              <p className="text-muted-foreground/50 text-sm italic">No settings configured</p>
+            )}
+            {extSettings && Object.entries(extSettings).map(([key, value]) => (
+              <div key={key} className="space-y-1">
+                <label className="mono-tag text-muted-foreground/70">{key}</label>
+                <Input
+                  value={settingsDraft[key] ?? String(value ?? '')}
+                  onChange={(e) => setSettingsDraft((prev) => ({ ...prev, [key]: e.target.value }))}
+                  className="font-mono text-[13px]"
+                />
+              </div>
+            ))}
+            <div className="border-border/60 flex justify-end gap-2 border-t pt-2.5">
+              <Button variant="outline" onClick={closeSettings}>
+                <span className="mono-tag">cancel</span>
+              </Button>
+              <Button
+                onClick={async () => {
+                  for (const [key, value] of Object.entries(settingsDraft)) {
+                    await saveSettingsMutation.mutateAsync({ id: settingsExtId, key, value });
+                  }
+                  closeSettings();
+                }}
+                disabled={saveSettingsMutation.isPending || Object.keys(settingsDraft).length === 0}
+                className="ember-pulse"
+              >
+                <span className="mono-tag font-bold">
+                  {saveSettingsMutation.isPending ? 'SAVING...' : 'SAVE'}
+                </span>
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       <ConfirmDialog
