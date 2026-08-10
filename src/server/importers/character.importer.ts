@@ -6,7 +6,7 @@ import { characterService } from '@/server/services/character.service';
 import { removeFile } from '@/server/storage/fs';
 import { parse, stringify } from 'yaml';
 import sanitize from 'sanitize-filename';
-import { Jimp } from 'jimp';
+import { createCanvas } from '@napi-rs/canvas';
 import AdmZip from 'adm-zip';
 
 const TEMP_UPLOAD_DIR = path.join('/tmp', 'WorldCore', 'uploads');
@@ -16,8 +16,11 @@ async function ensureTempDir(): Promise<void> {
 }
 
 async function generatePlaceholderPng(): Promise<Buffer> {
-  const img = new Jimp({ width: 1, height: 1, color: 0xffffffff });
-  return img.getBuffer('image/png');
+  const c = createCanvas(1, 1);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 1, 1);
+  return Buffer.from(c.toBuffer('image/png'));
 }
 
 function safeJsonParse(raw: string, context: string): Record<string, unknown> {
@@ -153,8 +156,16 @@ export async function importFromJson(
   let pngBuffer: Buffer;
   if (avatarPath) {
     pngBuffer = await fs.readFile(avatarPath);
+    console.debug('[import] importFromJson using avatar file', {
+      avatarPath,
+      avatarSize: pngBuffer.length,
+      avatarFirstBytes: pngBuffer.subarray(0, 8).toString('hex'),
+    });
   } else {
     pngBuffer = await generatePlaceholderPng();
+    console.debug('[import] importFromJson no avatar — using placeholder', {
+      placeholderSize: pngBuffer.length,
+    });
   }
 
   await removeFile(uploadPath).catch(() => {});

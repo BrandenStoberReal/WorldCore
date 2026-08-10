@@ -117,8 +117,9 @@ export class AssetService {
       throw new ValidationError('Not a supported image format');
     }
 
-    const { Jimp } = await import('jimp');
-    const image = await Jimp.read(filePath);
+    const { loadImage } = await import('@napi-rs/canvas');
+    const imageBuf = await import('node:fs/promises').then((fs) => fs.readFile(filePath));
+    const image = await loadImage(imageBuf);
     return {
       width: image.width,
       height: image.height,

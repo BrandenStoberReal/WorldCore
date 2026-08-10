@@ -4,6 +4,7 @@ import { eq, asc, and } from 'drizzle-orm';
 import { getUserCharacterPath, getUserPath } from '@/server/storage/paths';
 import { writeFile, readFile, removeFile, copyFile, exists as fsExists } from '@/server/storage/fs';
 import { writeCharacterCard } from '@/server/storage/png-metadata';
+import { ensurePngWithCardData } from '@/server/storage/image-normalize';
 import path from 'node:path';
 import { SHARED_CONST } from '@/shared/constants';
 import type {
@@ -14,7 +15,7 @@ import type {
 } from '@/shared/types/character';
 import { NotFoundError, ValidationError, ConflictError } from '@/server/errors';
 import * as yaml from 'yaml';
-import { Jimp } from 'jimp';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 const DEFAULT_SPEC = 'chara_card_v3';
 const DEFAULT_SPEC_VERSION = '3.0';
@@ -40,12 +41,11 @@ const ALLOWED_FIELDS = new Set([
 ]);
 
 async function generatePlaceholderPng(): Promise<Buffer> {
-  const img = new Jimp({
-    width: SHARED_CONST.AVATAR_WIDTH,
-    height: SHARED_CONST.AVATAR_HEIGHT,
-    color: 0x000000ff,
-  });
-  return img.getBuffer('image/png');
+  const c = createCanvas(SHARED_CONST.AVATAR_WIDTH, SHARED_CONST.AVATAR_HEIGHT);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, SHARED_CONST.AVATAR_WIDTH, SHARED_CONST.AVATAR_HEIGHT);
+  return Buffer.from(c.toBuffer('image/png'));
 }
 
 export function thumbnailPathFor(avatarFileName: string): string {
@@ -58,21 +58,42 @@ async function writeCharacterThumbnail(
   userId: string,
   avatarFileName: string,
 ): Promise<void> {
-  if (!(await fsExists(avatarPath))) return;
-  let image;
-  try {
-    image = await Jimp.read(avatarPath);
-  } catch {
+  if (!(await fsExists(avatarPath))) {
+    console.debug('[import] writeCharacterThumbnail: avatar file missing', { avatarPath });
     return;
   }
-  if (image.width === 0 || image.height === 0) return;
+  let image;
+  try {
+    const avatarBuf = await readFile(avatarPath);
+    image = await loadImage(avatarBuf);
+  } catch (err) {
+    console.debug('[import] writeCharacterThumbnail: loadImage failed', {
+      avatarPath,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return;
+  }
+  if (image.width === 0 || image.height === 0) {
+    console.debug('[import] writeCharacterThumbnail: zero dimension', {
+      width: image.width,
+      height: image.height,
+    });
+    return;
+  }
+  console.debug('[import] writeCharacterThumbnail: generating', {
+    srcWidth: image.width,
+    srcHeight: image.height,
+  });
   const thumbW = Math.min(THUMBNAIL_WIDTH, image.width);
   const thumbH = Math.round(thumbW * (image.height / image.width));
-  image.resize({ w: thumbW, h: thumbH });
+  const c = createCanvas(thumbW, thumbH);
+  const ctx = c.getContext('2d');
+  ctx.drawImage(image, 0, 0, thumbW, thumbH);
   const thumbName = thumbnailPathFor(avatarFileName);
   const thumbPath = path.join(getUserCharacterPath(userId), thumbName);
-  const buffer = await image.getBuffer('image/png');
+  const buffer = Buffer.from(c.toBuffer('image/png'));
   await writeFile(thumbPath, buffer);
+  console.debug('[import] writeCharacterThumbnail: written', { thumbPath, thumbSize: buffer.length });
 }
 
 function normalizeToV3(data: CharacterCreateInput): CharacterData {
@@ -731,7 +752,44 @@ export class CharacterService {
       parsed.creation_date = now;
     }
     const rewrittenJsonWithDates = JSON.stringify({ ...parsed, spec, spec_version: specVersion });
-    await writeCharacterCard(pngData, rewrittenJsonWithDates, destPath);
+    console.debug('[import] importCharacter entered', {
+      name: parsed.name,
+      pngDataSize: pngData.length,
+      pngDataFirstBytes: pngData.subarray(0, 16).toString('hex'),
+      destPath,
+    });
+
+    let effectivePngData: Buffer;
+    let alreadyHadMetadata = false;
+    try {
+      const result = await ensurePngWithCardData(pngData, rewrittenJsonWithDates);
+      effectivePngData = result.pngBuffer;
+      alreadyHadMetadata = result.alreadyHadMetadata;
+      console.debug('[import] image normalized', {
+        converted: effectivePngData !== pngData,
+        alreadyHadMetadata,
+        outputSize: effectivePngData.length,
+      });
+    } catch (err) {
+      console.debug('[import] image normalization failed — using placeholder', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      effectivePngData = await generatePlaceholderPng();
+    }
+
+    if (!alreadyHadMetadata) {
+      await writeCharacterCard(effectivePngData, rewrittenJsonWithDates, destPath);
+    } else {
+      const outDir = path.dirname(destPath);
+      await import('node:fs/promises').then((fs) => fs.mkdir(outDir, { recursive: true }));
+      await import('node:fs/promises').then((fs) => fs.writeFile(destPath, effectivePngData));
+    }
+
+    const destFile = Bun.file(destPath);
+    console.debug('[import] after writeCharacterCard', {
+      destExists: await destFile.exists(),
+      destSize: await destFile.exists() ? destFile.size : 0,
+    });
     await writeCharacterThumbnail(destPath, userId, fileName).catch((err) =>
       console.debug('[character] thumbnail op skipped', { op: 'import', userId, fileName, err }),
     );

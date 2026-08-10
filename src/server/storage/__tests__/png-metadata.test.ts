@@ -6,7 +6,7 @@ import {
   writeCharacterCard,
   removePngTextChunk,
 } from '../png-metadata';
-import { Jimp } from 'jimp';
+import { createCanvas } from '@napi-rs/canvas';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { DATA_ROOT } from '@/server/storage/paths';
@@ -14,8 +14,11 @@ import { DATA_ROOT } from '@/server/storage/paths';
 const testDir = path.join(DATA_ROOT, '_test_png');
 
 async function createTestPng(): Promise<Buffer> {
-  const img = new Jimp({ width: 1, height: 1, color: 0xff0000ff });
-  return await img.getBuffer('image/png');
+  const c = createCanvas(1, 1);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#ff0000';
+  ctx.fillRect(0, 0, 1, 1);
+  return Buffer.from(c.toBuffer('image/png'));
 }
 
 describe('png-metadata', () => {
