@@ -241,7 +241,15 @@ export const characterRoutes = {
       let avatarPath: string | undefined;
       if (avatarFile instanceof File) {
         avatarPath = `/tmp/WorldCore_avatar_${Date.now()}_${randomUUID()}`;
-        await Bun.write(avatarPath, Buffer.from(await avatarFile.arrayBuffer()));
+        const avatarBuf = Buffer.from(await avatarFile.arrayBuffer());
+        await Bun.write(avatarPath, avatarBuf);
+        console.debug('[import] avatar received', {
+          fileName: file.name,
+          avatarSize: avatarBuf.length,
+          avatarFirstBytes: avatarBuf.subarray(0, 8).toString('hex'),
+        });
+      } else {
+        console.debug('[import] no avatar in formData', { fileName: file.name });
       }
 
       try {

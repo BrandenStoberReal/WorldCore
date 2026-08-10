@@ -56,8 +56,23 @@ export interface CardSource {
   /** Browse without a search query. Called when the search input is empty. Falls back to search('') if not provided. */
   browse?: (opts?: CardBrowseOptions) => CardSearchResult;
   fetchCard: (listing: CardListing) => Promise<ArrayBuffer>;
+  /**
+   * Download the card data together with its avatar image. When implemented,
+   * the framework uses this instead of {@link fetchCard} so the source can
+   * apply provider-specific headers (Referer, Origin, auth, etc.) to the
+   * avatar fetch — which a plain browser fetch() cannot set.
+   *
+   * Returns the card bytes (same shape as fetchCard) plus an optional avatar
+   * image buffer that will be used as the character's portrait and thumbnail.
+   */
+  downloadCard?: (listing: CardListing) => Promise<DownloadedCard>;
   /** Optional. Called when the user opens a card's detail page. Returns rich metadata for display. */
   getDetails?: (listing: CardListing) => Promise<CardDetails>;
+}
+
+export interface DownloadedCard {
+  card: ArrayBuffer;
+  avatar?: ArrayBuffer;
 }
 
 export interface CardDetails {
