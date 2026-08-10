@@ -30,6 +30,14 @@ export const usersPrivateRoutes = {
   }),
 
   changePassword: errorGuard(async (req: Request): Promise<Response> => {
+    const session = getSession(req);
+    if (!session) {
+      return Response.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
+        { status: 401 },
+      );
+    }
+
     const body = (await req.json()) as { currentPassword?: string; newPassword?: string };
 
     if (!body.newPassword || body.newPassword.length < 1) {
@@ -39,9 +47,22 @@ export const usersPrivateRoutes = {
       );
     }
 
-    const dbUser = await db.select().from(users).where(eq(users.id, DEFAULT_USER.id)).limit(1);
+    const dbUser = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
     const row = dbUser[0];
-    if (row && row.passwordHash && body.currentPassword) {
+    if (!row) {
+      return Response.json(
+        { error: { code: 'NOT_FOUND', message: 'User not found' } },
+        { status: 404 },
+      );
+    }
+
+    if (row.passwordHash) {
+      if (!body.currentPassword) {
+        return Response.json(
+          { error: { code: 'VALIDATION_ERROR', message: 'Current password required' } },
+          { status: 400 },
+        );
+      }
       const valid = await verifyPassword(body.currentPassword, row.passwordHash);
       if (!valid) {
         return Response.json(
@@ -49,10 +70,15 @@ export const usersPrivateRoutes = {
           { status: 401 },
         );
       }
+    } else if (row.role !== 'admin' && session.userId !== row.id) {
+      return Response.json(
+        { error: { code: 'FORBIDDEN', message: 'Admin access required to set initial password' } },
+        { status: 403 },
+      );
     }
 
     const hash = await hashPassword(body.newPassword);
-    await db.update(users).set({ passwordHash: hash }).where(eq(users.id, DEFAULT_USER.id));
+    await db.update(users).set({ passwordHash: hash }).where(eq(users.id, session.userId));
 
     return Response.json({ ok: true });
   }),

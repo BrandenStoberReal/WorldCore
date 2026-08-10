@@ -39,7 +39,7 @@ export const usersPublicRoutes = {
         authenticated = await verifyPassword(body.password || '', row.passwordHash);
       }
 
-      if (!authenticated) {
+      if (!authenticated || !row) {
         return Response.json(
           { error: { code: 'AUTH_FAILED', message: 'Invalid credentials' } },
           { status: 401 },
@@ -52,9 +52,9 @@ export const usersPublicRoutes = {
         csrfToken,
       };
       const res = Response.json({
-        handle: DEFAULT_USER.username,
-        name: DEFAULT_USER.username,
-        admin: DEFAULT_USER.role === 'admin',
+        handle: row.handle,
+        name: row.name,
+        admin: row.role === 'admin',
         token: csrfToken,
       });
       setSessionCookie(res, session);

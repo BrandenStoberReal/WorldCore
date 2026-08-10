@@ -11,6 +11,18 @@ import forge from 'node-forge';
 
 const STATE_STORE = new Map<string, { provider: SSOProvider; expires: number }>();
 
+let _stateCleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+function ensureStateCleanup(): void {
+  if (_stateCleanupInterval !== null) return;
+  _stateCleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of STATE_STORE) {
+      if (now > entry.expires) STATE_STORE.delete(key);
+    }
+  }, 60_000);
+}
+
 const SSO_SETTINGS_KEY = 'sso_settings';
 
 let ssoSStore: Record<string, unknown> = {};
@@ -110,7 +122,15 @@ function validateState(state: string): boolean {
   return true;
 }
 
-/* ---------- Authelia ---------- */
+/* ---------- Authelia ----------
+ *
+ * IMPORTANT: This handler trusts the Remote-User/Remote-Email/Remote-Name headers
+ * set by the Authelia reverse proxy. It MUST only be used behind a trusted reverse
+ * proxy that strips client-set headers. If AutheliaUrl is configured, the handler
+ * validates the session by calling Authelia's /api/verify endpoint with the
+ * forwarded cookies. Without AutheliaUrl, headers are trusted directly (insecure
+ * without a reverse proxy).
+ */
 
 export async function handleAutheliaAuth(req: Request): Promise<User | null> {
   const settings = await getSSOSettingsSafe();
@@ -118,12 +138,12 @@ export async function handleAutheliaAuth(req: Request): Promise<User | null> {
 
   const remoteUser = req.headers.get('Remote-User');
   const remoteEmail = req.headers.get('Remote-Email');
-  const remoteName = req.headers.get('Remote-Name');
 
   if (!remoteUser) return null;
 
   if (settings.autheliaUrl) {
-    const valid = await verifyAutheliaToken(settings.autheliaUrl, remoteUser);
+    const forwardedCookies = req.headers.get('Cookie') ?? '';
+    const valid = await verifyAutheliaSession(settings.autheliaUrl, remoteUser, forwardedCookies);
     if (!valid) return null;
   }
 
@@ -131,12 +151,21 @@ export async function handleAutheliaAuth(req: Request): Promise<User | null> {
   return findOrCreateUser(remoteUser, remoteEmail ?? undefined, role);
 }
 
-async function verifyAutheliaToken(_baseUrl: string, _username: string): Promise<boolean> {
+async function verifyAutheliaSession(
+  baseUrl: string,
+  expectedUser: string,
+  forwardedCookies: string,
+): Promise<boolean> {
   try {
-    const resp = await fetch(`${_baseUrl}/api/verify`, {
-      headers: { Accept: 'application/json' },
+    const resp = await fetch(`${baseUrl}/api/verify`, {
+      headers: {
+        Accept: 'application/json',
+        Cookie: forwardedCookies,
+      },
     });
-    return resp.ok;
+    if (!resp.ok) return false;
+    const data = (await resp.json()) as { username?: string };
+    return data.username === expectedUser;
   } catch {
     return false;
   }
@@ -147,6 +176,7 @@ async function verifyAutheliaToken(_baseUrl: string, _username: string): Promise
 export function getAuthentikAuthUrl(settings: SSOSettings, redirectUrl: string): string {
   const state = generateState();
   STATE_STORE.set(state, { provider: 'authentik', expires: Date.now() + 600_000 });
+  ensureStateCleanup();
 
   const baseUrl = settings.authentikBaseUrl ?? '';
   const clientId = settings.authentikClientId ?? '';
@@ -209,11 +239,15 @@ async function decodeIdToken(idToken: string): Promise<Record<string, unknown> |
     const parts = idToken.split('.');
     if (parts.length !== 3) return null;
 
-    const header = JSON.parse(forge.util.decode64(parts[0]!)) as { alg?: string };
+    const header = JSON.parse(forge.util.decode64(parts[0]!)) as { alg?: string; kid?: string };
 
     if (!header.alg || header.alg.toLowerCase() === 'none') return null;
 
     const payload = JSON.parse(forge.util.decode64(parts[1]!)) as Record<string, unknown>;
+
+    if (typeof payload.exp === 'number' && Date.now() >= payload.exp * 1000) return null;
+    if (typeof payload.iat === 'number' && Date.now() < (payload.iat - 300) * 1000) return null;
+
     return payload;
   } catch {
     return null;
