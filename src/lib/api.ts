@@ -5,8 +5,9 @@ import { substituteMacros, type MacroContext } from '@/lib/macros';
 const BASE = '/api/v1';
 
 export async function apiFetch(path: string, options?: RequestInit): Promise<unknown> {
+  const isFormData = options?.body instanceof FormData;
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    ...(isFormData ? {} : { headers: { 'Content-Type': 'application/json' } }),
     ...options,
   });
   if (!res.ok) {
