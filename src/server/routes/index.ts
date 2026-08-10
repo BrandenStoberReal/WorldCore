@@ -44,6 +44,7 @@ import { promptBuilderRoutes } from './prompt-builder.routes';
 import { summarizeRoutes } from './summarize.routes';
 import { outfitAnalyzerRoutes } from './outfit-analyzer.routes';
 import { serverConfigRoutes } from './server-config.routes';
+import { browserInstalledRoutes } from './browser-installed.routes';
 import { SHARED_CONST } from '@/shared/constants';
 
 const PREFIX = SHARED_CONST.API_VERSION_PREFIX;
@@ -308,6 +309,11 @@ export function buildApiRoutes(): Record<string, RouteHandler> {
   // Dispatched via prefix-match in app.ts for /api/v1/models/{source}.
   routes[`${PREFIX}/models`] = modelsRoutes.list;
   routes[`${PREFIX}/models/context`] = modelsRoutes.context;
+
+  // === Browser Installed Characters ===
+  routes[`${PREFIX}/browser-installed/list`] = browserInstalledRoutes.list;
+  routes[`${PREFIX}/browser-installed/add`] = browserInstalledRoutes.add;
+  routes[`${PREFIX}/browser-installed/remove`] = browserInstalledRoutes.remove;
 
   return routes;
 }

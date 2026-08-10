@@ -212,3 +212,28 @@ export const CardListingSchema = z.object({
   tags: z.array(z.string()).default([]),
   payload: z.unknown().optional(),
 });
+
+/**
+ * Browser-installed character mapping — links an external card source entry
+ * to an imported character in the library. Persisted in user settings so
+ * "In Library" badges survive restarts.
+ */
+export const BrowserInstalledCharacterSchema = z.object({
+  sourceId: z.string().min(1),
+  cardId: z.string().min(1),
+  characterId: z.number(),
+  installedAt: z.string().datetime(),
+});
+
+export const BrowserInstalledCharactersSchema = z.array(BrowserInstalledCharacterSchema);
+
+export const AddBrowserInstalledInputSchema = z.object({
+  sourceId: z.string().min(1),
+  cardId: z.string().min(1),
+  characterId: z.number(),
+});
+
+export const RemoveBrowserInstalledInputSchema = z.object({
+  sourceId: z.string().min(1),
+  cardId: z.string().min(1),
+});
