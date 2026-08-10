@@ -528,7 +528,7 @@ export function CharacterBrowserPanel() {
         )}
 
         {/* Card grid */}
-        {!noSources && !isSearching && results.length > 0 && !allInLibrary && (
+        {!noSources && !isSearching && results.length > 0 && !allInLibrary && !selectedCard && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {results.map((listing) => {
               const state = cardState(listing);
