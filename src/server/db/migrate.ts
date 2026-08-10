@@ -41,8 +41,14 @@ export function runMigrations(dbInstance?: DrizzleDb) {
   try {
     migrate(instance, { migrationsFolder: MIGRATIONS_FOLDER });
     log.info('db', 'Drizzle migrations completed');
-  } catch {
-    log.debug('db', 'Drizzle migrations skipped (already applied)');
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('already') || msg.includes('duplicate') || msg.includes('no such table')) {
+      log.debug('db', 'Drizzle migrations skipped (already applied)');
+    } else {
+      log.error('db', 'Drizzle migrations failed', err);
+      throw err;
+    }
   }
   log.info('db', 'Running seed SQL...');
   for (const sql of SEED_SQL) {
