@@ -21,6 +21,7 @@ import { cn, surfaceCard, subtleEdge } from '@/lib/utils';
 import { apiGet, apiPost } from '@/lib/api';
 import { emit } from '@/lib/extensionEventBus';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { getExtensionSettingsPanel } from '@/lib/worldcoreApi';
 import type { ExtensionRow } from '@/shared/types/extensions';
 
 export function ExtensionsPanel() {
@@ -398,45 +399,51 @@ export function ExtensionsPanel() {
         title="Extension Settings"
         className="max-w-md max-h-[85vh]"
       >
-        {settingsExtId && (
-          <div className="space-y-3">
-            <p className="mono-tag text-muted-foreground/60">
-              {settingsExtId}
-            </p>
-            {extSettings && Object.keys(extSettings).length === 0 && (
-              <p className="text-muted-foreground/50 text-sm italic">No settings configured</p>
-            )}
-            {extSettings && Object.entries(extSettings).map(([key, value]) => (
-              <div key={key} className="space-y-1">
-                <label className="mono-tag text-muted-foreground/70">{key}</label>
-                <Input
-                  value={settingsDraft[key] ?? String(value ?? '')}
-                  onChange={(e) => setSettingsDraft((prev) => ({ ...prev, [key]: e.target.value }))}
-                  className="font-mono text-[13px]"
-                />
+        {settingsExtId && (() => {
+          const RegisteredPanel = getExtensionSettingsPanel(settingsExtId);
+          if (RegisteredPanel) {
+            return <RegisteredPanel />;
+          }
+          return (
+            <div className="space-y-3">
+              <p className="mono-tag text-muted-foreground/60">
+                {settingsExtId}
+              </p>
+              {extSettings && Object.keys(extSettings).length === 0 && (
+                <p className="text-muted-foreground/50 text-sm italic">No settings configured</p>
+              )}
+              {extSettings && Object.entries(extSettings).map(([key, value]) => (
+                <div key={key} className="space-y-1">
+                  <label className="mono-tag text-muted-foreground/70">{key}</label>
+                  <Input
+                    value={settingsDraft[key] ?? String(value ?? '')}
+                    onChange={(e) => setSettingsDraft((prev) => ({ ...prev, [key]: e.target.value }))}
+                    className="font-mono text-[13px]"
+                  />
+                </div>
+              ))}
+              <div className="border-border/60 flex justify-end gap-2 border-t pt-2.5">
+                <Button variant="outline" onClick={closeSettings}>
+                  <span className="mono-tag">cancel</span>
+                </Button>
+                <Button
+                  onClick={async () => {
+                    for (const [key, value] of Object.entries(settingsDraft)) {
+                      await saveSettingsMutation.mutateAsync({ id: settingsExtId, key, value });
+                    }
+                    closeSettings();
+                  }}
+                  disabled={saveSettingsMutation.isPending || Object.keys(settingsDraft).length === 0}
+                  className="ember-pulse"
+                >
+                  <span className="mono-tag font-bold">
+                    {saveSettingsMutation.isPending ? 'SAVING...' : 'SAVE'}
+                  </span>
+                </Button>
               </div>
-            ))}
-            <div className="border-border/60 flex justify-end gap-2 border-t pt-2.5">
-              <Button variant="outline" onClick={closeSettings}>
-                <span className="mono-tag">cancel</span>
-              </Button>
-              <Button
-                onClick={async () => {
-                  for (const [key, value] of Object.entries(settingsDraft)) {
-                    await saveSettingsMutation.mutateAsync({ id: settingsExtId, key, value });
-                  }
-                  closeSettings();
-                }}
-                disabled={saveSettingsMutation.isPending || Object.keys(settingsDraft).length === 0}
-                className="ember-pulse"
-              >
-                <span className="mono-tag font-bold">
-                  {saveSettingsMutation.isPending ? 'SAVING...' : 'SAVE'}
-                </span>
-              </Button>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </Modal>
 
       <ConfirmDialog

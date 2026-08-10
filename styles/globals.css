@@ -427,8 +427,8 @@
     top: var(--topbar-height, 40px);
     left: 0;
     right: 0;
-    max-height: 100vh;
-    max-height: 100dvh;
+    max-height: 200vh;
+    max-height: 200dvh;
     z-index: 20;
     overflow-y: auto;
     overflow-x: hidden;
