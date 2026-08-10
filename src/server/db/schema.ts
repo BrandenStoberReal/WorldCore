@@ -177,6 +177,7 @@ export const presets = sqliteTable('presets', {
   userId: text('user_id').notNull().default('default-user'),
 }, (table) => [
   index('presets_user_id_idx').on(table.userId),
+  index('presets_category_name_idx').on(table.category, table.name),
 ]);
 
 export const settings = sqliteTable('settings', {
@@ -203,6 +204,7 @@ export const secrets = sqliteTable('secrets', {
   userId: text('user_id').notNull().default('default-user'),
 }, (table) => [
   index('secrets_user_id_idx').on(table.userId),
+  index('secrets_key_idx').on(table.key),
 ]);
 
 export const users = sqliteTable('users', {
