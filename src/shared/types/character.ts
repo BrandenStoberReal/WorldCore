@@ -56,4 +56,16 @@ export interface CardSource {
   /** Browse without a search query. Called when the search input is empty. Falls back to search('') if not provided. */
   browse?: (opts?: CardBrowseOptions) => CardSearchResult;
   fetchCard: (listing: CardListing) => Promise<ArrayBuffer>;
+  /** Optional. Called when the user opens a card's detail page. Returns rich metadata for display. */
+  getDetails?: (listing: CardListing) => Promise<CardDetails>;
+}
+
+export interface CardDetails {
+  description?: string;
+  tagline?: string;
+  starCount?: number;
+  chatCount?: number;
+  nsfw?: boolean;
+  topics?: string[];
+  custom?: Record<string, unknown>;
 }

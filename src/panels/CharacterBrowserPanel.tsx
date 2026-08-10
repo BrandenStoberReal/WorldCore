@@ -26,6 +26,7 @@ import type {
   CardSearchResult,
   ShallowCharacter,
   CardBrowseOptions,
+  CardDetails,
 } from '@/shared/types/character';
 
 /* ────────────────────────────────────────────────
@@ -187,6 +188,8 @@ export function CharacterBrowserPanel() {
   const [sourceCursors, setSourceCursors] = useState<Map<string, string>>(new Map());
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CardListing | null>(null);
+  const [cardDetails, setCardDetails] = useState<CardDetails | null>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   const downloadChainRef = useRef(Promise.resolve());
 
@@ -210,6 +213,35 @@ export function CharacterBrowserPanel() {
     const timer = setTimeout(() => setDebouncedQuery(query), 200);
     return () => clearTimeout(timer);
   }, [query]);
+
+  /* ── fetch card details when selected ── */
+  useEffect(() => {
+    if (!selectedCard) {
+      setCardDetails(null);
+      return;
+    }
+    const source = getCardSource(selectedCard.sourceId);
+    if (!source?.getDetails) {
+      setCardDetails(null);
+      return;
+    }
+    let stale = false;
+    setIsLoadingDetails(true);
+    source
+      .getDetails(selectedCard)
+      .then((details) => {
+        if (!stale) setCardDetails(details);
+      })
+      .catch(() => {
+        if (!stale) setCardDetails(null);
+      })
+      .finally(() => {
+        if (!stale) setIsLoadingDetails(false);
+      });
+    return () => {
+      stale = true;
+    };
+  }, [selectedCard]);
 
   /* ── search/browse effect ── */
   useEffect(() => {
@@ -753,6 +785,69 @@ export function CharacterBrowserPanel() {
                 <p className="text-foreground/90 whitespace-pre-wrap text-sm leading-relaxed">
                   {selectedCard.description}
                 </p>
+              </section>
+            )}
+
+            {isLoadingDetails && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Loading details…
+              </div>
+            )}
+
+            {cardDetails?.description && cardDetails.description !== selectedCard.description && (
+              <section>
+                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+                  Creator Notes
+                </h3>
+                <p className="text-foreground/90 whitespace-pre-wrap text-sm leading-relaxed">
+                  {cardDetails.description}
+                </p>
+              </section>
+            )}
+
+            {cardDetails?.tagline && cardDetails.tagline !== selectedCard.description && (
+              <section>
+                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+                  Tagline
+                </h3>
+                <p className="text-foreground/90 text-sm leading-relaxed">
+                  {cardDetails.tagline}
+                </p>
+              </section>
+            )}
+
+            {(cardDetails?.starCount != null || cardDetails?.chatCount != null) && (
+              <section>
+                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+                  Stats
+                </h3>
+                <div className="flex gap-4 text-sm">
+                  {cardDetails.starCount != null && (
+                    <span className="text-foreground/80">{cardDetails.starCount.toLocaleString()} stars</span>
+                  )}
+                  {cardDetails.chatCount != null && (
+                    <span className="text-foreground/80">{cardDetails.chatCount.toLocaleString()} chats</span>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {cardDetails?.topics && cardDetails.topics.length > 0 && (
+              <section>
+                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+                  Topics
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {cardDetails.topics.map((topic) => (
+                    <span
+                      key={topic}
+                      className="bg-muted/50 text-muted-foreground rounded px-2 py-0.5 text-[11px]"
+                    >
+                      {topic}
+                    </span>
+                  ))}
+                </div>
               </section>
             )}
 
