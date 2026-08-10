@@ -615,9 +615,9 @@ export function CharacterBrowserPanel() {
                   )}
 
                   {/* Description preview */}
-                  {listing.description && (
+                  {(listing.tagline || listing.description) && (
                     <p className="text-muted-foreground/70 mt-1 line-clamp-2 text-[10px] leading-snug">
-                      {listing.description}
+                      {listing.tagline || listing.description}
                     </p>
                   )}
 
@@ -741,18 +741,26 @@ export function CharacterBrowserPanel() {
                 {selectedCard.creator && (
                   <p className="text-muted-foreground text-sm">by {selectedCard.creator}</p>
                 )}
-                {selectedCard.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedCard.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="bg-muted/50 text-muted-foreground rounded px-2 py-0.5 text-[11px]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                {(() => {
+                  const allTags = [
+                    ...selectedCard.tags,
+                    ...(cardDetails?.topics ?? []),
+                  ];
+                  const merged = [...new Set(allTags)];
+                  if (merged.length === 0) return null;
+                  return (
+                    <div className="flex flex-wrap gap-1.5">
+                      {merged.map((tag) => (
+                        <span
+                          key={tag}
+                          className="bg-muted/50 text-muted-foreground rounded px-2 py-0.5 text-[11px]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
                 <div className="mt-auto flex gap-2">
                   <Button
                     size="sm"
@@ -829,24 +837,6 @@ export function CharacterBrowserPanel() {
                   {cardDetails.chatCount != null && (
                     <span className="text-foreground/80">{cardDetails.chatCount.toLocaleString()} chats</span>
                   )}
-                </div>
-              </section>
-            )}
-
-            {cardDetails?.topics && cardDetails.topics.length > 0 && (
-              <section>
-                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
-                  Topics
-                </h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {cardDetails.topics.map((topic) => (
-                    <span
-                      key={topic}
-                      className="bg-muted/50 text-muted-foreground rounded px-2 py-0.5 text-[11px]"
-                    >
-                      {topic}
-                    </span>
-                  ))}
                 </div>
               </section>
             )}

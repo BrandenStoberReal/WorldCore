@@ -205,6 +205,7 @@ export const CardListingSchema = z.object({
   sourceId: z.string().min(1),
   cardId: z.string().min(1),
   name: z.string().min(1),
+  tagline: z.string().optional(),
   description: z.string().optional(),
   avatarUrl: z.string().url().optional(),
   creator: z.string().optional(),
