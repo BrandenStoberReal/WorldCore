@@ -102,10 +102,10 @@ export function ExtensionsPanel() {
   });
 
   const { data: extSettings } = useQuery<Record<string, string>>({
-    queryKey: ['/api/v1/extensions/settings', settingsExtId],
+    queryKey: ['/api/v1/extensions/get-settings', settingsExtId],
     queryFn: async () => {
       const res = await apiGet<{ ok: boolean; settings: Record<string, string> }>(
-        `/extensions/settings?id=${settingsExtId}`,
+        `/extensions/get-settings?id=${settingsExtId}`,
       );
       return res.settings ?? {};
     },
@@ -114,10 +114,10 @@ export function ExtensionsPanel() {
 
   const saveSettingsMutation = useMutation({
     mutationFn: async ({ id, key, value }: { id: string; key: string; value: string }) => {
-      return await apiPost<unknown>('/extensions/settings', { id, key, value });
+      return await apiPost<unknown>('/extensions/patch-settings', { id, key, value });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/extensions/settings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/extensions/get-settings'] });
     },
   });
 
@@ -323,7 +323,7 @@ export function ExtensionsPanel() {
         open={installOpen}
         onClose={() => setInstallOpen(false)}
         title="Install Module"
-        className="max-w-md max-h-[85vh]"
+        className="max-w-md max-h-[92vh]"
       >
         <div className="space-y-3">
           <div className="space-y-1">
@@ -397,7 +397,7 @@ export function ExtensionsPanel() {
         open={settingsExtId != null}
         onClose={closeSettings}
         title="Extension Settings"
-        className="max-w-md max-h-[85vh]"
+        className="max-w-md max-h-[92vh]"
       >
         {settingsExtId && (() => {
           const RegisteredPanel = getExtensionSettingsPanel(settingsExtId);
