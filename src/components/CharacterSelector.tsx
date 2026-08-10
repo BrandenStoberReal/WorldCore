@@ -722,6 +722,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
                 invalidateKeys={infoInvalidateKeys}
                 heading
                 placeholder="character name"
+                className="justify-center text-center"
               />
               <span className="mono-tag text-foreground/35 tabular-nums">
                 ~{infoTokens.toLocaleString()} tokens

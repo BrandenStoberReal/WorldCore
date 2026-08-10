@@ -311,26 +311,35 @@ export function CharacterBrowserPanel() {
     try {
       const source = getCardSource(listing.sourceId);
       if (!source) throw new Error('Source not found');
-      const bytes = await source.fetchCard(listing);
       const safeName = listing.name.replace(/[^a-zA-Z0-9]/g, '_');
-      const { ext, mime } = detectFileType(bytes);
-      const file = new File([bytes], `${safeName}${ext}`, { type: mime });
+
+      let cardBytes: ArrayBuffer;
+      let avatarBytes: ArrayBuffer | undefined;
+
+      if (source.downloadCard) {
+        const result = await source.downloadCard(listing);
+        cardBytes = result.card;
+        avatarBytes = result.avatar;
+      } else {
+        cardBytes = await source.fetchCard(listing);
+        if (listing.avatarUrl) {
+          try {
+            const res = await fetch(listing.avatarUrl);
+            if (res.ok) avatarBytes = await res.arrayBuffer();
+          } catch {}
+        }
+      }
+
+      const { ext, mime } = detectFileType(cardBytes);
+      const file = new File([cardBytes], `${safeName}${ext}`, { type: mime });
       const fd = new FormData();
       fd.append('file', file);
 
-      if (listing.avatarUrl) {
-        try {
-          const res = await fetch(listing.avatarUrl);
-          if (res.ok) {
-            const blob = await res.blob();
-            fd.append(
-              'avatar',
-              new File([blob], `${safeName}_avatar`, { type: blob.type || 'image/png' }),
-            );
-          }
-        } catch {
-          // non-fatal — import proceeds without avatar
-        }
+      if (avatarBytes) {
+        fd.append(
+          'avatar',
+          new File([avatarBytes], `${safeName}_avatar`, { type: 'image/png' }),
+        );
       }
 
       const body = (await apiFetch('/characters/import', {
@@ -752,8 +761,8 @@ export function CharacterBrowserPanel() {
                   {selectedCard.name.charAt(0)}
                 </div>
               )}
-              <div className="flex flex-1 flex-col items-center gap-2">
-                <h2 className="text-foreground text-xl font-semibold text-center">{selectedCard.name}</h2>
+              <div className="flex flex-1 flex-col gap-2">
+                <h2 className="text-foreground text-xl font-semibold">{selectedCard.name}</h2>
                 {selectedCard.creator && (
                   <p className="text-muted-foreground text-sm">by {selectedCard.creator}</p>
                 )}
