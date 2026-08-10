@@ -236,7 +236,10 @@ export async function installExtension(
       throw err;
     }
 
-    await buildExtension(dest, parsed.id);
+    const built = await buildExtension(dest, parsed.id);
+    if (!built) {
+      log.warn('ext', `installExtension: build failed for "${parsed.id}" — extension installed but may not load until rebuilt`);
+    }
 
     const inserted = await db
       .select()

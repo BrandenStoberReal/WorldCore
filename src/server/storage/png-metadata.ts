@@ -139,12 +139,26 @@ export async function writeCharacterCard(
   outputPath: string,
 ): Promise<void> {
   const pngBuffer = typeof inputPath === 'string' ? await fs.readFile(inputPath) : inputPath;
+  console.debug('[import] writeCharacterCard entered', {
+    pngBufferSize: pngBuffer.length,
+    pngBufferFirstBytes: pngBuffer.subarray(0, 16).toString('hex'),
+    jsonSize: jsonData.length,
+  });
   const base64Data = Buffer.from(jsonData).toString('base64');
   let buffer = removePngTextChunk(pngBuffer, 'chara');
   buffer = removePngTextChunk(buffer, 'ccv3');
   const charaChunk = encodeChunk('chara', base64Data);
   const ccv3Chunk = encodeChunk('ccv3', base64Data);
   const iendOffset = buffer.length - 12;
+  console.debug('[import] writeCharacterCard chunk layout', {
+    bufferLength: buffer.length,
+    iendOffset,
+  });
+  if (iendOffset < 8) {
+    throw new Error(
+      `writeCharacterCard: input buffer too small (${buffer.length} bytes) — not a valid PNG`,
+    );
+  }
   const result = Buffer.alloc(buffer.length - 12 + charaChunk.length + ccv3Chunk.length + 12);
   buffer.subarray(0, iendOffset).copy(result, 0);
   charaChunk.copy(result, iendOffset);
