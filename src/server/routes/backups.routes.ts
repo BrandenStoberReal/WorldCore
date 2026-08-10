@@ -61,7 +61,20 @@ export const backupsRoutes = {
   restore: errorGuard(
     withUserId(async (req: Request, _userId: string): Promise<Response> => {
       const body = (await req.json()) as { id: string };
-      const backupDir = path.join(paths.backups, body.id);
+      if (!body.id || !/^[a-f0-9-]{36}$/i.test(body.id)) {
+        return Response.json(
+          { error: { code: 'INVALID_ID', message: 'Invalid backup ID format' } },
+          { status: 400 },
+        );
+      }
+      const backupDir = path.resolve(paths.backups, body.id);
+      const backupsRoot = path.resolve(paths.backups);
+      if (!backupDir.startsWith(backupsRoot + path.sep) && backupDir !== backupsRoot) {
+        return Response.json(
+          { error: { code: 'INVALID_ID', message: 'Invalid backup ID' } },
+          { status: 400 },
+        );
+      }
 
       if (!(await exists(backupDir))) {
         throw new NotFoundError(`Backup "${body.id}"`);
