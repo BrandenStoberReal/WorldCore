@@ -125,6 +125,7 @@ function CollapsibleCard({
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
           className="flex w-full items-center justify-between text-left transition-colors hover:opacity-80"
         >
           <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
@@ -167,6 +168,7 @@ function CollapsibleField({
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
         className="flex w-full items-center justify-between text-left transition-colors hover:opacity-80"
       >
         <Label className="text-sm font-medium">
@@ -349,15 +351,28 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
     const [avatarDataUrl, setAvatarDataUrl] = useState<string | undefined>(undefined);
     const [dragOver, setDragOver] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const fileReaderRef = useRef<FileReader | null>(null);
+
+    useEffect(() => {
+      return () => {
+        if (fileReaderRef.current) {
+          fileReaderRef.current.abort();
+          fileReaderRef.current = null;
+        }
+      };
+    }, []);
 
     const processFile = useCallback((file: File) => {
       if (!file.type.startsWith('image/')) return;
+      if (fileReaderRef.current) fileReaderRef.current.abort();
       const reader = new FileReader();
+      fileReaderRef.current = reader;
       reader.onload = () => {
         const result = reader.result as string;
         setAvatarPreview(result);
         setAvatarPreviewError(false);
         setAvatarDataUrl(result);
+        fileReaderRef.current = null;
       };
       reader.readAsDataURL(file);
     }, []);
@@ -771,6 +786,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
             type="file"
             accept="image/png,image/jpeg,image/jpg,image/webp"
             className="hidden"
+            aria-label="Upload character avatar"
             onChange={handleAvatarChange}
           />
           <div className="flex items-center gap-2">
@@ -796,11 +812,13 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
         </div>
 
         {/* ── Tab strip ────────────────────────────────────── */}
-        <div className="border-border/40 flex gap-1 border-b">
+        <div role="tablist" className="border-border/40 flex gap-1 border-b">
           {TABS.map((tab) => (
             <button
               key={tab.key}
               type="button"
+              role="tab"
+              aria-selected={activeTab === tab.key}
               className={cn(
                 'mono-tag -mb-px px-3 py-2 text-[10px] tracking-wider uppercase transition-colors',
                 activeTab === tab.key

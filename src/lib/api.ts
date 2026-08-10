@@ -78,15 +78,14 @@ export async function saveSettings(patch: Record<string, unknown>): Promise<unkn
   return await apiPost('/settings/save', patch);
 }
 
-/**
- * Read-modify-write for the settings bag. The server endpoint `/settings/save`
- * does a FULL REPLACE of the entire settings object, so callers MUST merge with
- * existing settings before sending — otherwise they silently clobber other
- * fields (e.g. theme vs connection settings). This helper handles the merge.
- */
+let _settingsPatchQueue: Promise<unknown> = Promise.resolve();
+
 export async function saveSettingsPatch(patch: Record<string, unknown>): Promise<unknown> {
-  const current = await getSettings<Record<string, unknown>>();
-  return await saveSettings({ ...current, ...patch });
+  _settingsPatchQueue = _settingsPatchQueue.then(async () => {
+    const current = await getSettings<Record<string, unknown>>();
+    return saveSettings({ ...current, ...patch });
+  });
+  return _settingsPatchQueue;
 }
 
 /** List all presets in a category. */

@@ -21,8 +21,13 @@ export function ConfirmDialog({
   confirmLabel = 'Confirm',
   variant = 'destructive',
 }: ConfirmDialogProps) {
-  const handleConfirm = () => {
-    onConfirm();
+  const handleConfirm = async () => {
+    try {
+      await onConfirm();
+    } catch {
+      // Error surfaced by caller; keep dialog open so user can retry.
+      return;
+    }
     onClose();
   };
 

@@ -372,6 +372,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
   const [showRenameInput, setShowRenameInput] = useState(false);
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: presetNames = [] } = useQuery<string[]>({
     queryKey: ['/api/v1/presets/all', 'generation+textgenerationwebui'],
@@ -438,11 +439,16 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
   });
 
   const flashStatus = (status: PresetStatus, message: string) => {
+    if (flashTimerRef.current) {
+      clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = null;
+    }
     setPresetStatus(status);
     setPresetMessage(message);
-    window.setTimeout(() => {
+    flashTimerRef.current = setTimeout(() => {
       setPresetStatus('idle');
       setPresetMessage('');
+      flashTimerRef.current = null;
     }, 2000);
   };
 

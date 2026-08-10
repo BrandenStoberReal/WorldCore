@@ -103,8 +103,10 @@ export function ChatView({ characterId }: ChatViewProps) {
   // Set when we've locally mutated messages (delete, reorder) so the query
   // sync effect doesn't overwrite our local state with stale server data.
   const localModificationsRef = useRef(false);
+  const localModificationsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref to hold latest analyzeOutfitChanges so stopGeneration doesn't need it in deps.
   const analyzeOutfitChangesRef = useRef<((message: string, charName: string) => Promise<void>) | null>(null);
+  const outfitDataRef = useRef<typeof outfitData>(null);
 
   const [tipIndex, setTipIndex] = useState(() => getRandomTip(-1));
   const [tipPhase, setTipPhase] = useState<'enter' | 'visible' | 'exit'>('enter');
@@ -305,6 +307,10 @@ export function ChatView({ characterId }: ChatViewProps) {
     }
   }, [characterId]);
 
+  useEffect(() => {
+    outfitDataRef.current = outfitData;
+  }, [outfitData]);
+
   const textOptions = useMemo(() => {
     const to = (settings as { textOptions?: TextOptions } | undefined)?.textOptions;
     if (!to) return null;
@@ -483,6 +489,10 @@ export function ChatView({ characterId }: ChatViewProps) {
           // Optimistic commit: hold the sync effect until the server has
           // persisted the stopped-stream message.
           localModificationsRef.current = true;
+          if (localModificationsTimerRef.current) {
+            clearTimeout(localModificationsTimerRef.current);
+            localModificationsTimerRef.current = null;
+          }
           try {
             await apiPost('/chats/message', {
               fileId: activeChatId,
@@ -491,12 +501,13 @@ export function ChatView({ characterId }: ChatViewProps) {
             });
             await queryClient.invalidateQueries({ queryKey: ['/api/v1/chats/get'] });
           } finally {
-            setTimeout(() => {
+            localModificationsTimerRef.current = setTimeout(() => {
               localModificationsRef.current = false;
+              localModificationsTimerRef.current = null;
             }, 0);
           }
 
-          if (outfitData && !outfitData.disabled && character) {
+          if (outfitDataRef.current && !outfitDataRef.current.disabled && character) {
             analyzeOutfitChangesRef.current?.(committedMsg.mes, character.name);
           }
         }
@@ -516,7 +527,6 @@ export function ChatView({ characterId }: ChatViewProps) {
     setStreamingThinking,
     setIsThinkingStream,
     queryClient,
-    outfitData,
     characterId,
   ]);
 
@@ -617,15 +627,17 @@ export function ChatView({ characterId }: ChatViewProps) {
       // overwrite our optimistic message with stale server data mid-generation.
       // Reset below once the server has actually persisted the message.
       localModificationsRef.current = true;
+      if (localModificationsTimerRef.current) {
+        clearTimeout(localModificationsTimerRef.current);
+        localModificationsTimerRef.current = null;
+      }
       addMessage(userMsg);
       try {
         await appendMessageMutation.mutateAsync({ fileId: activeChatId, message: userMsg });
       } finally {
-        // Re-enable sync once the refetch that fires from onSuccess has had a
-        // chance to run (next render cycle). The /chats/get refetch now includes
-        // the user message we just persisted, so it is safe to let it win.
-        setTimeout(() => {
+        localModificationsTimerRef.current = setTimeout(() => {
           localModificationsRef.current = false;
+          localModificationsTimerRef.current = null;
         }, 0);
       }
 
@@ -897,6 +909,10 @@ export function ChatView({ characterId }: ChatViewProps) {
           // until the refetch has settled so the sync effect cannot wipe the
           // committed assistant message.
           localModificationsRef.current = true;
+          if (localModificationsTimerRef.current) {
+            clearTimeout(localModificationsTimerRef.current);
+            localModificationsTimerRef.current = null;
+          }
           addMessage(assistantMsg);
           setStreamingContent('');
           setStreamingThinking(undefined);
@@ -907,8 +923,9 @@ export function ChatView({ characterId }: ChatViewProps) {
               message: assistantMsg,
             });
           } finally {
-            setTimeout(() => {
+            localModificationsTimerRef.current = setTimeout(() => {
               localModificationsRef.current = false;
+              localModificationsTimerRef.current = null;
             }, 0);
           }
         }
@@ -932,6 +949,10 @@ export function ChatView({ characterId }: ChatViewProps) {
               extra: thinkingDuration !== undefined ? { thinkingDuration } : {},
             };
             localModificationsRef.current = true;
+            if (localModificationsTimerRef.current) {
+              clearTimeout(localModificationsTimerRef.current);
+              localModificationsTimerRef.current = null;
+            }
             addMessage(assistantMsg);
             setStreamingContent('');
             setStreamingThinking(undefined);
@@ -942,8 +963,9 @@ export function ChatView({ characterId }: ChatViewProps) {
                 message: assistantMsg,
               });
             } finally {
-              setTimeout(() => {
+              localModificationsTimerRef.current = setTimeout(() => {
                 localModificationsRef.current = false;
+                localModificationsTimerRef.current = null;
               }, 0);
             }
           }
@@ -1049,6 +1071,10 @@ export function ChatView({ characterId }: ChatViewProps) {
       if (newText.trim().length === 0) return; // ignore empty edits — keep previous message text
 
       localModificationsRef.current = true;
+      if (localModificationsTimerRef.current) {
+        clearTimeout(localModificationsTimerRef.current);
+        localModificationsTimerRef.current = null;
+      }
       const updatedMsg = { ...msg, mes: newText };
       const newMessages = [...messages];
       newMessages[index] = updatedMsg;
@@ -1062,8 +1088,14 @@ export function ChatView({ characterId }: ChatViewProps) {
           index,
           updates: updatedMsg,
         });
+        await queryClient.invalidateQueries({ queryKey: ['/api/v1/chats/get'] });
       } catch (err) {
         console.error('Failed to edit message:', err);
+      } finally {
+        localModificationsTimerRef.current = setTimeout(() => {
+          localModificationsRef.current = false;
+          localModificationsTimerRef.current = null;
+        }, 0);
       }
     },
     [activeChatId, messages, setMessages],
@@ -1079,6 +1111,10 @@ export function ChatView({ characterId }: ChatViewProps) {
       // stopGeneration guard: without invalidation, the stale cache re-syncs the
       // deleted message when ChatView unmounts (Connections drawer) and remounts.
       localModificationsRef.current = true;
+      if (localModificationsTimerRef.current) {
+        clearTimeout(localModificationsTimerRef.current);
+        localModificationsTimerRef.current = null;
+      }
       removeMessage(index);
       emit('message_removed', { index });
 
@@ -1092,8 +1128,9 @@ export function ChatView({ characterId }: ChatViewProps) {
       } catch (err) {
         console.error('Failed to delete message:', err);
       } finally {
-        setTimeout(() => {
+        localModificationsTimerRef.current = setTimeout(() => {
           localModificationsRef.current = false;
+          localModificationsTimerRef.current = null;
         }, 0);
       }
     },
@@ -1383,6 +1420,10 @@ export function ChatView({ characterId }: ChatViewProps) {
           // Guard the in-flight regen against the /chats/get sync effect: the
           // prior sendMessage's invalidation can race with this commit.
           localModificationsRef.current = true;
+          if (localModificationsTimerRef.current) {
+            clearTimeout(localModificationsTimerRef.current);
+            localModificationsTimerRef.current = null;
+          }
           setMessages(newMessages);
           setStreamingContent('');
           setStreamingThinking(undefined);
@@ -1394,8 +1435,9 @@ export function ChatView({ characterId }: ChatViewProps) {
               message: assistantMsg,
             });
           } finally {
-            setTimeout(() => {
+            localModificationsTimerRef.current = setTimeout(() => {
               localModificationsRef.current = false;
+              localModificationsTimerRef.current = null;
             }, 0);
           }
         }
