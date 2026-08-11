@@ -779,7 +779,9 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                             setSaveName('');
                           }
                         }}
-                        placeholder={isCurrentPresetDefault ? 'Clone as new name...' : 'Preset name'}
+                        placeholder={
+                          isCurrentPresetDefault ? 'Clone as new name...' : 'Preset name'
+                        }
                         className="touch-target h-5 w-20 text-[10px]"
                         autoFocus
                       />
@@ -788,7 +790,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                         onClick={handleSavePreset}
                         disabled={!saveName.trim() || presetStatus === 'saving'}
                         className={cn(
-                          'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors',
+                          'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 touch-target h-auto rounded-md p-1 transition-colors',
                           'disabled:cursor-not-allowed disabled:opacity-40',
                         )}
                         title="Confirm save"
@@ -818,7 +820,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                         onClick={handleRenamePreset}
                         disabled={!renameName.trim() || presetStatus === 'saving'}
                         className={cn(
-                          'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors',
+                          'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 touch-target h-auto rounded-md p-1 transition-colors',
                           'disabled:cursor-not-allowed disabled:opacity-40',
                         )}
                         title="Confirm rename"
@@ -841,7 +843,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     onClick={handleImportClick}
                     disabled={presetStatus === 'saving' || presetStatus === 'loading'}
                     className={cn(
-                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors',
+                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 touch-target h-auto rounded-md p-1 transition-colors',
                       'disabled:cursor-not-allowed disabled:opacity-40',
                     )}
                     title="Import SillyTavern preset"
@@ -854,7 +856,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     onClick={handleClonePreset}
                     disabled={presetStatus === 'saving' || presetStatus === 'loading'}
                     className={cn(
-                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors',
+                      'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 touch-target h-auto rounded-md p-1 transition-colors',
                       'disabled:cursor-not-allowed disabled:opacity-40',
                     )}
                     title="Clone current preset"
@@ -871,7 +873,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                       }}
                       disabled={presetStatus === 'saving' || presetStatus === 'loading'}
                       className={cn(
-                        'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors',
+                        'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 touch-target h-auto rounded-md p-1 transition-colors',
                         'disabled:cursor-not-allowed disabled:opacity-40',
                       )}
                       title="Overwrite preset"
@@ -883,7 +885,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   <button
                     type="button"
                     onClick={() => resetDefaults()}
-                    className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors"
+                    className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 touch-target h-auto rounded-md p-1 transition-colors"
                     title="Reset to defaults"
                     aria-label="Reset to defaults"
                   >
@@ -893,7 +895,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     <button
                       type="button"
                       onClick={onToggle}
-                      className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors"
+                      className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 touch-target h-auto rounded-md p-1 transition-colors"
                       title="Hide generation options"
                       aria-label="Hide generation options"
                     >
@@ -955,7 +957,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   }}
                   disabled={presetStatus === 'saving' || presetStatus === 'loading'}
                   className={cn(
-                    'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors',
+                    'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 touch-target h-auto rounded-md p-1 transition-colors',
                     'disabled:cursor-not-allowed disabled:opacity-40',
                   )}
                   title="Rename preset"
@@ -968,7 +970,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   onClick={handleDeletePreset}
                   disabled={presetStatus === 'saving' || presetStatus === 'loading'}
                   className={cn(
-                    'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md touch-target h-auto p-1 transition-colors',
+                    'text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 touch-target h-auto rounded-md p-1 transition-colors',
                     'disabled:cursor-not-allowed disabled:opacity-40',
                   )}
                   title="Delete preset"
@@ -1207,7 +1209,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
           <InlineSection panelId="generation" sectionId="dynatemp-xtc" title="Dynatemp & XTC">
             {mode === 'text' && (
               <>
-                <div className="flex items-center justify-between touch-target py-1 sm:py-0.5">
+                <div className="touch-target flex items-center justify-between py-1 sm:py-0.5">
                   <label className="mono-tag text-foreground/60">Dynatemp</label>
                   <button
                     type="button"
@@ -1393,7 +1395,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                         type="button"
                         onClick={() => update('mirostat_mode', m)}
                         className={cn(
-                          'flex-1 rounded-md border touch-target py-1.5 font-mono text-[10px] transition-all sm:py-0.5',
+                          'touch-target flex-1 rounded-md border py-1.5 font-mono text-[10px] transition-all sm:py-0.5',
                           mirostat_mode === m
                             ? 'bg-ember/15 text-ember border-ember/25'
                             : 'border-border text-foreground/40 hover:text-foreground/60',
@@ -1454,7 +1456,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                   onChange={(v) => update('eta_cutoff', v)}
                   description="Softer version of epsilon cutoff. 0 = disabled. Lower = more aggressive filtering."
                 />
-                <div className="flex items-center justify-between touch-target py-1 sm:py-0.5">
+                <div className="touch-target flex items-center justify-between py-1 sm:py-0.5">
                   <label className="mono-tag text-foreground/60">Temperature Last</label>
                   <button
                     type="button"
@@ -1474,7 +1476,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     />
                   </button>
                 </div>
-                <div className="flex items-center justify-between touch-target py-1 sm:py-0.5">
+                <div className="touch-target flex items-center justify-between py-1 sm:py-0.5">
                   <label className="mono-tag text-foreground/60">Do Sample</label>
                   <button
                     type="button"
@@ -1494,7 +1496,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     />
                   </button>
                 </div>
-                <div className="flex items-center justify-between touch-target py-1 sm:py-0.5">
+                <div className="touch-target flex items-center justify-between py-1 sm:py-0.5">
                   <label className="mono-tag text-foreground/60">Early Stopping</label>
                   <button
                     type="button"
@@ -1537,7 +1539,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     <div
                       key={sampler}
                       className={cn(
-                        'flex items-center gap-1 touch-target rounded px-1 py-1 sm:py-0.5',
+                        'touch-target flex items-center gap-1 rounded px-1 py-1 sm:py-0.5',
                         active && 'bg-ember/[0.03]',
                       )}
                     >
@@ -1546,7 +1548,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                         onClick={() => handleMoveUp(sampler)}
                         disabled={!active || idx === 0}
                         className={cn(
-                          'text-foreground/30 hover:text-foreground/60 rounded touch-target h-auto p-1 transition-colors',
+                          'text-foreground/30 hover:text-foreground/60 touch-target h-auto rounded p-1 transition-colors',
                           'disabled:cursor-not-allowed disabled:opacity-20',
                         )}
                         aria-label={'Move ' + sampler + ' up'}
@@ -1558,7 +1560,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                         onClick={() => handleMoveDown(sampler)}
                         disabled={!active || idx === samplers.length - 1}
                         className={cn(
-                          'text-foreground/30 hover:text-foreground/60 rounded touch-target h-auto p-1 transition-colors',
+                          'text-foreground/30 hover:text-foreground/60 touch-target h-auto rounded p-1 transition-colors',
                           'disabled:cursor-not-allowed disabled:opacity-20',
                         )}
                         aria-label={'Move ' + sampler + ' down'}
@@ -1569,7 +1571,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                         type="button"
                         onClick={() => handleToggleSampler(sampler)}
                         className={cn(
-                          'rounded-md border touch-target px-1.5 py-1 font-mono text-[10px] transition-all sm:py-0.5',
+                          'touch-target rounded-md border px-1.5 py-1 font-mono text-[10px] transition-all sm:py-0.5',
                           active
                             ? 'bg-ember/15 text-ember border-ember/25'
                             : 'border-border text-foreground/40 hover:text-foreground/60',
@@ -1692,7 +1694,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
               />
               <p className="text-foreground/30 text-[9px]">-1 for random</p>
             </div>
-            <div className="flex items-center justify-between touch-target py-1 sm:py-0.5">
+            <div className="touch-target flex items-center justify-between py-1 sm:py-0.5">
               <label className="mono-tag text-foreground/60">Streaming</label>
               <button
                 type="button"
@@ -1725,7 +1727,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
             </div>
             {mode === 'text' && (
               <>
-                <div className="flex items-center justify-between touch-target py-1 sm:py-0.5">
+                <div className="touch-target flex items-center justify-between py-1 sm:py-0.5">
                   <label className="mono-tag text-foreground/60">Ignore EOS Token</label>
                   <button
                     type="button"
@@ -1745,7 +1747,7 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     />
                   </button>
                 </div>
-                <div className="flex items-center justify-between touch-target py-1 sm:py-0.5">
+                <div className="touch-target flex items-center justify-between py-1 sm:py-0.5">
                   <label className="mono-tag text-foreground/60">
                     Spaces Between Special Tokens
                   </label>
@@ -1764,12 +1766,14 @@ export function GenerationSidebar({ mode: _mode = 'sidebar', onToggle }: Generat
                     <span
                       className={cn(
                         'absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 sm:h-3 sm:w-3',
-                        spaces_between_special_tokens ? 'translate-x-4 sm:translate-x-3' : 'translate-x-0',
+                        spaces_between_special_tokens
+                          ? 'translate-x-4 sm:translate-x-3'
+                          : 'translate-x-0',
                       )}
                     />
                   </button>
                 </div>
-                <div className="flex items-center justify-between touch-target py-1 sm:py-0.5">
+                <div className="touch-target flex items-center justify-between py-1 sm:py-0.5">
                   <label className="mono-tag text-foreground/60">Speculative Ngram</label>
                   <button
                     type="button"

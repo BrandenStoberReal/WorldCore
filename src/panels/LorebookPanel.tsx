@@ -416,7 +416,7 @@ function LorebookEditor({ characterId }: { characterId: number }) {
     openSection('chats');
   };
 
-  const { data: editCharacter, isLoading: charLoading } = useQuery<CharacterWithId>({
+  const { data: editCharacter, isLoading: charLoading, isError: charError } = useQuery<CharacterWithId>({
     queryKey: ['/api/v1/characters/get', characterId],
     queryFn: () =>
       apiFetch('/characters/get', {
@@ -502,6 +502,16 @@ function LorebookEditor({ characterId }: { characterId: number }) {
 
   // ── Loading ──────────────────────────────────────────
   if (charLoading || !editCharacter) {
+    if (charError) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          <div className="text-center space-y-2">
+            <span className="mono-tag text-destructive">Failed to load character</span>
+            <p className="text-muted-foreground text-xs">Please try again or select a different character.</p>
+          </div>
+        </div>
+      );
+    }
     return <LoadingSpinner size="lg" label="loading character" className="h-full" />;
   }
 

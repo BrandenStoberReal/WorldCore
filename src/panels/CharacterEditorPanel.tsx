@@ -95,7 +95,6 @@ function CreateMode() {
 function EditMode({ characterId }: { characterId: number }) {
   const queryClient = useQueryClient();
   const openSection = useNavStore((s) => s.openSection);
-  const setActiveCharacter = useChatStore((s) => s.setActiveCharacter);
   const activeChatId = useChatStore((s) => s.activeChatId);
   const messages = useChatStore((s) => s.messages);
   const setMessages = useChatStore((s) => s.setMessages);
@@ -129,7 +128,7 @@ function EditMode({ characterId }: { characterId: number }) {
     }
   };
 
-  const { data: editCharacter, isLoading: charLoading } = useQuery<CharacterWithId>({
+  const { data: editCharacter, isLoading: charLoading, isError: charError } = useQuery<CharacterWithId>({
     queryKey: ['/api/v1/characters/get', characterId],
     queryFn: () =>
       apiFetch('/characters/get', {
@@ -178,11 +177,20 @@ function EditMode({ characterId }: { characterId: number }) {
   });
 
   const handleExit = () => {
-    setActiveCharacter(null);
     openSection('chats');
   };
 
   if (charLoading || !editCharacter) {
+    if (charError) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          <div className="text-center space-y-2">
+            <span className="mono-tag text-destructive">Failed to load character</span>
+            <p className="text-muted-foreground text-xs">Please try again or select a different character.</p>
+          </div>
+        </div>
+      );
+    }
     return <LoadingSpinner size="lg" label="loading character" className="h-full" />;
   }
 

@@ -17,6 +17,8 @@ function Toggle({
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={checked}
       onClick={() => onChange(!checked)}
       className="border-border bg-background/40 hover:bg-accent/30 flex w-full items-center justify-between rounded-md border px-3 py-2 text-left transition-colors"
     >
@@ -93,7 +95,7 @@ export function UISettingsPanel() {
               Character Content
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 space-y-2">
+          <CardContent className="space-y-2 px-4">
             <Toggle
               checked={renderCharacterHtml}
               onChange={setRenderCharacterHtml}

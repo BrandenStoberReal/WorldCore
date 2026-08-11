@@ -255,7 +255,7 @@ export function ExtensionsPanel() {
         open={installOpen}
         onClose={() => setInstallOpen(false)}
         title="Install Module"
-        className="max-w-md max-h-[92vh]"
+        className="max-h-[92vh] max-w-md"
       >
         <div className="space-y-4">
           {/* Module URL */}
@@ -336,7 +336,7 @@ export function ExtensionsPanel() {
         open={settingsExtId != null}
         onClose={closeSettings}
         title="Extension Settings"
-        className="max-w-md max-h-[92vh]"
+        className="max-h-[92vh] max-w-md"
       >
         {settingsExtId && (
           <SettingsModalBody
@@ -438,9 +438,7 @@ function ExtensionCard({
         {/* Card footer */}
         <div className="border-border/40 mt-auto flex items-center justify-between gap-1 border-t pt-2">
           <span className="mono-tag text-muted-foreground/35 truncate">
-            {ext.lastUpdatedAt
-              ? new Date(ext.lastUpdatedAt).toLocaleDateString()
-              : ''}
+            {ext.lastUpdatedAt ? new Date(ext.lastUpdatedAt).toLocaleDateString() : ''}
           </span>
           <div className="flex shrink-0 items-center gap-0.5">
             {ext.gitUrl && (
@@ -451,9 +449,7 @@ function ExtensionCard({
                 disabled={isUpdating}
                 className="text-muted-foreground/50 hover:text-ember touch-target h-6 px-1.5 text-[11px]"
               >
-                <RefreshCw
-                  className={cn('h-2.5 w-2.5', isUpdating && 'animate-spin')}
-                />
+                <RefreshCw className={cn('h-2.5 w-2.5', isUpdating && 'animate-spin')} />
                 <span className="mono-tag">update</span>
               </Button>
             )}
@@ -537,9 +533,7 @@ function SettingsModalBody({
             <label className="mono-tag text-muted-foreground/70">{key}</label>
             <Input
               value={settingsDraft[key] ?? String(value ?? '')}
-              onChange={(e) =>
-                setSettingsDraft((prev) => ({ ...prev, [key]: e.target.value }))
-              }
+              onChange={(e) => setSettingsDraft((prev) => ({ ...prev, [key]: e.target.value }))}
               className="font-mono text-[13px]"
             />
           </div>

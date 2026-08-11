@@ -9,7 +9,13 @@ const appendLocks = new Map<string, Promise<void>>();
 async function withAppendLock<T>(filePath: string, fn: () => Promise<T>): Promise<T> {
   const prev = appendLocks.get(filePath) ?? Promise.resolve();
   const next = prev.then(fn, fn);
-  appendLocks.set(filePath, next.then(() => {}, () => {}));
+  appendLocks.set(
+    filePath,
+    next.then(
+      () => {},
+      () => {},
+    ),
+  );
   return next;
 }
 
@@ -18,7 +24,12 @@ export async function readJsonl<T>(filePath: string): Promise<T[]> {
   try {
     content = await fs.readFile(filePath, 'utf-8');
   } catch (err) {
-    if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'ENOENT') {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'code' in err &&
+      (err as { code: string }).code === 'ENOENT'
+    ) {
       return [];
     }
     throw err;
@@ -63,7 +74,12 @@ export async function readFirstLine(filePath: string): Promise<string | null> {
     }
     return null;
   } catch (err) {
-    if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'ENOENT') {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'code' in err &&
+      (err as { code: string }).code === 'ENOENT'
+    ) {
       return null;
     }
     throw err;

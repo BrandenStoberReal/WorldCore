@@ -13,7 +13,8 @@ interface ModalProps {
   className?: string;
 }
 
-const FOCUSABLE_SELECTORS = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE_SELECTORS =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export function Modal({ open, onClose, title, children, className }: ModalProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -23,7 +24,8 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     if (open) {
       previousFocusRef.current = document.activeElement as HTMLElement;
       const timer = setTimeout(() => {
-        const firstFocusable = containerRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTORS);
+        const firstFocusable =
+          containerRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTORS);
         firstFocusable?.focus();
       }, 0);
       return () => clearTimeout(timer);
@@ -38,7 +40,8 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
 
-      const focusableElements = containerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS);
+      const focusableElements =
+        containerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS);
       if (!focusableElements || focusableElements.length === 0) return;
 
       const firstElement = focusableElements[0];
@@ -71,7 +74,11 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
 
   return (
     <ResponsiveSlot
-      mobile={<MobileModal open={open} onClose={onClose} title={title} className={className}>{children}</MobileModal>}
+      mobile={
+        <MobileModal open={open} onClose={onClose} title={title} className={className}>
+          {children}
+        </MobileModal>
+      }
       desktop={
         <div
           className={cn(
@@ -82,6 +89,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
           aria-hidden={!open}
           role="dialog"
           aria-modal="true"
+          aria-labelledby={title ? 'modal-title' : undefined}
           style={{
             background:
               'radial-gradient(circle at 78% 18%, color-mix(in oklch, var(--ember) 12%, transparent) 0%, transparent 50%), color-mix(in oklch, var(--background) 82%, transparent)',
@@ -100,7 +108,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
           >
             <div className="border-border bg-card relative sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3 sm:px-5 sm:py-4">
               {title ? (
-                <h2 className="display-host text-[18px] leading-none tracking-tight sm:text-[20px]">
+                <h2 id="modal-title" className="display-host text-[18px] leading-none tracking-tight sm:text-[20px]">
                   {title}
                 </h2>
               ) : (
@@ -110,6 +118,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
                 variant="ghost"
                 size="icon-sm"
                 onClick={onClose}
+                aria-label="Close"
                 className="text-muted-foreground hover:text-ember touch-target"
               >
                 <X className="h-4 w-4 sm:h-3.5 sm:w-3.5" />

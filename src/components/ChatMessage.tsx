@@ -4,7 +4,16 @@ import { cn, estimateTokens } from '@/lib/utils';
 import { substituteMacros, type MacroContext } from '@/lib/macros';
 import { renderMarkdown } from '@/lib/markdown';
 import { useAppStore } from '@/lib/stores';
-import { ChevronDown, ChevronLeft, ChevronRight, Copy, Pencil, RotateCcw, Check, Trash2 } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Pencil,
+  RotateCcw,
+  Check,
+  Trash2,
+} from 'lucide-react';
 
 function formatThinkingDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
@@ -160,6 +169,12 @@ export const ChatMessage = memo(function ChatMessage({
         setLiveThinkingElapsed(Date.now() - thinkingStartRef.current!);
       }, 200);
     }
+    return () => {
+      if (thinkingTimerRef.current) {
+        clearInterval(thinkingTimerRef.current);
+        thinkingTimerRef.current = null;
+      }
+    };
   }, [isStreaming, thinkingContent]);
 
   const renderedThinking = useMemo(
@@ -322,20 +337,24 @@ export const ChatMessage = memo(function ChatMessage({
               type="button"
               onClick={() => onGreetingChange(Math.max(0, activeGreetingIndex - 1))}
               disabled={activeGreetingIndex === 0}
-              className="text-muted-foreground/40 hover:text-muted-foreground touch-target disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+              className="text-muted-foreground/40 hover:text-muted-foreground touch-target transition-colors disabled:cursor-not-allowed disabled:opacity-20"
+              aria-label="Previous greeting"
               title="Previous greeting"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="mono-tag text-muted-foreground/50 text-[10px]">
-              {activeGreetingIndex === 0 ? 'Default' : `Greeting ${activeGreetingIndex + 1}`}
-              {' '}/{' '}{alternateGreetings.length + 1}
+              {activeGreetingIndex === 0 ? 'Default' : `Greeting ${activeGreetingIndex + 1}`} /{' '}
+              {alternateGreetings.length + 1}
             </span>
             <button
               type="button"
-              onClick={() => onGreetingChange(Math.min(alternateGreetings.length, activeGreetingIndex + 1))}
+              onClick={() =>
+                onGreetingChange(Math.min(alternateGreetings.length, activeGreetingIndex + 1))
+              }
               disabled={activeGreetingIndex >= alternateGreetings.length}
-              className="text-muted-foreground/40 hover:text-muted-foreground touch-target disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+              className="text-muted-foreground/40 hover:text-muted-foreground touch-target transition-colors disabled:cursor-not-allowed disabled:opacity-20"
+              aria-label="Next greeting"
               title="Next greeting"
             >
               <ChevronRight className="h-4 w-4" />
@@ -353,6 +372,7 @@ export const ChatMessage = memo(function ChatMessage({
               setTimeout(() => setCopied(false), 2000);
             }}
             className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-7 w-7 items-center justify-center rounded border p-0 transition-colors"
+            aria-label="Copy message"
             title="Copy message"
           >
             {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
@@ -370,6 +390,7 @@ export const ChatMessage = memo(function ChatMessage({
                 }
               }}
               className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-7 w-7 items-center justify-center rounded border p-0 transition-colors"
+              aria-label={isEditing ? 'Save edit' : 'Edit message'}
               title={isEditing ? 'Save edit' : 'Edit message'}
             >
               <Pencil className="h-3 w-3" />
@@ -381,6 +402,7 @@ export const ChatMessage = memo(function ChatMessage({
               type="button"
               onClick={() => onRegenerate(index)}
               className="bg-background/80 hover:bg-accent/50 border-border/60 flex h-7 w-7 items-center justify-center rounded border p-0 transition-colors"
+              aria-label="Regenerate response"
               title="Regenerate response"
             >
               <RotateCcw className="h-3 w-3" />
@@ -392,6 +414,7 @@ export const ChatMessage = memo(function ChatMessage({
               type="button"
               onClick={() => onDelete(index)}
               className="bg-background/80 hover:bg-destructive/10 hover:text-destructive border-border/60 flex h-7 w-7 items-center justify-center rounded border p-0 transition-colors"
+              aria-label="Delete message"
               title="Delete message"
             >
               <Trash2 className="h-3 w-3" />
@@ -402,8 +425,11 @@ export const ChatMessage = memo(function ChatMessage({
         {/* Mobile: long-press context menu */}
         {contextMenu && (
           <div
-            className="bg-background/95 border-border/60 fixed z-50 flex animate-in fade-in zoom-in-95 duration-150 flex-col gap-0.5 rounded-lg border p-1 shadow-lg backdrop-blur-md sm:hidden"
-            style={{ left: Math.min(contextMenu.x, window.innerWidth - 180), top: Math.min(contextMenu.y, window.innerHeight - 160) }}
+            className="bg-background/95 border-border/60 animate-in fade-in zoom-in-95 fixed z-50 flex flex-col gap-0.5 rounded-lg border p-1 shadow-lg backdrop-blur-md duration-150 sm:hidden"
+            style={{
+              left: Math.min(contextMenu.x, window.innerWidth - 180),
+              top: Math.min(contextMenu.y, window.innerHeight - 160),
+            }}
           >
             <button
               type="button"
@@ -415,7 +441,11 @@ export const ChatMessage = memo(function ChatMessage({
               }}
               className="touch-target hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
             >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
               {copied ? 'Copied' : 'Copy'}
             </button>
 

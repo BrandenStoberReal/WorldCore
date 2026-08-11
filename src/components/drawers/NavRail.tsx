@@ -114,9 +114,7 @@ export function NavRail() {
   return (
     <header
       data-topbar
-      className={cn(
-        'border-border bg-background z-10 flex flex-shrink-0 flex-col border-b',
-      )}
+      className={cn('border-border bg-background z-10 flex flex-shrink-0 flex-col border-b')}
     >
       {/* Top row: drawer-based nav items */}
       <div className="flex h-10 items-center justify-between px-2.5">

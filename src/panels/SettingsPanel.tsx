@@ -226,7 +226,7 @@ export function SettingsPanel() {
               size="sm"
               onClick={handleScan}
               disabled={scanQuery.isFetching}
-              className="h-8 touch-target shrink-0"
+              className="touch-target h-8 shrink-0"
             >
               {scanQuery.isFetching ? (
                 <LoadingSpinner size="sm" />
@@ -337,7 +337,7 @@ export function SettingsPanel() {
                   size="sm"
                   onClick={() => setConfirmOpen(true)}
                   disabled={selected.size === 0}
-                  className="h-8 touch-target"
+                  className="touch-target h-8"
                 >
                   <FileX className="h-3.5 w-3.5" />
                   <span className="mono-tag font-bold">DELETE SELECTED ({selected.size})</span>

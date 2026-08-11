@@ -110,10 +110,7 @@ for (const { id: extId, dir: extDir } of extDirs) {
   }
 
   if (manifest.css && existsSync(path.join(extDir, manifest.css))) {
-    await copyFile(
-      path.join(extDir, manifest.css),
-      path.join(extOutDir, manifest.css),
-    );
+    await copyFile(path.join(extDir, manifest.css), path.join(extOutDir, manifest.css));
   }
 
   for (const output of extResult.outputs) {

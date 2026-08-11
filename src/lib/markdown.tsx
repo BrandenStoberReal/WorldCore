@@ -50,13 +50,44 @@ export function renderMarkdown(input: string, options?: RenderMarkdownOptions): 
   const highlight = options?.highlightOpeningTags === true;
   const allowExternalMedia = options?.allowExternalMedia === true;
 
-  // 1. Split into blocks on blank lines (\n\n+) — on RAW input so > is visible.
+  const fullListKind = isListBlock(input);
+  if (fullListKind !== null) {
+    return renderList(input, fullListKind, 0, highlight, allowExternalMedia);
+  }
+
   const blocks = input.split(/\n{2,}/);
   const out: ReactNode[] = [];
-  for (let i = 0; i < blocks.length; i++) {
+  let i = 0;
+  while (i < blocks.length) {
     const block = blocks[i];
-    if (block === undefined || block.length === 0) continue;
-    out.push(renderBlock(block, 0, i, highlight, allowExternalMedia));
+    if (block === undefined || block.length === 0) {
+      i++;
+      continue;
+    }
+    const listKind = isListBlock(block);
+    if (listKind !== null) {
+      const merged: string[] = [block];
+      let j = i + 1;
+      while (j < blocks.length) {
+        const next = blocks[j];
+        if (next === undefined || next.length === 0) {
+          j++;
+          continue;
+        }
+        if (isListBlock(next) === listKind) {
+          merged.push(next);
+          j++;
+        } else {
+          break;
+        }
+      }
+      const combined = merged.join('\n\n');
+      out.push(renderList(combined, listKind, i, highlight, allowExternalMedia));
+      i = j;
+    } else {
+      out.push(renderBlock(block, 0, i, highlight, allowExternalMedia));
+      i++;
+    }
   }
 
   if (out.length === 0) return null;
@@ -88,10 +119,13 @@ const HTML_ESCAPES: Readonly<Record<string, string>> = {
 };
 
 function escapeHtml(s: string): string {
-  return s.replace(/[&<>]/g, (ch) => HTML_ESCAPES[ch] ?? ch);
+  return s.replace(/&(amp|lt|gt|quot|apos|#39|#x[0-9a-fA-F]+|#\d+);|&/gi, (ch) => {
+    if (ch === '&') return HTML_ESCAPES['&']!;
+    return ch;
+  });
 }
 
-const HTML_ENTITY_RE = /&(amp|lt|gt|quot|apos|#39|#x27|#\d+);/g;
+const HTML_ENTITY_RE = /&(amp|lt|gt|quot|apos|#39|#x[0-9a-fA-F]+|#\d+);/g;
 const HTML_ENTITY_DECODE: Readonly<Record<string, string>> = {
   '&amp;': '&',
   '&lt;': '<',
@@ -105,10 +139,10 @@ const HTML_ENTITY_DECODE: Readonly<Record<string, string>> = {
 function decodeHtmlEntities(s: string): string {
   return s.replace(HTML_ENTITY_RE, (entity) => {
     if (entity in HTML_ENTITY_DECODE) return HTML_ENTITY_DECODE[entity]!;
-    const num = entity.startsWith('&#x')
-      ? parseInt(entity.slice(3, -1), 16)
-      : parseInt(entity.slice(2, -1), 10);
-    return Number.isNaN(num) ? entity : String.fromCodePoint(num);
+    const raw = entity.startsWith('&#x') ? entity.slice(3, -1) : entity.slice(2, -1);
+    const num = entity.startsWith('&#x') ? parseInt(raw, 16) : parseInt(raw, 10);
+    if (Number.isNaN(num) || num < 0 || num > 0x10ffff) return entity;
+    return String.fromCodePoint(num);
   });
 }
 
@@ -166,12 +200,21 @@ interface ImageRef {
 
 const IMG_RE = /!\[([^\]]*)\]\(([^)]+)\)/g;
 
+const ALLOWED_IMG_SCHEMES = /^(https?:\/\/|data:image\/|\/|#)/i;
+
+function isAllowedImageUrl(url: string): boolean {
+  const decoded = decodeHtmlEntities(url).trim().toLowerCase();
+  if (ALLOWED_IMG_SCHEMES.test(decoded)) return true;
+  return false;
+}
+
 function extractImages(text: string): {
   text: string;
   images: ImageRef[];
 } {
   const images: ImageRef[] = [];
   const replaced = text.replace(IMG_RE, (_match, alt: string, url: string) => {
+    if (!isAllowedImageUrl(url)) return _match;
     const idx = images.length;
     images.push({ alt, url });
     return `${IMG_PLACEHOLDER}${idx}${PLACEHOLDER_END}`;
@@ -183,13 +226,17 @@ function extractImages(text: string): {
 // Prepare a text block: escape HTML → extract fenced code → extract inline code
 // ---------------------------------------------------------------------------
 
-function prepareBlock(text: string, allowExternalMedia: boolean): {
+function prepareBlock(
+  text: string,
+  allowExternalMedia: boolean,
+): {
   text: string;
   fences: FencedCode[];
   codes: string[];
   images: ImageRef[];
 } {
-  const decoded = decodeHtmlEntities(text);
+  const sanitized = text.replace(/\u0000/g, '\uFFFD');
+  const decoded = decodeHtmlEntities(sanitized);
   const escaped = escapeHtml(decoded);
   const { text: t1, fences } = extractFencedCode(escaped);
   const { text: t2, codes } = extractInlineCode(t1);
@@ -219,32 +266,36 @@ function renderBlock(
   if (block.startsWith('> ') || block === '>' || block.startsWith('>\n')) {
     return renderBlockquote(block, depth, key, highlight, allowExternalMedia);
   }
-  const listMatch = detectList(block);
-  if (listMatch) {
-    return renderList(block, listMatch.ordered, key, highlight, allowExternalMedia);
-  }
   return renderParagraphBlock(block, key, highlight, allowExternalMedia);
 }
 
 const UL_RE = /^[-*]\s+/;
 const OL_RE = /^\d+\.\s+/;
 
-function detectList(block: string): { ordered: boolean } | null {
+function isListBlock(block: string): 'ul' | 'ol' | null {
   const lines = block.split('\n');
-  let ulCount = 0;
-  let olCount = 0;
+  let hasUl = false;
+  let hasOl = false;
+  let listLineCount = 0;
   for (const line of lines) {
-    if (UL_RE.test(line)) ulCount++;
-    else if (OL_RE.test(line)) olCount++;
+    if (line.length === 0 || /^\s*$/.test(line)) continue;
+    if (UL_RE.test(line)) {
+      hasUl = true;
+      listLineCount++;
+    } else if (OL_RE.test(line)) {
+      hasOl = true;
+      listLineCount++;
+    } else return null;
   }
-  if (ulCount + olCount < 2) return null;
-  if (olCount > ulCount) return { ordered: true };
-  return { ordered: false };
+  if (listLineCount < 2) return null;
+  if (hasUl && !hasOl) return 'ul';
+  if (hasOl && !hasUl) return 'ol';
+  return null;
 }
 
 function renderList(
   block: string,
-  ordered: boolean,
+  kind: 'ul' | 'ol',
   key: number,
   highlight: boolean,
   allowExternalMedia: boolean,
@@ -259,7 +310,14 @@ function renderList(
     const prepared = prepareBlock(text, allowExternalMedia);
     items.push(
       <li key={`li-${itemKey}`}>
-        {renderInlineTokens(prepared.text, prepared.fences, prepared.codes, prepared.images, 0, highlight)}
+        {renderInlineTokens(
+          prepared.text,
+          prepared.fences,
+          prepared.codes,
+          prepared.images,
+          0,
+          highlight,
+        )}
       </li>,
     );
     currentText = [];
@@ -267,21 +325,20 @@ function renderList(
 
   let itemIdx = 0;
   for (const line of lines) {
-    if (UL_RE.test(line)) {
+    if (UL_RE.test(line) || OL_RE.test(line)) {
       flushItem(itemIdx);
       itemIdx++;
-      currentText.push(line.replace(UL_RE, ''));
-    } else if (OL_RE.test(line)) {
+      currentText.push(line.replace(UL_RE, '').replace(OL_RE, ''));
+    } else if (line.length === 0 || /^\s*$/.test(line)) {
       flushItem(itemIdx);
       itemIdx++;
-      currentText.push(line.replace(OL_RE, ''));
     } else {
       currentText.push(line);
     }
   }
   flushItem(itemIdx);
 
-  return ordered ? <ol key={key}>{items}</ol> : <ul key={key}>{items}</ul>;
+  return kind === 'ol' ? <ol key={key}>{items}</ol> : <ul key={key}>{items}</ul>;
 }
 
 function renderBlockquote(
@@ -296,7 +353,14 @@ function renderBlockquote(
     const prepared = prepareBlock(block, allowExternalMedia);
     return (
       <p key={key}>
-        {renderInlineTokens(prepared.text, prepared.fences, prepared.codes, prepared.images, 0, highlight)}
+        {renderInlineTokens(
+          prepared.text,
+          prepared.fences,
+          prepared.codes,
+          prepared.images,
+          0,
+          highlight,
+        )}
       </p>
     );
   }
@@ -319,9 +383,22 @@ function renderBlockquote(
   return <blockquote key={key}>{inner}</blockquote>;
 }
 
-function renderParagraphBlock(block: string, key: number, highlight: boolean, allowExternalMedia: boolean): ReactNode {
+function renderParagraphBlock(
+  block: string,
+  key: number,
+  highlight: boolean,
+  allowExternalMedia: boolean,
+): ReactNode {
   const prepared = prepareBlock(block, allowExternalMedia);
-  return renderParagraph(prepared.text, prepared.fences, prepared.codes, prepared.images, 0, key, highlight);
+  return renderParagraph(
+    prepared.text,
+    prepared.fences,
+    prepared.codes,
+    prepared.images,
+    0,
+    key,
+    highlight,
+  );
 }
 
 function renderParagraph(
@@ -474,11 +551,12 @@ function tryMatchPlaceholder(
   if (kind === 'IMG') {
     const img = images[idx];
     if (img === undefined) return { node: m[0], end };
+    const src = decodeHtmlEntities(img.url);
     return {
       node: (
         <img
           key={`img${idx}`}
-          src={img.url}
+          src={src}
           alt={img.alt}
           loading="lazy"
           className="max-h-[20em] max-w-full rounded"

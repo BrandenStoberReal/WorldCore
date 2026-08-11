@@ -101,7 +101,14 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
 
   return (
     <ResponsiveSlot
-      mobile={<MobileChatInput onSend={onSend} onStop={onStop} disabled={disabled} isGenerating={isGenerating} />}
+      mobile={
+        <MobileChatInput
+          onSend={onSend}
+          onStop={onStop}
+          disabled={disabled}
+          isGenerating={isGenerating}
+        />
+      }
       desktop={
         <div className="border-border/60 bg-background/60 supports-[backdrop-filter]:bg-background/40 safe-area-bottom shrink-0 border-t p-1 backdrop-blur-sm sm:p-4">
           <div className="relative mx-auto max-w-6xl">
@@ -127,7 +134,8 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
                     isGenerating ? 'generating...' : 'type a message... (⏎ send, ⇧⏎ newline)'
                   }
                   rows={1}
-                  className="placeholder:text-muted-foreground/50 flex max-h-40 min-h-5 flex-1 resize-none bg-transparent font-mono text-[11px] leading-tight outline-none disabled:opacity-50 sm:min-h-9 sm:text-[13.5px] sm:leading-relaxed text-mobile-base"
+                  maxLength={32000}
+                  className="placeholder:text-muted-foreground/50 text-mobile-base flex max-h-40 min-h-5 flex-1 resize-none bg-transparent font-mono text-[11px] leading-tight outline-none disabled:opacity-50 sm:min-h-9 sm:text-[13.5px] sm:leading-relaxed"
                   disabled={disabled && !isGenerating}
                 />
                 <div className="mono-tag text-muted-foreground/60 hidden shrink-0 text-xs tabular-nums sm:block sm:text-sm">
@@ -143,7 +151,8 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
                   disabled={!canSend && !isGenerating}
                   className={cn(
                     'shrink-0 self-end transition-all duration-200',
-                    isGenerating && 'border-ember/50 text-ember hover:border-ember/70 hover:text-ember',
+                    isGenerating &&
+                      'border-ember/50 text-ember hover:border-ember/70 hover:text-ember',
                     !isGenerating && ambientGlow,
                   )}
                   title={isGenerating ? 'Stop generation' : 'Send message'}

@@ -53,37 +53,21 @@ export function InlineEdit({
   );
 
   useEffect(() => {
-    if (
-      renderRich &&
-      containsHtml &&
-      !renderCharacterHtml &&
-      !hasNotifiedHtml.current
-    ) {
+    if (renderRich && containsHtml && !renderCharacterHtml && !hasNotifiedHtml.current) {
       toastInfo(
         'HTML content hidden',
         'Enable "Render HTML in character cards" in UI settings to display formatted content.',
       );
       hasNotifiedHtml.current = true;
     }
-    if (
-      renderRich &&
-      containsImage &&
-      !allowCharacterExternalMedia &&
-      !hasNotifiedMedia.current
-    ) {
+    if (renderRich && containsImage && !allowCharacterExternalMedia && !hasNotifiedMedia.current) {
       toastInfo(
         'Image content hidden',
         'Enable "Allow external media in character cards" in UI settings to display images.',
       );
       hasNotifiedMedia.current = true;
     }
-  }, [
-    renderRich,
-    containsHtml,
-    containsImage,
-    renderCharacterHtml,
-    allowCharacterExternalMedia,
-  ]);
+  }, [renderRich, containsHtml, containsImage, renderCharacterHtml, allowCharacterExternalMedia]);
 
   useEffect(() => {
     hasNotifiedHtml.current = false;

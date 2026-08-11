@@ -20,8 +20,12 @@ export const outfitAnalyzerRoutes = {
       const parsed = OutfitAnalysisRequestSchema.parse(body);
 
       const settings = await settingsService.get();
-      const model = typeof settings.chat_completion_model === 'string' ? settings.chat_completion_model : 'gpt-3.5-turbo';
-      const reverseProxy = typeof settings.reverse_proxy === 'string' ? settings.reverse_proxy : undefined;
+      const model =
+        typeof settings.chat_completion_model === 'string'
+          ? settings.chat_completion_model
+          : 'gpt-3.5-turbo';
+      const reverseProxy =
+        typeof settings.reverse_proxy === 'string' ? settings.reverse_proxy : undefined;
 
       const apiUrl = reverseProxy || DEFAULT_OPENAI_URL;
       const apiKey = parsed.apiKey || '';

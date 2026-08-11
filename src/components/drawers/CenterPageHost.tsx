@@ -21,7 +21,7 @@ export function CenterPageHost() {
 
   if (!Panel) {
     return (
-      <main data-center-host className="flex-1 overflow-auto scroll-mobile">
+      <main data-center-host className="scroll-mobile flex-1 overflow-auto">
         <div className="text-muted-foreground/45 flex h-full items-center justify-center">
           Select a section from the top bar
         </div>
@@ -30,7 +30,7 @@ export function CenterPageHost() {
   }
 
   return (
-    <main data-center-host className="flex-1 overflow-auto scroll-mobile">
+    <main data-center-host className="scroll-mobile flex-1 overflow-auto">
       <Panel />
     </main>
   );

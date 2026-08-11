@@ -11,7 +11,8 @@ interface MobileModalProps {
   className?: string;
 }
 
-const FOCUSABLE_SELECTORS = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE_SELECTORS =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export function MobileModal({ open, onClose, title, children, className }: MobileModalProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -21,7 +22,8 @@ export function MobileModal({ open, onClose, title, children, className }: Mobil
     if (open) {
       previousFocusRef.current = document.activeElement as HTMLElement;
       const timer = setTimeout(() => {
-        const firstFocusable = containerRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTORS);
+        const firstFocusable =
+          containerRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTORS);
         firstFocusable?.focus();
       }, 0);
       return () => clearTimeout(timer);
@@ -36,7 +38,8 @@ export function MobileModal({ open, onClose, title, children, className }: Mobil
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
 
-      const focusableElements = containerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS);
+      const focusableElements =
+        containerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS);
       if (!focusableElements || focusableElements.length === 0) return;
 
       const firstElement = focusableElements[0];
@@ -77,6 +80,7 @@ export function MobileModal({ open, onClose, title, children, className }: Mobil
       aria-hidden={!open}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={title ? 'mobile-modal-title' : undefined}
       style={{
         background:
           'radial-gradient(circle at 78% 18%, color-mix(in oklch, var(--ember) 12%, transparent) 0%, transparent 50%), color-mix(in oklch, var(--background) 82%, transparent)',
@@ -97,9 +101,7 @@ export function MobileModal({ open, onClose, title, children, className }: Mobil
 
         <div className="border-border bg-card relative sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3">
           {title ? (
-            <h2 className="display-host text-[16px] leading-none tracking-tight">
-              {title}
-            </h2>
+            <h2 id="mobile-modal-title" className="display-host text-[16px] leading-none tracking-tight">{title}</h2>
           ) : (
             <span className="mono-tag text-ember">{`> sheet`}</span>
           )}
@@ -107,6 +109,7 @@ export function MobileModal({ open, onClose, title, children, className }: Mobil
             variant="ghost"
             size="icon-sm"
             onClick={onClose}
+            aria-label="Close"
             className="text-muted-foreground hover:text-ember touch-target"
           >
             <X className="h-4 w-4" />

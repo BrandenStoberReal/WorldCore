@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
 export const ManifestSchema = z.object({
-  id: z.string().regex(/^[a-z0-9-]+$/).max(128),
+  id: z
+    .string()
+    .regex(/^[a-z0-9-]+$/)
+    .max(128),
   displayName: z.string(),
   version: z.string().max(64),
   author: z.string(),
@@ -13,7 +16,7 @@ export const ManifestSchema = z.object({
   homepage: z.string().url().optional(),
   dependencies: z.array(z.string()).default([]),
   peerDependencies: z.array(z.string()).default([]),
-  enabledByDefault: z.boolean().default(false),
+  enabledByDefault: z.boolean().default(true),
 });
 
 export const InstallExtensionSchema = z.object({
@@ -24,7 +27,10 @@ export const InstallExtensionSchema = z.object({
     .refine((s) => !s.startsWith('-'), 'branch must not start with "-"')
     .optional(),
   scope: z.enum(['user', 'global']).default('user'),
-  subfolder: z.string().regex(/^[a-z0-9-\/]+$/i, 'subfolder must be alphanumeric/dot/dash/slash').optional(),
+  subfolder: z
+    .string()
+    .regex(/^[a-z0-9-\/]+$/i, 'subfolder must be alphanumeric/dot/dash/slash')
+    .optional(),
 });
 
 export const UpdateExtensionSchema = z.object({

@@ -82,7 +82,7 @@ export function DrawerSlot({ direction, open, children }: DrawerSlotProps) {
           className={cn(
             'touch-target absolute left-2.5 z-50 rounded-lg p-2 transition-colors sm:hidden',
             'text-muted-foreground hover:text-ember hover:bg-muted',
-            'bg-background/80 backdrop-blur-sm border border-border/60 shadow-sm',
+            'bg-background/80 border-border/60 border shadow-sm backdrop-blur-sm',
           )}
           style={{
             top: 'calc(env(safe-area-inset-top, 0px) + 0.625rem)',

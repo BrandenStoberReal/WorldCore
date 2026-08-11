@@ -325,10 +325,7 @@ export const characterRoutes = {
           .from(characters)
           .where(and(inArray(characters.id, body.ids), eq(characters.userId, userId)));
       } else {
-        rows = await db
-          .select()
-          .from(characters)
-          .where(eq(characters.userId, userId));
+        rows = await db.select().from(characters).where(eq(characters.userId, userId));
       }
 
       if (rows.length === 0) {

@@ -16,10 +16,7 @@ export function detectImageFormat(data: Buffer | Uint8Array): ImageFormat {
   if (data.length < 12) return 'unknown';
   if (matchBytes(data, SIGNATURES.png, 0)) return 'png';
   if (matchBytes(data, SIGNATURES.jpeg, 0)) return 'jpeg';
-  if (
-    matchBytes(data, SIGNATURES.webp_riff, 0) &&
-    matchBytes(data, SIGNATURES.webp_webp, 8)
-  ) {
+  if (matchBytes(data, SIGNATURES.webp_riff, 0) && matchBytes(data, SIGNATURES.webp_webp, 8)) {
     return 'webp';
   }
   if (matchBytes(data, SIGNATURES.gif, 0)) return 'gif';
@@ -27,7 +24,11 @@ export function detectImageFormat(data: Buffer | Uint8Array): ImageFormat {
   return 'unknown';
 }
 
-function matchBytes(data: Buffer | Uint8Array, signature: readonly number[], offset: number): boolean {
+function matchBytes(
+  data: Buffer | Uint8Array,
+  signature: readonly number[],
+  offset: number,
+): boolean {
   for (let i = 0; i < signature.length; i++) {
     if (data[offset + i] !== signature[i]) return false;
   }
@@ -54,7 +55,9 @@ export async function normalizeToPng(
   }
 
   if (format === 'unknown') {
-    throw new Error(`Unrecognized image format (first bytes: ${data.subarray(0, 16).toString('hex')})`);
+    throw new Error(
+      `Unrecognized image format (first bytes: ${data.subarray(0, 16).toString('hex')})`,
+    );
   }
 
   const image = await loadImage(data);

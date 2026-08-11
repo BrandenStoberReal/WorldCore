@@ -121,7 +121,10 @@ NO_CHANGE`;
     });
 
     it('handles extra spaces in description', () => {
-      const result = parseOutfitChanges('PUT_ON("  leather jacket  ") SLOT(torso_outer)', emptyOutfit);
+      const result = parseOutfitChanges(
+        'PUT_ON("  leather jacket  ") SLOT(torso_outer)',
+        emptyOutfit,
+      );
       expect(result.changes).toHaveLength(1);
       expect(result.changes[0]?.description).toBe('  leather jacket  ');
     });
@@ -129,10 +132,20 @@ NO_CHANGE`;
 
   describe('all valid slots', () => {
     const slots = [
-      'head', 'face', 'neck',
-      'undergarment_top', 'torso_top', 'torso_outer', 'arms', 'hands',
-      'undergarment_bottom', 'lower_body', 'legs',
-      'socks', 'feet', 'accessories',
+      'head',
+      'face',
+      'neck',
+      'undergarment_top',
+      'torso_top',
+      'torso_outer',
+      'arms',
+      'hands',
+      'undergarment_bottom',
+      'lower_body',
+      'legs',
+      'socks',
+      'feet',
+      'accessories',
     ];
 
     for (const slot of slots) {

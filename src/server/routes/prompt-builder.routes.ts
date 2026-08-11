@@ -1,6 +1,11 @@
 import { errorGuard } from '@/server/middleware/errorGuard';
 import { withUserId } from '@/server/middleware/withUserId';
-import { promptBuilder, dbToCharacterBookEntry, type CharacterBookEntry, type WiEntryState } from '@/server/services/prompt-builder';
+import {
+  promptBuilder,
+  dbToCharacterBookEntry,
+  type CharacterBookEntry,
+  type WiEntryState,
+} from '@/server/services/prompt-builder';
 import { characterService } from '@/server/services/character.service';
 import { worldInfoService } from '@/server/services/worldinfo.service';
 import { personaService } from '@/server/services/persona.service';
@@ -44,10 +49,12 @@ const PromptBuildRequestSchema = z.object({
   context: ContextSettingsSchema.partial().optional(),
   worldInfoFileIds: z.array(z.number()).optional(),
   chatId: z.string().optional(),
-  outfit: z.object({
-    disabled: z.boolean().optional(),
-    items: z.record(z.string()).optional(),
-  }).optional(),
+  outfit: z
+    .object({
+      disabled: z.boolean().optional(),
+      items: z.record(z.string()).optional(),
+    })
+    .optional(),
 });
 
 async function loadEntryStates(chatId: string, userId: string): Promise<Map<string, WiEntryState>> {

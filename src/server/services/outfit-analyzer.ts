@@ -23,10 +23,20 @@ export interface OutfitAnalyzerResult {
 }
 
 const OUTFIT_SLOTS = [
-  'head', 'face', 'neck',
-  'undergarment_top', 'torso_top', 'torso_outer', 'arms', 'hands',
-  'undergarment_bottom', 'lower_body', 'legs',
-  'socks', 'feet', 'accessories',
+  'head',
+  'face',
+  'neck',
+  'undergarment_top',
+  'torso_top',
+  'torso_outer',
+  'arms',
+  'hands',
+  'undergarment_bottom',
+  'lower_body',
+  'legs',
+  'socks',
+  'feet',
+  'accessories',
 ];
 
 const ANALYSIS_PROMPT = `You are an outfit tracking assistant. Analyze the following message for clothing changes.
@@ -79,8 +89,14 @@ Output: NO_CHANGE
 
 Analyze this message and output ONLY the actions:`;
 
-export function parseOutfitChanges(response: string, currentOutfit: Record<string, string>): OutfitAnalyzerResult {
-  const lines = response.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+export function parseOutfitChanges(
+  response: string,
+  currentOutfit: Record<string, string>,
+): OutfitAnalyzerResult {
+  const lines = response
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   const changes: OutfitChange[] = [];
   const updatedOutfit = { ...currentOutfit };
   let hasAnyChange = false;
@@ -94,7 +110,9 @@ export function parseOutfitChanges(response: string, currentOutfit: Record<strin
       }
     }
 
-    const actionMatch = line.match(/^(PUT_ON|TAKE_OFF|CHANGE)\s*\(\s*"([^"]*?)"\s*\)\s*SLOT\s*\(\s*(\w+)\s*\)$/i);
+    const actionMatch = line.match(
+      /^(PUT_ON|TAKE_OFF|CHANGE)\s*\(\s*"([^"]*?)"\s*\)\s*SLOT\s*\(\s*(\w+)\s*\)$/i,
+    );
     if (!actionMatch) {
       console.debug('[OutfitAnalyzer] Skipping unparseable line:', line.slice(0, 100));
       continue;
@@ -135,7 +153,9 @@ function formatCurrentOutfit(outfit: Record<string, string>): string {
   return lines.length > 0 ? lines.join('\n') : '(empty)';
 }
 
-export async function analyzeOutfitChanges(params: OutfitAnalyzerParams): Promise<OutfitAnalyzerResult> {
+export async function analyzeOutfitChanges(
+  params: OutfitAnalyzerParams,
+): Promise<OutfitAnalyzerResult> {
   const { message, charName, currentOutfit, connectionSettings } = params;
 
   const prompt = ANALYSIS_PROMPT.replace('{currentOutfit}', formatCurrentOutfit(currentOutfit));

@@ -409,14 +409,23 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
                   )
                 }
                 onClick={() => {
-                  const ids = selectedIds.size > 0
-                    ? Array.from(selectedIds)
-                    : (sorted ?? []).map((c) => c.id);
+                  const ids =
+                    selectedIds.size > 0
+                      ? Array.from(selectedIds)
+                      : (sorted ?? []).map((c) => c.id);
                   exportZipMutation.mutate(ids);
                 }}
                 disabled={exportZipMutation.isPending || (sorted?.length ?? 0) === 0}
-                title={selectedIds.size > 0 ? `Export ${selectedIds.size} selected to ZIP` : 'Export all to ZIP'}
-                aria-label={selectedIds.size > 0 ? `Export ${selectedIds.size} selected to ZIP` : 'Export all to ZIP'}
+                title={
+                  selectedIds.size > 0
+                    ? `Export ${selectedIds.size} selected to ZIP`
+                    : 'Export all to ZIP'
+                }
+                aria-label={
+                  selectedIds.size > 0
+                    ? `Export ${selectedIds.size} selected to ZIP`
+                    : 'Export all to ZIP'
+                }
               />
               {onToggle && (
                 <IconButton
@@ -447,7 +456,10 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
         </div>
 
         {/* List rail */}
-        <div className="flex-1 overflow-y-auto scroll-mobile py-1">
+        <div
+          className="scroll-mobile flex-1 overflow-y-auto py-1"
+          style={{ scrollbarGutter: 'stable' }}
+        >
           {isLoading ? (
             <LoadingSpinner size="sm" label="loading characters" className="py-8" />
           ) : sorted && sorted.length === 0 ? (
@@ -701,7 +713,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
       {infoLoading || !infoCharacter ? (
         <LoadingSpinner size="sm" label="loading character" className="flex-1" />
       ) : (
-        <div className="flex flex-1 flex-col overflow-y-auto scroll-mobile px-3 py-3">
+        <div className="scroll-mobile flex flex-1 flex-col overflow-y-auto px-3 py-3">
           {/* Avatar + Name */}
           <div className="flex flex-col items-center gap-2.5 pb-3">
             <div className="border-border bg-accent/40 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border">

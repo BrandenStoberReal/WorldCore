@@ -93,7 +93,10 @@ async function writeCharacterThumbnail(
   const thumbPath = path.join(getUserCharacterPath(userId), thumbName);
   const buffer = Buffer.from(c.toBuffer('image/png'));
   await writeFile(thumbPath, buffer);
-  console.debug('[import] writeCharacterThumbnail: written', { thumbPath, thumbSize: buffer.length });
+  console.debug('[import] writeCharacterThumbnail: written', {
+    thumbPath,
+    thumbSize: buffer.length,
+  });
 }
 
 function normalizeToV3(data: CharacterCreateInput): CharacterData {
@@ -790,7 +793,7 @@ export class CharacterService {
     const destFile = Bun.file(destPath);
     console.debug('[import] after writeCharacterCard', {
       destExists: await destFile.exists(),
-      destSize: await destFile.exists() ? destFile.size : 0,
+      destSize: (await destFile.exists()) ? destFile.size : 0,
     });
     await writeCharacterThumbnail(destPath, userId, fileName).catch((err) =>
       console.debug('[character] thumbnail op skipped', { op: 'import', userId, fileName, err }),

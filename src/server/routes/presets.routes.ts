@@ -45,7 +45,11 @@ export const presetsRoutes = {
 
   rename: errorGuard(
     withUserId(async (req: Request, _userId: string): Promise<Response> => {
-      const body = (await req.json()) as { category: PresetCategory; oldName: string; newName: string };
+      const body = (await req.json()) as {
+        category: PresetCategory;
+        oldName: string;
+        newName: string;
+      };
       await presetService.rename(body.category, body.oldName, body.newName);
       return Response.json({ ok: true });
     }),

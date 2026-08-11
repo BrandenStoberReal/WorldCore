@@ -14,15 +14,19 @@ log.info('boot', 'Starting WorldCore...');
 const needsOnboarding = isOnboardingNeeded();
 
 const PORT = Number(process.env.PORT ?? 3000);
-const HOST =
-  loadAppConfig()?.host ?? process.env.HOST ?? '127.0.0.1';
+const HOST = loadAppConfig()?.host ?? process.env.HOST ?? '127.0.0.1';
 log.info('boot', `Config: port=${PORT} host=${HOST} onboarding=${needsOnboarding}`);
 
 const distDir = path.join(process.cwd(), 'dist');
 const distFile = Bun.file(path.join(distDir, 'index.html'));
 const distExists = await distFile.exists();
-const htmlContent = distExists ? await distFile.text() : '<!DOCTYPE html><html><body>Frontend not built. Run bun run build.</body></html>';
-log.info('boot', distExists ? 'Loaded frontend bundle' : 'Frontend not built — serving placeholder');
+const htmlContent = distExists
+  ? await distFile.text()
+  : '<!DOCTYPE html><html><body>Frontend not built. Run bun run build.</body></html>';
+log.info(
+  'boot',
+  distExists ? 'Loaded frontend bundle' : 'Frontend not built — serving placeholder',
+);
 
 const apiRoutes = buildApiRoutes();
 log.info('boot', `Registered ${Object.keys(apiRoutes).length} API routes`);

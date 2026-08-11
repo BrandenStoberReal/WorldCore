@@ -1,4 +1,13 @@
-import { useRef, useEffect, lazy, Suspense, useCallback, createContext, useContext, useMemo } from 'react';
+import {
+  useRef,
+  useEffect,
+  lazy,
+  Suspense,
+  useCallback,
+  createContext,
+  useContext,
+  useMemo,
+} from 'react';
 import { Users } from 'lucide-react';
 import { DrawerSlot } from './DrawerSlot';
 import { NavRail } from './NavRail';
@@ -25,7 +34,8 @@ const GENERATION_MOBILE_IMPORT = () =>
   import('@/panels/GenerationPanel').then((m) => ({ default: m.GenerationPanelMobile }));
 const GENERATION_DESKTOP_IMPORT = () =>
   import('@/panels/GenerationPanel').then((m) => ({ default: m.GenerationPanelDesktop }));
-const OUTFIT_IMPORT = () => import('@/panels/OutfitPanel').then((m) => ({ default: m.OutfitPanel }));
+const OUTFIT_IMPORT = () =>
+  import('@/panels/OutfitPanel').then((m) => ({ default: m.OutfitPanel }));
 
 const WorldInfoPanel = lazy(WORLDINFO_IMPORT);
 const ExtensionsPanel = lazy(EXTENSIONS_IMPORT);
@@ -96,10 +106,7 @@ function CharactersPanel() {
       <>
         {/* Kept mounted (hidden) so the backdrop fade + panel slide animate on close too. */}
         <div
-          className={cn(
-            'fixed inset-0 z-40',
-            !charactersOpen && 'pointer-events-none',
-          )}
+          className={cn('fixed inset-0 z-40', !charactersOpen && 'pointer-events-none')}
           inert={!charactersOpen}
         >
           <div
@@ -195,52 +202,64 @@ export function DrawerShell() {
 
   return (
     <PrefetchContext.Provider value={prefetchValue}>
-      <div data-drawer-shell className="bg-background flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
+      <div
+        data-drawer-shell
+        className="bg-background flex flex-col overflow-hidden"
+        style={{ height: '100dvh' }}
+      >
         <DragDropOverlay />
         <NavRail />
 
-      <DrawerSlot direction="top" open={topDrawer !== null}>
-        {TopPanel && (
-          <Suspense fallback={null}>
-            <TopPanel />
-          </Suspense>
+        <DrawerSlot direction="top" open={topDrawer !== null}>
+          {TopPanel && (
+            <Suspense fallback={null}>
+              <TopPanel />
+            </Suspense>
+          )}
+          <ExtensionPanelSlot target="top-drawer" />
+        </DrawerSlot>
+
+        {/* Mobile top navigation */}
+        {mobileNavPosition === 'top' && (
+          <DeviceGuard mobile>
+            <MobileBottomNav
+              genSidebarOpen={genSidebarOpen}
+              onToggleGenSidebar={toggleGenSidebar}
+              position="top"
+            />
+          </DeviceGuard>
         )}
-        <ExtensionPanelSlot target="top-drawer" />
-      </DrawerSlot>
 
-      {/* Mobile top navigation */}
-      {mobileNavPosition === 'top' && (
-        <DeviceGuard mobile>
-          <MobileBottomNav genSidebarOpen={genSidebarOpen} onToggleGenSidebar={toggleGenSidebar} position="top" />
-        </DeviceGuard>
-      )}
+        <div
+          className={cn(
+            'relative flex-1 overflow-hidden',
+            isMobile ? 'flex flex-col' : 'flex flex-row',
+          )}
+        >
+          <DeviceGuard desktop>
+            <Suspense fallback={null}>
+              <GenerationPanelDesktop closed={!genSidebarOpen} onToggle={toggleGenSidebar} />
+            </Suspense>
+          </DeviceGuard>
+          <DeviceGuard mobile>
+            <Suspense fallback={null}>
+              <GenerationPanelMobile closed={!genSidebarOpen} onToggle={toggleGenSidebar} />
+            </Suspense>
+          </DeviceGuard>
+          <CenterPageHost />
+          <CharactersPanel />
+        </div>
 
-      <div
-        className={cn(
-          'relative flex-1 overflow-hidden',
-          isMobile ? 'flex flex-col' : 'flex flex-row',
+        {/* Mobile bottom navigation */}
+        {mobileNavPosition === 'bottom' && (
+          <DeviceGuard mobile>
+            <MobileBottomNav
+              genSidebarOpen={genSidebarOpen}
+              onToggleGenSidebar={toggleGenSidebar}
+              position="bottom"
+            />
+          </DeviceGuard>
         )}
-      >
-        <DeviceGuard desktop>
-          <Suspense fallback={null}>
-            <GenerationPanelDesktop closed={!genSidebarOpen} onToggle={toggleGenSidebar} />
-          </Suspense>
-        </DeviceGuard>
-        <DeviceGuard mobile>
-          <Suspense fallback={null}>
-            <GenerationPanelMobile closed={!genSidebarOpen} onToggle={toggleGenSidebar} />
-          </Suspense>
-        </DeviceGuard>
-        <CenterPageHost />
-        <CharactersPanel />
-      </div>
-
-      {/* Mobile bottom navigation */}
-      {mobileNavPosition === 'bottom' && (
-        <DeviceGuard mobile>
-          <MobileBottomNav genSidebarOpen={genSidebarOpen} onToggleGenSidebar={toggleGenSidebar} position="bottom" />
-        </DeviceGuard>
-      )}
       </div>
     </PrefetchContext.Provider>
   );

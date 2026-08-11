@@ -154,6 +154,12 @@ export const MobileChatMessage = memo(function MobileChatMessage({
         setLiveThinkingElapsed(Date.now() - thinkingStartRef.current!);
       }, 200);
     }
+    return () => {
+      if (thinkingTimerRef.current) {
+        clearInterval(thinkingTimerRef.current);
+        thinkingTimerRef.current = null;
+      }
+    };
   }, [isStreaming, thinkingContent]);
 
   const renderedThinking = useMemo(
@@ -311,8 +317,11 @@ export const MobileChatMessage = memo(function MobileChatMessage({
         {/* Context menu — long-press */}
         {contextMenu && (
           <div
-            className="bg-background/95 border-border/60 fixed z-50 flex animate-in fade-in zoom-in-95 duration-150 flex-col gap-0.5 rounded-lg border p-1 shadow-lg backdrop-blur-md"
-            style={{ left: Math.min(contextMenu.x, window.innerWidth - 180), top: Math.min(contextMenu.y, window.innerHeight - 160) }}
+            className="bg-background/95 border-border/60 animate-in fade-in zoom-in-95 fixed z-50 flex flex-col gap-0.5 rounded-lg border p-1 shadow-lg backdrop-blur-md duration-150"
+            style={{
+              left: Math.min(contextMenu.x, window.innerWidth - 180),
+              top: Math.min(contextMenu.y, window.innerHeight - 160),
+            }}
           >
             <button
               type="button"
@@ -323,8 +332,13 @@ export const MobileChatMessage = memo(function MobileChatMessage({
                 setContextMenu(null);
               }}
               className="hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+              aria-label={copied ? 'Copied' : 'Copy message'}
             >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-emerald-500" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
               {copied ? 'Copied' : 'Copy'}
             </button>
 
@@ -341,6 +355,7 @@ export const MobileChatMessage = memo(function MobileChatMessage({
                   setContextMenu(null);
                 }}
                 className="hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+                aria-label={isEditing ? 'Save edit' : 'Edit message'}
               >
                 <Pencil className="h-3.5 w-3.5" />
                 {isEditing ? 'Save' : 'Edit'}
@@ -355,6 +370,7 @@ export const MobileChatMessage = memo(function MobileChatMessage({
                   setContextMenu(null);
                 }}
                 className="hover:bg-accent/50 flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+                aria-label="Regenerate response"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Regenerate
@@ -369,6 +385,7 @@ export const MobileChatMessage = memo(function MobileChatMessage({
                   setContextMenu(null);
                 }}
                 className="hover:bg-destructive/10 hover:text-destructive flex items-center gap-2 rounded-md px-3 py-2 text-xs"
+                aria-label="Delete message"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete

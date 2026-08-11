@@ -63,7 +63,11 @@ const MORE_ITEMS: MoreItem[] = [
   { id: 'settings', icon: <Settings size={18} />, label: 'Settings' },
 ];
 
-export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar, position = 'bottom' }: MobileBottomNavProps) {
+export function MobileBottomNav({
+  genSidebarOpen,
+  onToggleGenSidebar,
+  position = 'bottom',
+}: MobileBottomNavProps) {
   const sectionId = useNavStore((s) => s.sectionId);
   const openSection = useNavStore((s) => s.openSection);
   const charactersOpen = useNavStore((s) => s.charactersOpen);
@@ -111,10 +115,12 @@ export function MobileBottomNav({ genSidebarOpen, onToggleGenSidebar, position =
   };
 
   return (
-    <nav className={cn(
-      'border-border bg-background/95 supports-[backdrop-filter]:bg-background/80 relative backdrop-blur-md',
-      isTop ? 'safe-area-top border-b' : 'safe-area-bottom border-t',
-    )}>
+    <nav
+      className={cn(
+        'border-border bg-background/95 supports-[backdrop-filter]:bg-background/80 relative backdrop-blur-md',
+        isTop ? 'safe-area-top border-b' : 'safe-area-bottom border-t',
+      )}
+    >
       {/* Backdrop — dims and dismisses on tap. Kept mounted so the fade animates on close too. */}
       <div
         className={cn(

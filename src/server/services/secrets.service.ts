@@ -39,16 +39,19 @@ export class SecretManager {
     store[key] = entry;
     await this.save(store);
 
-    await db.insert(secrets).values({
-      key,
-      value,
-      label: entry.label,
-      active: true,
-      userId: 'default-user',
-    }).onConflictDoUpdate({
-      target: secrets.key,
-      set: { value, label: entry.label, active: true },
-    });
+    await db
+      .insert(secrets)
+      .values({
+        key,
+        value,
+        label: entry.label,
+        active: true,
+        userId: 'default-user',
+      })
+      .onConflictDoUpdate({
+        target: [secrets.key, secrets.userId],
+        set: { value, label: entry.label, active: true },
+      });
 
     return entry;
   }
@@ -109,16 +112,19 @@ export class SecretManager {
     store[key] = entry;
     await this.save(store);
 
-    await db.insert(secrets).values({
-      key,
-      value: newValue,
-      label,
-      active: true,
-      userId: 'default-user',
-    }).onConflictDoUpdate({
-      target: secrets.key,
-      set: { value: newValue, label, active: true },
-    });
+    await db
+      .insert(secrets)
+      .values({
+        key,
+        value: newValue,
+        label,
+        active: true,
+        userId: 'default-user',
+      })
+      .onConflictDoUpdate({
+        target: [secrets.key, secrets.userId],
+        set: { value: newValue, label, active: true },
+      });
 
     return entry;
   }

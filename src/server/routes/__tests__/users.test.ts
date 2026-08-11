@@ -47,10 +47,14 @@ describe('Users private routes', () => {
   });
 
   it('change-password accepts new password', async () => {
+    const cookie = signSession({ userId: 'default-user', csrfToken: generateCsrfToken() });
     const res = await usersPrivateRoutes.changePassword(
       new Request('http://localhost/api/v1/users/change-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `WorldCore-session=${cookie}`,
+        },
         body: JSON.stringify({ newPassword: 'newpass123' }),
       }),
     );

@@ -209,9 +209,14 @@ export function CharacterBrowserPanel() {
   );
 
   /* ── persistent installed mappings (survives restarts) ── */
-  const { data: persistentInstalled } = useQuery<Array<{ sourceId: string; cardId: string; characterId: number }>>({
+  const { data: persistentInstalled } = useQuery<
+    Array<{ sourceId: string; cardId: string; characterId: number }>
+  >({
     queryKey: ['/api/v1/browser-installed/list'],
-    queryFn: () => apiFetch('/browser-installed/list') as Promise<Array<{ sourceId: string; cardId: string; characterId: number }>>,
+    queryFn: () =>
+      apiFetch('/browser-installed/list') as Promise<
+        Array<{ sourceId: string; cardId: string; characterId: number }>
+      >,
   });
 
   const persistentInstalledKeys = useMemo(
@@ -347,10 +352,7 @@ export function CharacterBrowserPanel() {
       fd.append('file', file);
 
       if (avatarBytes) {
-        fd.append(
-          'avatar',
-          new File([avatarBytes], `${safeName}_avatar`, { type: 'image/png' }),
-        );
+        fd.append('avatar', new File([avatarBytes], `${safeName}_avatar`, { type: 'image/png' }));
       }
 
       const body = (await apiFetch('/characters/import', {
@@ -435,7 +437,9 @@ export function CharacterBrowserPanel() {
               return { sourceId: source.id, items: [] as CardListing[] };
             }
             const { items, nextCursor } = await normalizeResult(result);
-            console.log(`[browser] loadMore: source="${source.id}" got ${items.length} items, nextCursor="${nextCursor}"`);
+            console.log(
+              `[browser] loadMore: source="${source.id}" got ${items.length} items, nextCursor="${nextCursor}"`,
+            );
             return { sourceId: source.id, items, nextCursor };
           } catch (err) {
             console.error(`[browser] loadMore error from "${source.id}":`, err);
@@ -734,7 +738,7 @@ export function CharacterBrowserPanel() {
                     {state === 'error' && <AlertCircle className="h-3.5 w-3.5" />}
                   </button>
                   {state === 'done' && (
-                    <span className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 absolute top-2 left-2 rounded border px-1.5 py-0.5 text-[9px] font-medium">
+                    <span className="absolute top-2 left-2 rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-emerald-400">
                       In Library
                     </span>
                   )}
@@ -745,24 +749,29 @@ export function CharacterBrowserPanel() {
         )}
 
         {/* Load more */}
-        {!noSources && !isSearching && sourceCursors.size > 0 && results.length > 0 && !allInLibrary && !selectedCard && (
-          <div className="mt-4 flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5"
-              disabled={isLoadingMore}
-              onClick={loadMore}
-            >
-              {isLoadingMore ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5" />
-              )}
-              {isLoadingMore ? 'Loading…' : 'Load More'}
-            </Button>
-          </div>
-        )}
+        {!noSources &&
+          !isSearching &&
+          sourceCursors.size > 0 &&
+          results.length > 0 &&
+          !allInLibrary &&
+          !selectedCard && (
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5"
+                disabled={isLoadingMore}
+                onClick={loadMore}
+              >
+                {isLoadingMore ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5" />
+                )}
+                {isLoadingMore ? 'Loading…' : 'Load More'}
+              </Button>
+            </div>
+          )}
 
         {/* Card detail view */}
         {selectedCard && (
@@ -794,10 +803,7 @@ export function CharacterBrowserPanel() {
                   <p className="text-muted-foreground text-sm">by {selectedCard.creator}</p>
                 )}
                 {(() => {
-                  const allTags = [
-                    ...selectedCard.tags,
-                    ...(cardDetails?.topics ?? []),
-                  ];
+                  const allTags = [...selectedCard.tags, ...(cardDetails?.topics ?? [])];
                   const merged = [...new Set(allTags)];
                   if (merged.length === 0) return null;
                   return (
@@ -817,7 +823,10 @@ export function CharacterBrowserPanel() {
                   <Button
                     size="sm"
                     className="h-8 gap-1.5"
-                    disabled={cardState(selectedCard) === 'done' || cardState(selectedCard) === 'downloading'}
+                    disabled={
+                      cardState(selectedCard) === 'done' ||
+                      cardState(selectedCard) === 'downloading'
+                    }
                     onClick={() => handleDownload(selectedCard)}
                   >
                     {cardState(selectedCard) === 'done' ? (
@@ -839,17 +848,17 @@ export function CharacterBrowserPanel() {
 
             {selectedCard.description && (
               <section>
-                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wider uppercase">
                   Description
                 </h3>
-                <p className="text-foreground/90 whitespace-pre-wrap text-sm leading-relaxed">
+                <p className="text-foreground/90 text-sm leading-relaxed whitespace-pre-wrap">
                   {selectedCard.description}
                 </p>
               </section>
             )}
 
             {isLoadingDetails && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="text-muted-foreground flex items-center gap-2 text-sm">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Loading details…
               </div>
@@ -857,10 +866,10 @@ export function CharacterBrowserPanel() {
 
             {cardDetails?.description && cardDetails.description !== selectedCard.description && (
               <section>
-                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wider uppercase">
                   Creator Notes
                 </h3>
-                <p className="text-foreground/90 whitespace-pre-wrap text-sm leading-relaxed">
+                <p className="text-foreground/90 text-sm leading-relaxed whitespace-pre-wrap">
                   {cardDetails.description}
                 </p>
               </section>
@@ -868,33 +877,35 @@ export function CharacterBrowserPanel() {
 
             {cardDetails?.tagline && cardDetails.tagline !== selectedCard.description && (
               <section>
-                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wider uppercase">
                   Tagline
                 </h3>
-                <p className="text-foreground/90 text-sm leading-relaxed">
-                  {cardDetails.tagline}
-                </p>
+                <p className="text-foreground/90 text-sm leading-relaxed">{cardDetails.tagline}</p>
               </section>
             )}
 
             {(cardDetails?.starCount != null || cardDetails?.chatCount != null) && (
               <section>
-                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+                <h3 className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wider uppercase">
                   Stats
                 </h3>
                 <div className="flex gap-4 text-sm">
                   {cardDetails.starCount != null && (
-                    <span className="text-foreground/80">{cardDetails.starCount.toLocaleString()} stars</span>
+                    <span className="text-foreground/80">
+                      {cardDetails.starCount.toLocaleString()} stars
+                    </span>
                   )}
                   {cardDetails.chatCount != null && (
-                    <span className="text-foreground/80">{cardDetails.chatCount.toLocaleString()} chats</span>
+                    <span className="text-foreground/80">
+                      {cardDetails.chatCount.toLocaleString()} chats
+                    </span>
                   )}
                 </div>
               </section>
             )}
 
             <section>
-              <h3 className="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">
+              <h3 className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wider uppercase">
                 Source
               </h3>
               <p className="text-foreground/70 text-sm">

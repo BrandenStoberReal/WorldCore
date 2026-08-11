@@ -568,7 +568,15 @@ export function TextOptionsPanel() {
         toast.error(err instanceof Error ? err.message : String(err));
       }
     },
-    [defaultPresets, contextPresets, instructPresets, syspromptPresets, reasoningPresets, queryClient, setForm],
+    [
+      defaultPresets,
+      contextPresets,
+      instructPresets,
+      syspromptPresets,
+      reasoningPresets,
+      queryClient,
+      setForm,
+    ],
   );
 
   if (isLoading) {
@@ -606,13 +614,13 @@ export function TextOptionsPanel() {
             <Button
               variant="outline"
               onClick={handleImportClick}
-              className="h-8 touch-target"
+              className="touch-target h-8"
               disabled={importing}
             >
               {importing ? <LoadingSpinner size="sm" /> : <Upload className="h-3.5 w-3.5" />}
               <span className="mono-tag">{importing ? 'IMPORTING...' : 'IMPORT'}</span>
             </Button>
-            <Button variant="outline" onClick={handleReset} className="h-8 touch-target">
+            <Button variant="outline" onClick={handleReset} className="touch-target h-8">
               <RotateCcw className="h-3.5 w-3.5" />
               <span className="mono-tag">RESET</span>
             </Button>
@@ -693,7 +701,8 @@ export function TextOptionsPanel() {
                     value={renameName}
                     onChange={(e) => setRenameName(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleRenamePreset('context', form.context.selectedPreset, renameName);
+                      if (e.key === 'Enter')
+                        handleRenamePreset('context', form.context.selectedPreset, renameName);
                       if (e.key === 'Escape') {
                         setShowRenameInput(false);
                         setRenameName('');
@@ -707,7 +716,9 @@ export function TextOptionsPanel() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleRenamePreset('context', form.context.selectedPreset, renameName)}
+                    onClick={() =>
+                      handleRenamePreset('context', form.context.selectedPreset, renameName)
+                    }
                     disabled={!renameName.trim()}
                   >
                     Rename
@@ -936,7 +947,9 @@ export function TextOptionsPanel() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDeletePreset('instruct', form.instruct.selectedPreset)}
+                              onClick={() =>
+                                handleDeletePreset('instruct', form.instruct.selectedPreset)
+                              }
                               className="text-foreground/40 hover:text-foreground/70 hover:bg-accent/30 rounded-md p-1 transition-colors"
                               title="Delete preset"
                               aria-label="Delete preset"
@@ -955,7 +968,12 @@ export function TextOptionsPanel() {
                         value={renameName}
                         onChange={(e) => setRenameName(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleRenamePreset('instruct', form.instruct.selectedPreset, renameName);
+                          if (e.key === 'Enter')
+                            handleRenamePreset(
+                              'instruct',
+                              form.instruct.selectedPreset,
+                              renameName,
+                            );
                           if (e.key === 'Escape') {
                             setShowRenameInput(false);
                             setRenameName('');
@@ -969,7 +987,9 @@ export function TextOptionsPanel() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleRenamePreset('instruct', form.instruct.selectedPreset, renameName)}
+                        onClick={() =>
+                          handleRenamePreset('instruct', form.instruct.selectedPreset, renameName)
+                        }
                         disabled={!renameName.trim()}
                       >
                         Rename
@@ -1301,7 +1321,10 @@ export function TextOptionsPanel() {
                       onValueChange={(v) =>
                         setForm((f) => ({
                           ...f,
-                          instruct: { ...f.instruct, namesBehavior: v as 'none' | 'force' | 'always' },
+                          instruct: {
+                            ...f.instruct,
+                            namesBehavior: v as 'none' | 'force' | 'always',
+                          },
                         }))
                       }
                     >
@@ -1414,7 +1437,12 @@ export function TextOptionsPanel() {
                         value={renameName}
                         onChange={(e) => setRenameName(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleRenamePreset('sysprompt', form.sysprompt.selectedPreset, renameName);
+                          if (e.key === 'Enter')
+                            handleRenamePreset(
+                              'sysprompt',
+                              form.sysprompt.selectedPreset,
+                              renameName,
+                            );
                           if (e.key === 'Escape') {
                             setShowRenameInput(false);
                             setRenameName('');
@@ -1428,7 +1456,9 @@ export function TextOptionsPanel() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleRenamePreset('sysprompt', form.sysprompt.selectedPreset, renameName)}
+                        onClick={() =>
+                          handleRenamePreset('sysprompt', form.sysprompt.selectedPreset, renameName)
+                        }
                         disabled={!renameName.trim()}
                       >
                         Rename
@@ -1579,8 +1609,8 @@ export function TextOptionsPanel() {
                         </button>
                       </>
                     )}
-                    </div>
-                  </div>
+                </div>
+              </div>
 
               {showRenameInput && renameCategory === 'reasoning' && (
                 <div className="flex items-center gap-2">
@@ -1589,7 +1619,8 @@ export function TextOptionsPanel() {
                     value={renameName}
                     onChange={(e) => setRenameName(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleRenamePreset('reasoning', form.reasoning.selectedPreset, renameName);
+                      if (e.key === 'Enter')
+                        handleRenamePreset('reasoning', form.reasoning.selectedPreset, renameName);
                       if (e.key === 'Escape') {
                         setShowRenameInput(false);
                         setRenameName('');
@@ -1603,7 +1634,9 @@ export function TextOptionsPanel() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleRenamePreset('reasoning', form.reasoning.selectedPreset, renameName)}
+                    onClick={() =>
+                      handleRenamePreset('reasoning', form.reasoning.selectedPreset, renameName)
+                    }
                     disabled={!renameName.trim()}
                   >
                     Rename

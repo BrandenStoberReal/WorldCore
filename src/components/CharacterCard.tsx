@@ -31,7 +31,16 @@ export const CharacterCard = React.memo(function CharacterCard({
         'hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-12px_color-mix(in_oklch,var(--ember)_55%,transparent)]',
         'after:translate-x-[-100%] hover:after:translate-x-0',
       )}
+      role="button"
+      tabIndex={0}
+      aria-label={`Select ${character.name}`}
       onClick={() => onSelect(character.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(character.id);
+        }
+      }}
     >
       {/* Top number rail */}
       <div className="border-border/60 bg-background/30 flex items-center justify-between border-b px-3 py-1.5">

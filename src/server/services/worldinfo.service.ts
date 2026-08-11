@@ -291,6 +291,16 @@ export class WorldInfoService {
     const fileRow = fileRows[0]!;
     const filePath = this.wiFilePath(fileRow.fileName);
 
+    const existingEntry = await db
+      .select()
+      .from(worldinfoEntries)
+      .where(and(eq(worldinfoEntries.uid, entry.uid), eq(worldinfoEntries.fileId, fileId)))
+      .limit(1);
+
+    if (existingEntry.length > 0) {
+      throw new ConflictError(`World Info entry with uid "${entry.uid}" already exists`);
+    }
+
     await db.insert(worldinfoEntries).values({
       ...this.entryToDb(entry),
       fileId,
@@ -326,6 +336,16 @@ export class WorldInfoService {
     const fileRow = fileRows[0]!;
     const filePath = this.wiFilePath(fileRow.fileName);
 
+    const existingEntry = await db
+      .select()
+      .from(worldinfoEntries)
+      .where(and(eq(worldinfoEntries.uid, uid), eq(worldinfoEntries.fileId, fileId)))
+      .limit(1);
+
+    if (existingEntry.length === 0) {
+      throw new NotFoundError(`World Info entry with uid "${uid}"`);
+    }
+
     await db
       .update(worldinfoEntries)
       .set(this.entryToDb(entry))
@@ -338,7 +358,10 @@ export class WorldInfoService {
       }
       await writeFile(filePath, JSON.stringify(currentData, null, 2));
     } catch (err) {
-      console.error(`[worldinfo] Failed to sync entry update to file for ${fileRow.fileName}:`, err);
+      console.error(
+        `[worldinfo] Failed to sync entry update to file for ${fileRow.fileName}:`,
+        err,
+      );
     }
   }
 
@@ -356,6 +379,16 @@ export class WorldInfoService {
     const fileRow = fileRows[0]!;
     const filePath = this.wiFilePath(fileRow.fileName);
 
+    const existingEntry = await db
+      .select()
+      .from(worldinfoEntries)
+      .where(and(eq(worldinfoEntries.uid, uid), eq(worldinfoEntries.fileId, fileId)))
+      .limit(1);
+
+    if (existingEntry.length === 0) {
+      throw new NotFoundError(`World Info entry with uid "${uid}"`);
+    }
+
     await db
       .delete(worldinfoEntries)
       .where(and(eq(worldinfoEntries.uid, uid), eq(worldinfoEntries.fileId, fileId)));
@@ -367,7 +400,10 @@ export class WorldInfoService {
         await writeFile(filePath, JSON.stringify(currentData, null, 2));
       }
     } catch (err) {
-      console.error(`[worldinfo] Failed to sync entry deletion to file for ${fileRow.fileName}:`, err);
+      console.error(
+        `[worldinfo] Failed to sync entry deletion to file for ${fileRow.fileName}:`,
+        err,
+      );
     }
   }
 

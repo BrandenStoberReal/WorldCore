@@ -39,6 +39,19 @@ export function GenerationSlider({
     [onChange, min, max],
   );
 
+  const handleNumberBlur = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      const parsed = parseFloat(e.target.value);
+      if (!Number.isNaN(parsed)) {
+        const clamped = Math.min(max, Math.max(min, parsed));
+        if (clamped !== parsed) {
+          onChange(clamped);
+        }
+      }
+    },
+    [onChange, min, max],
+  );
+
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-2">
@@ -50,6 +63,7 @@ export function GenerationSlider({
             type="number"
             value={step < 0.01 ? value.toFixed(3) : step < 1 ? value.toFixed(2) : value}
             onChange={handleNumberChange}
+            onBlur={handleNumberBlur}
             min={min}
             max={max}
             step={step}

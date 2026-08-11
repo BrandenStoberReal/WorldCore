@@ -63,7 +63,8 @@ export async function summarizeMessages(params: SummarizeParams): Promise<Summar
     if (firstNewline > 0) {
       truncatedText = truncatedText.slice(firstNewline + 2);
     }
-    truncatedCount = messagesToSummarize.length - Math.ceil(truncatedText.length / (charsPerToken * 100));
+    truncatedCount =
+      messagesToSummarize.length - Math.ceil(truncatedText.length / (charsPerToken * 100));
   }
 
   const summaryPrompt: ChatCompletionMessage[] = [

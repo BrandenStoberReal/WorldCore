@@ -105,7 +105,9 @@ export function ChatView({ characterId }: ChatViewProps) {
   const localModificationsRef = useRef(false);
   const localModificationsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref to hold latest analyzeOutfitChanges so stopGeneration doesn't need it in deps.
-  const analyzeOutfitChangesRef = useRef<((message: string, charName: string) => Promise<void>) | null>(null);
+  const analyzeOutfitChangesRef = useRef<
+    ((message: string, charName: string) => Promise<void>) | null
+  >(null);
   const outfitDataRef = useRef<typeof outfitData>(null);
 
   const [tipIndex, setTipIndex] = useState(() => getRandomTip(-1));
@@ -242,7 +244,7 @@ export function ChatView({ characterId }: ChatViewProps) {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [flushDrip]);
 
-  const { data: character, isLoading: charLoading } = useQuery<CharacterWithId>({
+  const { data: character, isLoading: charLoading, isError: charError } = useQuery<CharacterWithId>({
     queryKey: ['/api/v1/characters/get', characterId],
     queryFn: async () => {
       return await apiPost<CharacterWithId>('/characters/get', { id: characterId });
@@ -1516,6 +1518,17 @@ export function ChatView({ characterId }: ChatViewProps) {
     return <LoadingSpinner size="lg" label="retrieving persona" className="h-full" />;
   }
 
+  if (charError) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center space-y-2">
+          <span className="mono-tag text-destructive">Failed to load character</span>
+          <p className="text-muted-foreground text-xs">Please try again or select a different character.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!character) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -1654,14 +1667,14 @@ export function ChatView({ characterId }: ChatViewProps) {
               <div
                 className={cn(
                   'bg-card border-border flex items-center gap-2 rounded-md border px-2.5 py-1.5 shadow-[inset_0_1px_0_0_color-mix(in_oklch,var(--foreground)_5%,transparent)] transition-all duration-500',
-                  placeholderVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
+                  placeholderVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
                 )}
               >
                 <LoadingSpinner size="sm" />
                 <span
                   className={cn(
                     'mono-tag text-muted-foreground/65 transition-all duration-400',
-                    tipPhase === 'exit' ? 'opacity-0 -translate-y-2' : 'opacity-100 translate-y-0',
+                    tipPhase === 'exit' ? '-translate-y-2 opacity-0' : 'translate-y-0 opacity-100',
                   )}
                 >
                   {GENERATION_TIPS[tipIndex]}

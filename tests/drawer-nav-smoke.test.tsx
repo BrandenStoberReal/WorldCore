@@ -38,7 +38,11 @@ function shellHtml(): string {
 
 /** Render NavRail to static markup. */
 function railHtml(): string {
-  return renderToStaticMarkup(<NavRail />);
+  return renderToStaticMarkup(
+    <QueryClientProvider client={testQueryClient}>
+      <NavRail />
+    </QueryClientProvider>,
+  );
 }
 
 /* ------------------------------------------------------------------ */

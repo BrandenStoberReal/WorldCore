@@ -94,7 +94,10 @@ async function ensureSettingsLoaded(extId: string): Promise<void> {
   settingsLoadedFromDb.add(extId);
   try {
     const res = await apiFetch(`/extensions/get-settings?id=${extId}`);
-    const data = (await (res as Response).json()) as { ok: boolean; settings: Record<string, unknown> };
+    const data = (await (res as Response).json()) as {
+      ok: boolean;
+      settings: Record<string, unknown>;
+    };
     if (data?.ok && data.settings) {
       const store = getSettingsStore(extId);
       for (const [k, v] of Object.entries(data.settings)) {

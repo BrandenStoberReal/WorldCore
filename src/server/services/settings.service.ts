@@ -10,8 +10,11 @@ const SETTINGS_FILE = path.join(USER_ROOT, 'settings.json');
 
 export class SettingsService {
   async get(userId: string = 'default-user'): Promise<Record<string, unknown>> {
-    const settingsFile = path.join(USER_ROOT, userId === 'default-user' ? 'settings.json' : `${userId}_settings.json`);
-    if (userId === 'default-user' && await exists(SETTINGS_FILE)) {
+    const settingsFile = path.join(
+      USER_ROOT,
+      userId === 'default-user' ? 'settings.json' : `${userId}_settings.json`,
+    );
+    if (userId === 'default-user' && (await exists(SETTINGS_FILE))) {
       try {
         const content = await readFile(SETTINGS_FILE, 'utf-8');
         return JSON.parse(content) as Record<string, unknown>;
@@ -53,7 +56,9 @@ export class SettingsService {
     }
   }
 
-  async getSnapshots(userId: string = 'default-user'): Promise<Array<{ id: string; name: string; createdAt: number }>> {
+  async getSnapshots(
+    userId: string = 'default-user',
+  ): Promise<Array<{ id: string; name: string; createdAt: number }>> {
     const rows = await db
       .select({
         id: settingsSnapshots.id,

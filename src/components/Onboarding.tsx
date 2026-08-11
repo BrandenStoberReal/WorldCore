@@ -115,7 +115,17 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                     isSelected && 'ring-ember/50 ring-2',
                     'hover:border-border/80',
                   )}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Select ${backend.label}`}
+                  aria-pressed={isSelected}
                   onClick={() => setSelected(backend.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelected(backend.id);
+                    }
+                  }}
                 >
                   <CardContent className="flex items-start gap-4 px-4 py-4">
                     <div

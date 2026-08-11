@@ -202,7 +202,12 @@ export class PromptBuilder {
     );
 
     // 1. Add World Info before character definitions
-    const worldInfoBefore = this.filterAndJoinWiEntries(activatedWiEntries, 'before_char', 0, tokenBudget);
+    const worldInfoBefore = this.filterAndJoinWiEntries(
+      activatedWiEntries,
+      'before_char',
+      0,
+      tokenBudget,
+    );
     if (worldInfoBefore) {
       messagesArray.push({
         role: 'system',
@@ -261,7 +266,12 @@ export class PromptBuilder {
     }
 
     // 3. Add World Info after character definitions
-    const worldInfoAfter = this.filterAndJoinWiEntries(activatedWiEntries, 'after_char', 1, tokenBudget);
+    const worldInfoAfter = this.filterAndJoinWiEntries(
+      activatedWiEntries,
+      'after_char',
+      1,
+      tokenBudget,
+    );
     if (worldInfoAfter) {
       messagesArray.push({
         role: 'system',
@@ -433,7 +443,12 @@ export class PromptBuilder {
     }
 
     // 9.5.1 Inject world info at_end as author's note
-    const worldInfoAuthorNote = this.filterAndJoinWiEntries(activatedWiEntries, "at_end as an author's note", undefined, tokenBudget);
+    const worldInfoAuthorNote = this.filterAndJoinWiEntries(
+      activatedWiEntries,
+      "at_end as an author's note",
+      undefined,
+      tokenBudget,
+    );
     if (worldInfoAuthorNote) {
       messagesArray.push({
         role: 'system',
@@ -693,7 +708,8 @@ export class PromptBuilder {
         }
       }
 
-      const entryDepth = typeof entry.depth === 'number' && entry.depth > 0 ? entry.depth : scanDepth;
+      const entryDepth =
+        typeof entry.depth === 'number' && entry.depth > 0 ? entry.depth : scanDepth;
       const entryMessages = messages.slice(-entryDepth);
       const entryTextRaw = entryMessages.map((m) => m.mes).join('\n');
       const entryTextLower = entryTextRaw.toLowerCase();
@@ -729,7 +745,8 @@ export class PromptBuilder {
         if (entry.preventRecursion) continue;
         if (activatedContents.has(entry.content)) continue;
 
-        const entryDepth = typeof entry.depth === 'number' && entry.depth > 0 ? entry.depth : scanDepth;
+        const entryDepth =
+          typeof entry.depth === 'number' && entry.depth > 0 ? entry.depth : scanDepth;
         const entryMessages = messages.slice(-entryDepth);
         const entryTextRaw = entryMessages.map((m) => m.mes).join('\n');
         const entryTextLower = entryTextRaw.toLowerCase();

@@ -232,7 +232,7 @@ describe('Backups routes (T25)', () => {
       new Request('http://localhost/api/v1/backups/restore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: 'nonexistent-t25' }),
+        body: JSON.stringify({ id: '00000000-0000-0000-0000-000000000000' }),
       }),
     );
     expect(res.status).toBe(404);

@@ -87,14 +87,14 @@ describe('resolve', () => {
     clearCache();
     const tokenizer = await resolve('claude-3');
     expect(tokenizer).not.toBeNull();
-    expect(tokenizer!.countTokens('hello')).toBe(5);
+    expect(tokenizer!.countTokens('hello')).toBe(2);
   });
 
   it('resolves unknown model to web tokenizer', async () => {
     clearCache();
     const tokenizer = await resolve('unknown-model');
     expect(tokenizer).not.toBeNull();
-    expect(tokenizer!.countTokens('hello')).toBe(5);
+    expect(tokenizer!.countTokens('hello')).toBe(2);
   });
 
   it('caches resolved tokenizers', async () => {

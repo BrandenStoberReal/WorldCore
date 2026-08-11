@@ -11,7 +11,13 @@ import {
   getUserExtensionPath,
   DATA_ROOT,
 } from '@/server/storage/paths';
-import { cloneRepo, fetchAndPull, validateGitUrl, rmrf, getDefaultBranch } from '@/server/services/gitClone.service';
+import {
+  cloneRepo,
+  fetchAndPull,
+  validateGitUrl,
+  rmrf,
+  getDefaultBranch,
+} from '@/server/services/gitClone.service';
 import { ManifestSchema, ExtensionRowSchema } from '@/shared/schemas/extensions';
 import { NotFoundError, ValidationError, ConflictError } from '@/server/errors';
 import type { Manifest } from '@/shared/types/extensions';
@@ -67,10 +73,7 @@ export async function buildExtension(extDir: string, extId: string): Promise<boo
   }
 
   if (manifest.css && existsSync(path.join(extDir, manifest.css))) {
-    await fs.copyFile(
-      path.join(extDir, manifest.css),
-      path.join(extOutDir, manifest.css),
-    );
+    await fs.copyFile(path.join(extDir, manifest.css), path.join(extOutDir, manifest.css));
   }
 
   return true;
@@ -131,15 +134,34 @@ export async function listExtensions(userId: string): Promise<ExtensionRow[]> {
 }
 
 export async function getExtension(userId: string, id: string): Promise<ExtensionRow | null> {
-  const row = await db.select().from(extensions).where(eq(extensions.id, id)).limit(1);
+  // Check for per-user override first
+  const userRow = await db
+    .select()
+    .from(extensions)
+    .where(and(eq(extensions.id, id), eq(extensions.userId, userId)))
+    .limit(1);
 
-  if (row.length === 0) return null;
-  const r = row[0]!;
-  if (r.scope === 'global') {
+  if (userRow.length > 0 && userRow[0]!.scope !== 'global') {
+    return rowToExtension(userRow[0]!);
+  }
+
+  // Fall back to global row
+  const globalRow = await db
+    .select()
+    .from(extensions)
+    .where(and(eq(extensions.id, id), eq(extensions.scope, 'global')))
+    .limit(1);
+
+  if (globalRow.length > 0) {
+    // If there's a per-user override with scope=user, use that instead
+    if (userRow.length > 0 && userRow[0]!.scope === 'user') {
+      return rowToExtension(userRow[0]!);
+    }
+    const r = globalRow[0]!;
     if (r.userId === 'default-user') return rowToExtension(r);
     return null;
   }
-  if (r.userId === userId) return rowToExtension(r);
+
   return null;
 }
 
@@ -162,7 +184,7 @@ export async function installExtension(
 
     const subfolder = input.subfolder ?? null;
     const extRoot = subfolder ? path.join(tempDest, subfolder) : tempDest;
-    const branch = input.branch ?? await getDefaultBranch(tempDest);
+    const branch = input.branch ?? (await getDefaultBranch(tempDest));
     const manifestPath = path.join(extRoot, 'manifest.json');
     const manifestText = await Bun.file(manifestPath).text();
     let manifestObj: unknown;
@@ -238,7 +260,10 @@ export async function installExtension(
 
     const built = await buildExtension(dest, parsed.id);
     if (!built) {
-      log.warn('ext', `installExtension: build failed for "${parsed.id}" — extension installed but may not load until rebuilt`);
+      log.warn(
+        'ext',
+        `installExtension: build failed for "${parsed.id}" — extension installed but may not load until rebuilt`,
+      );
     }
 
     const inserted = await db
@@ -293,7 +318,7 @@ export async function updateExtension(userId: string, id: string): Promise<Exten
 
   const dir = scopeDir(existing.scope, userId, id);
   const uid = scopeUserId(existing.scope, userId);
-  const branch = existing.branch ?? await getDefaultBranch(dir);
+  const branch = existing.branch ?? (await getDefaultBranch(dir));
 
   let parsed: Manifest;
   const timestamp = new Date().toISOString();
@@ -318,7 +343,9 @@ export async function updateExtension(userId: string, id: string): Promise<Exten
       await fs.cp(extRoot, dir, { recursive: true });
       await rmrf(tempDest);
     } catch (err) {
-      try { await rmrf(tempDest); } catch {}
+      try {
+        await rmrf(tempDest);
+      } catch {}
       throw err;
     }
   } else if (existing.gitUrl) {
@@ -644,10 +671,7 @@ function parseGitHubUrl(gitUrl: string): { owner: string; repo: string } | null 
 }
 
 export async function checkForUpdates(): Promise<void> {
-  const rows = await db
-    .select()
-    .from(extensions)
-    .where(isNotNull(extensions.gitUrl));
+  const rows = await db.select().from(extensions).where(isNotNull(extensions.gitUrl));
 
   if (rows.length === 0) return;
   log.info('ext', `Checking ${rows.length} extensions for updates...`);
@@ -678,31 +702,37 @@ export async function checkForUpdates(): Promise<void> {
       if (!remoteManifest) {
         const tempDest = mkdtempSync(path.join(tmpdir(), 'wc-ext-check-'));
         try {
-          const branch = row.branch || await getDefaultBranch(
-            path.join(DATA_ROOT, row.scope === 'global' ? 'extensions' : `${row.userId}/extensions`, row.id),
-          );
+          const branch =
+            row.branch ||
+            (await getDefaultBranch(
+              path.join(
+                DATA_ROOT,
+                row.scope === 'global' ? 'extensions' : `${row.userId}/extensions`,
+                row.id,
+              ),
+            ));
           await cloneRepo(row.gitUrl, tempDest, { branch, timeoutMs: 15000 });
           const extRoot = row.subfolder ? path.join(tempDest, row.subfolder) : tempDest;
           const manifestText = await Bun.file(path.join(extRoot, 'manifest.json')).text();
           remoteManifest = validateManifest(JSON.parse(manifestText));
         } catch {}
-        try { await rmrf(tempDest); } catch {}
+        try {
+          await rmrf(tempDest);
+        } catch {}
       }
 
       if (remoteManifest && remoteManifest.version !== row.version) {
-        await db
-          .update(extensions)
-          .set({ hasUpdate: true })
-          .where(eq(extensions.id, row.id));
+        await db.update(extensions).set({ hasUpdate: true }).where(eq(extensions.id, row.id));
         updated++;
       } else {
-        await db
-          .update(extensions)
-          .set({ hasUpdate: false })
-          .where(eq(extensions.id, row.id));
+        await db.update(extensions).set({ hasUpdate: false }).where(eq(extensions.id, row.id));
       }
     } catch (err) {
-      log.warn('ext', `Update check failed for "${row.id}":`, err instanceof Error ? err.message : err);
+      log.warn(
+        'ext',
+        `Update check failed for "${row.id}":`,
+        err instanceof Error ? err.message : err,
+      );
     }
   }
 
