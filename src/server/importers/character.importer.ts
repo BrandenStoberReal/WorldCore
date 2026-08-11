@@ -127,6 +127,106 @@ function normalizeToV3(raw: Record<string, unknown>): Record<string, unknown> {
   return data;
 }
 
+/**
+ * Fields on a character card that may contain user-supplied HTML and therefore
+ * require sanitization before being persisted.
+ */
+const SANITIZABLE_FIELDS = [
+  'description',
+  'creator_notes',
+  'first_mes',
+  'mes_example',
+  'system_prompt',
+  'post_history_instructions',
+] as const;
+
+/**
+ * Tags that are stripped completely (element + inner content) because they
+ * enable script execution, external resource loading, or form interaction.
+ * Matched case-insensitively via the `i` flag on the strip regex.
+ */
+const DANGEROUS_TAG_PATTERN =
+  /<\/?(script|iframe|object|embed|form|input|textarea|button|select|link|meta|style)\b[\s\S]*?<\/\1\s*>/gi;
+
+/**
+ * Self-closing / void variants of dangerous tags that have no closing tag
+ * (e.g. `<input ...>`, `<link ...>`, `<meta ...>`, `<embed ...>`).
+ */
+const DANGEROUS_VOID_TAG_PATTERN =
+  /<\/?(script|iframe|object|embed|form|input|textarea|button|select|link|meta|style)\b[^>]*>/gi;
+
+/**
+ * Any attribute whose name begins with `on` (onclick, onerror, onload, …).
+ * Matches the `on` prefix plus one or more word characters, optionally
+ * surrounded by whitespace, followed by `=`.
+ */
+const EVENT_HANDLER_ATTR_PATTERN = /\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi;
+
+/**
+ * `javascript:` and `data:` URI schemes inside href/src attributes. We strip
+ * the offending attribute value, leaving the tag itself intact so safe
+ * formatting is preserved.
+ */
+const DANGEROUS_URI_ATTR_PATTERN =
+  /\s(href|src)\s*=\s*("(?:javascript|data)[^"]*"|'(?:javascript|data)[^']*'|(?:javascript|data)[^\s>]*)/gi;
+
+/**
+ * Sanitize a single string field by removing dangerous HTML while preserving
+ * safe formatting tags. Pure function — no external dependencies, no DOM.
+ */
+function sanitizeHtmlString(input: string): string {
+  let out = input;
+
+  // 1. Remove dangerous tags WITH closing tags (element + content).
+  out = out.replace(DANGEROUS_TAG_PATTERN, '');
+
+  // 2. Remove any remaining dangerous void/self-closing tags or stray open tags.
+  out = out.replace(DANGEROUS_VOID_TAG_PATTERN, '');
+
+  // 3. Strip event handler attributes (onclick, onerror, …).
+  out = out.replace(EVENT_HANDLER_ATTR_PATTERN, '');
+
+  // 4. Strip javascript:/data: URIs from href/src attributes.
+  out = out.replace(DANGEROUS_URI_ATTR_PATTERN, '');
+
+  return out;
+}
+
+/**
+ * Sanitize all HTML-bearing text fields on a normalized character card.
+ *
+ * Strips dangerous tags (script, iframe, form, …), event handler attributes
+ * (onclick, onerror, …), and `javascript:`/`data:` URIs from href/src
+ * attributes while preserving safe formatting tags (b, i, a, ul, …).
+ *
+ * Pure function — no external dependencies. Safe to call on already-clean
+ * data; non-string and null/undefined values are skipped untouched.
+ *
+ * @param data The normalized character card (mutated copy returned).
+ * @returns A new object with sanitized string fields.
+ */
+export function sanitizeCharacterFields(data: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...data };
+
+  for (const field of SANITIZABLE_FIELDS) {
+    const value = result[field];
+    if (typeof value === 'string' && value.length > 0) {
+      result[field] = sanitizeHtmlString(value);
+    }
+    // null, undefined, non-string, or empty string → skip untouched.
+  }
+
+  // alternate_greetings is an array of strings; sanitize each entry.
+  const greetings = result.alternate_greetings;
+  if (Array.isArray(greetings)) {
+    result.alternate_greetings = greetings.map((entry) =>
+      typeof entry === 'string' && entry.length > 0 ? sanitizeHtmlString(entry) : entry,
+    );
+  }
+
+  return result;
+}
+
 export async function importFromPng(uploadPath: string, userId: string): Promise<number> {
   const jsonData = await readCharacterCard(uploadPath);
   if (!jsonData) {
@@ -134,7 +234,7 @@ export async function importFromPng(uploadPath: string, userId: string): Promise
   }
 
   const parsed = safeJsonParse(jsonData, 'PNG character data');
-  const normalized = normalizeToV3(parsed);
+  const normalized = sanitizeCharacterFields(normalizeToV3(parsed));
 
   const pngBuffer = await fs.readFile(uploadPath);
   await removeFile(uploadPath).catch(() => {});
@@ -151,7 +251,7 @@ export async function importFromJson(
   const content = await fs.readFile(uploadPath, 'utf-8');
   const parsed = safeJsonParse(content, 'JSON character data');
 
-  const normalized = normalizeToV3(parsed);
+  const normalized = sanitizeCharacterFields(normalizeToV3(parsed));
 
   let pngBuffer: Buffer;
   if (avatarPath) {
@@ -214,7 +314,7 @@ export async function importFromYaml(
     extensions: parsed.extensions ?? {},
   };
 
-  const normalized = normalizeToV3(mapped);
+  const normalized = sanitizeCharacterFields(normalizeToV3(mapped));
 
   let pngBuffer: Buffer;
   if (avatarPath) {
@@ -241,7 +341,7 @@ export async function importFromCharX(uploadPath: string, userId: string): Promi
   }
 
   const cardData = safeJsonParse(cardEntry.getData().toString('utf-8'), 'CharX card.json');
-  const normalized = normalizeToV3(cardData);
+  const normalized = sanitizeCharacterFields(normalizeToV3(cardData));
 
   const avatarEntry = zip.getEntries().find((e) => {
     const name = e.entryName.toLowerCase();
@@ -289,7 +389,7 @@ export async function importFromByaf(uploadPath: string, userId: string): Promis
   }
 
   const cardData = safeJsonParse(cardEntry.getData().toString('utf-8'), 'BYAF card data');
-  const normalized = normalizeToV3(cardData);
+  const normalized = sanitizeCharacterFields(normalizeToV3(cardData));
 
   const avatarEntry = zip
     .getEntries()

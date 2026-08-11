@@ -224,7 +224,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
 
     // ── Alternate greetings ──────────────────────────────────
     const [alternateGreetings, setAlternateGreetings] = useState<string[]>(
-      character?.alternate_greetings ?? [],
+      Array.isArray(character?.alternate_greetings) ? character!.alternate_greetings : [],
     );
 
     const addGreeting = useCallback(() => {
@@ -241,7 +241,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
 
     // ── Group-only greetings ────────────────────────────────
     const [groupOnlyGreetings, setGroupOnlyGreetings] = useState<string[]>(
-      character?.group_only_greetings ?? [],
+      Array.isArray(character?.group_only_greetings) ? character!.group_only_greetings : [],
     );
 
     const addGroupGreeting = useCallback(() => {
@@ -257,7 +257,9 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
     }, []);
 
     // ── Source ───────────────────────────────────────────────
-    const [source, setSource] = useState<string[]>(character?.source ?? []);
+    const [source, setSource] = useState<string[]>(
+      Array.isArray(character?.source) ? character!.source : [],
+    );
 
     const addSource = useCallback(() => {
       setSource((prev) => [...prev, '']);
@@ -274,7 +276,7 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
     // ── Assets ──────────────────────────────────────────────
     const [assets, setAssets] = useState<AssetEntry[]>(() => {
       const raw = character?.assets;
-      if (!raw) return [];
+      if (!raw || !Array.isArray(raw)) return [];
       return raw.map((a) => ({ type: a.type, uri: a.uri, name: a.name, ext: a.ext }));
     });
 
@@ -294,8 +296,8 @@ export const CharacterForm = forwardRef<CharacterFormHandle, CharacterFormProps>
     const [multiLangNotes, setMultiLangNotes] = useState<Array<{ lang: string; value: string }>>(
       () => {
         const map = character?.creator_notes_multilingual;
-        if (!map) return [];
-        return Object.entries(map).map(([lang, value]) => ({ lang, value }));
+        if (!map || typeof map !== 'object' || Array.isArray(map)) return [];
+        return Object.entries(map).map(([lang, value]) => ({ lang, value: String(value) }));
       },
     );
 

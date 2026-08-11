@@ -3,6 +3,7 @@ import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 import { cn, estimateTokens } from '@/lib/utils';
 import { substituteMacros, type MacroContext } from '@/lib/macros';
 import { renderMarkdown } from '@/lib/markdown';
+import { useAppStore } from '@/lib/stores';
 import { ChevronDown, ChevronLeft, ChevronRight, Copy, Pencil, RotateCcw, Check, Trash2 } from 'lucide-react';
 
 function formatThinkingDuration(ms: number): string {
@@ -81,6 +82,7 @@ export const ChatMessage = memo(function ChatMessage({
   const thinkingStartRef = useRef<number | null>(null);
   const [liveThinkingElapsed, setLiveThinkingElapsed] = useState<number | null>(null);
   const thinkingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const allowExternalMedia = useAppStore((s) => s.allowCharacterExternalMedia);
 
   useEffect(() => {
     if (isStreaming) {
@@ -143,8 +145,8 @@ export const ChatMessage = memo(function ChatMessage({
     [msg.mes, macroContext],
   );
   const renderedContent = useMemo(
-    () => renderMarkdown(processedText, { highlightOpeningTags: true }),
-    [processedText],
+    () => renderMarkdown(processedText, { highlightOpeningTags: true, allowExternalMedia }),
+    [processedText, allowExternalMedia],
   );
 
   const thinkingContent =
@@ -165,9 +167,10 @@ export const ChatMessage = memo(function ChatMessage({
       thinkingContent
         ? renderMarkdown(substituteMacros(thinkingContent, macroContext), {
             highlightOpeningTags: true,
+            allowExternalMedia,
           })
         : null,
-    [thinkingContent, macroContext],
+    [thinkingContent, macroContext, allowExternalMedia],
   );
 
   const thinkingTokenCount = useMemo(

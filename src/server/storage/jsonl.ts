@@ -14,7 +14,15 @@ async function withAppendLock<T>(filePath: string, fn: () => Promise<T>): Promis
 }
 
 export async function readJsonl<T>(filePath: string): Promise<T[]> {
-  const content = await fs.readFile(filePath, 'utf-8');
+  let content: string;
+  try {
+    content = await fs.readFile(filePath, 'utf-8');
+  } catch (err) {
+    if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'ENOENT') {
+      return [];
+    }
+    throw err;
+  }
   return content
     .split('\n')
     .filter((line) => line.trim())
@@ -47,12 +55,19 @@ export async function appendJsonlLine<T>(filePath: string, record: T): Promise<v
 }
 
 export async function readFirstLine(filePath: string): Promise<string | null> {
-  const stream = createReadStream(filePath, { encoding: 'utf-8', highWaterMark: 1024 });
-  const rl = createInterface({ input: stream, crlfDelay: Infinity });
-  for await (const line of rl) {
-    return line;
+  try {
+    const stream = createReadStream(filePath, { encoding: 'utf-8', highWaterMark: 1024 });
+    const rl = createInterface({ input: stream, crlfDelay: Infinity });
+    for await (const line of rl) {
+      return line;
+    }
+    return null;
+  } catch (err) {
+    if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'ENOENT') {
+      return null;
+    }
+    throw err;
   }
-  return null;
 }
 
 export async function readLastLine(filePath: string): Promise<string | null> {

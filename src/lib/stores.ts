@@ -40,6 +40,10 @@ export interface AppStore {
   setSmoothStreaming: (value: number) => void;
   mobileNavPosition: MobileNavPosition;
   setMobileNavPosition: (position: MobileNavPosition) => void;
+  renderCharacterHtml: boolean;
+  setRenderCharacterHtml: (enabled: boolean) => void;
+  allowCharacterExternalMedia: boolean;
+  setAllowCharacterExternalMedia: (enabled: boolean) => void;
   user: User | null;
   setUser: (user: User | null) => void;
   initUser: () => Promise<void>;
@@ -72,6 +76,16 @@ export const useAppStore = create<AppStore>((set) => ({
   setMobileNavPosition: (position) => {
     set({ mobileNavPosition: position });
     void saveSettingsPatch({ mobileNavPosition: position }).catch(() => {});
+  },
+  renderCharacterHtml: true,
+  setRenderCharacterHtml: (enabled) => {
+    set({ renderCharacterHtml: enabled });
+    void saveSettingsPatch({ renderCharacterHtml: enabled }).catch(() => {});
+  },
+  allowCharacterExternalMedia: false,
+  setAllowCharacterExternalMedia: (enabled) => {
+    set({ allowCharacterExternalMedia: enabled });
+    void saveSettingsPatch({ allowCharacterExternalMedia: enabled }).catch(() => {});
   },
   user: null,
   setUser: (user) => set({ user }),
@@ -107,6 +121,12 @@ export const useAppStore = create<AppStore>((set) => ({
         }
         if (settings.mobileNavPosition === 'top' || settings.mobileNavPosition === 'bottom') {
           set({ mobileNavPosition: settings.mobileNavPosition });
+        }
+        if (typeof settings.renderCharacterHtml === 'boolean') {
+          set({ renderCharacterHtml: settings.renderCharacterHtml });
+        }
+        if (typeof settings.allowCharacterExternalMedia === 'boolean') {
+          set({ allowCharacterExternalMedia: settings.allowCharacterExternalMedia });
         }
         // Restore generation mode/preset from backend (survives localStorage clear).
         const genMode = settings.generationMode;

@@ -1,9 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Pencil, Check } from 'lucide-react';
 import { apiPost } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { renderMarkdown } from '@/lib/markdown';
+import { useAppStore } from '@/lib/stores';
+import { toastInfo } from '@/lib/toast';
 
 interface InlineEditProps {
   characterId: number;
@@ -15,6 +18,7 @@ interface InlineEditProps {
   heading?: boolean;
   className?: string;
   onSave?: (newValue: string) => void;
+  renderRich?: boolean;
 }
 
 export function InlineEdit({
@@ -27,12 +31,64 @@ export function InlineEdit({
   heading = false,
   className,
   onSave,
+  renderRich = false,
 }: InlineEditProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? '');
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const hasNotifiedHtml = useRef(false);
+  const hasNotifiedMedia = useRef(false);
+  const renderCharacterHtml = useAppStore((s) => s.renderCharacterHtml);
+  const allowCharacterExternalMedia = useAppStore((s) => s.allowCharacterExternalMedia);
+
+  const containsHtml = useMemo(
+    () => !!(renderRich && value && /<[a-z][\s\S]*>/i.test(value)),
+    [renderRich, value],
+  );
+  const containsImage = useMemo(
+    () => !!(renderRich && value && /!\[[^\]]*\]\([^)]+\)/.test(value)),
+    [renderRich, value],
+  );
+
+  useEffect(() => {
+    if (
+      renderRich &&
+      containsHtml &&
+      !renderCharacterHtml &&
+      !hasNotifiedHtml.current
+    ) {
+      toastInfo(
+        'HTML content hidden',
+        'Enable "Render HTML in character cards" in UI settings to display formatted content.',
+      );
+      hasNotifiedHtml.current = true;
+    }
+    if (
+      renderRich &&
+      containsImage &&
+      !allowCharacterExternalMedia &&
+      !hasNotifiedMedia.current
+    ) {
+      toastInfo(
+        'Image content hidden',
+        'Enable "Allow external media in character cards" in UI settings to display images.',
+      );
+      hasNotifiedMedia.current = true;
+    }
+  }, [
+    renderRich,
+    containsHtml,
+    containsImage,
+    renderCharacterHtml,
+    allowCharacterExternalMedia,
+  ]);
+
+  useEffect(() => {
+    hasNotifiedHtml.current = false;
+    hasNotifiedMedia.current = false;
+  }, [value]);
 
   // Sync draft when external value changes
   useEffect(() => {
@@ -169,6 +225,10 @@ export function InlineEdit({
     >
       {heading ? (
         <span className="display-host text-[16px] leading-tight">{value || placeholder}</span>
+      ) : renderRich && value && renderCharacterHtml ? (
+        <div className="text-foreground/70 text-[12px] leading-relaxed break-words">
+          {renderMarkdown(value, { allowExternalMedia: allowCharacterExternalMedia })}
+        </div>
       ) : (
         <span className="text-foreground/70 text-[12px] leading-relaxed break-words whitespace-pre-wrap">
           {value || (

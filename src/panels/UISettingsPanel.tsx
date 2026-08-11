@@ -46,6 +46,10 @@ function Toggle({
 export function UISettingsPanel() {
   const mobileNavPosition = useAppStore((s) => s.mobileNavPosition);
   const setMobileNavPosition = useAppStore((s) => s.setMobileNavPosition);
+  const renderCharacterHtml = useAppStore((s) => s.renderCharacterHtml);
+  const setRenderCharacterHtml = useAppStore((s) => s.setRenderCharacterHtml);
+  const allowCharacterExternalMedia = useAppStore((s) => s.allowCharacterExternalMedia);
+  const setAllowCharacterExternalMedia = useAppStore((s) => s.setAllowCharacterExternalMedia);
 
   return (
     <div data-panel="ui-settings" className="section-rhythm relative isolate">
@@ -80,6 +84,28 @@ export function UISettingsPanel() {
           </CardHeader>
           <CardContent className="px-4">
             <p className="text-muted-foreground/55 text-[13px]">Theme settings coming soon...</p>
+          </CardContent>
+        </Card>
+
+        <Card className="gap-4 py-4">
+          <CardHeader className="px-4">
+            <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
+              Character Content
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 space-y-2">
+            <Toggle
+              checked={renderCharacterHtml}
+              onChange={setRenderCharacterHtml}
+              label="Render HTML in character cards"
+              description="Allow character cards to display formatted HTML content (bold, italic, links, etc.)"
+            />
+            <Toggle
+              checked={allowCharacterExternalMedia}
+              onChange={setAllowCharacterExternalMedia}
+              label="Allow external media"
+              description="Allow character cards to load images from external URLs (may have privacy implications)"
+            />
           </CardContent>
         </Card>
       </div>

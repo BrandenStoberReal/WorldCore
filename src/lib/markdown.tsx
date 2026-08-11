@@ -15,7 +15,7 @@ import { CodeBlock } from '@/components/CodeBlock';
  *   single \n          → <br>     (simpleLineBreaks)
  *   double \n\n        → <p>...</p>
  *
- * NOT supported (emit raw and ignore): tables, images, footnotes, strikethrough, emoji shortcodes, autolinks, headings
+ * NOT supported (emit raw and ignore): tables, footnotes, strikethrough, emoji shortcodes, autolinks, headings
  *
  * HTML is escaped — there is NO raw HTML passthrough. `<script>alert(1)</script>` in the
  * input is rendered as escaped text, NOT a script element.
@@ -37,11 +37,18 @@ export interface RenderMarkdownOptions {
    * When false/undefined, unclosed delimiters render as literal text (backward compatible).
    */
   highlightOpeningTags?: boolean;
+  /**
+   * When true, markdown images ![alt](url) are rendered as <img> elements.
+   * When false/undefined, image syntax is rendered as plain text.
+   * Default: false
+   */
+  allowExternalMedia?: boolean;
 }
 
 export function renderMarkdown(input: string, options?: RenderMarkdownOptions): ReactNode {
   if (input.length === 0) return null;
   const highlight = options?.highlightOpeningTags === true;
+  const allowExternalMedia = options?.allowExternalMedia === true;
 
   // 1. Split into blocks on blank lines (\n\n+) — on RAW input so > is visible.
   const blocks = input.split(/\n{2,}/);
@@ -49,7 +56,7 @@ export function renderMarkdown(input: string, options?: RenderMarkdownOptions): 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
     if (block === undefined || block.length === 0) continue;
-    out.push(renderBlock(block, 0, i, highlight));
+    out.push(renderBlock(block, 0, i, highlight, allowExternalMedia));
   }
 
   if (out.length === 0) return null;
@@ -66,6 +73,7 @@ export function renderMarkdown(input: string, options?: RenderMarkdownOptions): 
 
 const FENCE_PLACEHOLDER = '\x00FENCE';
 const CODE_PLACEHOLDER = '\x00CODE';
+const IMG_PLACEHOLDER = '\x00IMG';
 const PLACEHOLDER_END = '\x00';
 
 const MAX_INLINE_DEPTH = 6;
@@ -148,34 +156,74 @@ function extractInlineCode(text: string): {
 }
 
 // ---------------------------------------------------------------------------
+// Image extraction  (only when allowExternalMedia is true)
+// ---------------------------------------------------------------------------
+
+interface ImageRef {
+  alt: string;
+  url: string;
+}
+
+const IMG_RE = /!\[([^\]]*)\]\(([^)]+)\)/g;
+
+function extractImages(text: string): {
+  text: string;
+  images: ImageRef[];
+} {
+  const images: ImageRef[] = [];
+  const replaced = text.replace(IMG_RE, (_match, alt: string, url: string) => {
+    const idx = images.length;
+    images.push({ alt, url });
+    return `${IMG_PLACEHOLDER}${idx}${PLACEHOLDER_END}`;
+  });
+  return { text: replaced, images };
+}
+
+// ---------------------------------------------------------------------------
 // Prepare a text block: escape HTML → extract fenced code → extract inline code
 // ---------------------------------------------------------------------------
 
-function prepareBlock(text: string): {
+function prepareBlock(text: string, allowExternalMedia: boolean): {
   text: string;
   fences: FencedCode[];
   codes: string[];
+  images: ImageRef[];
 } {
   const decoded = decodeHtmlEntities(text);
   const escaped = escapeHtml(decoded);
   const { text: t1, fences } = extractFencedCode(escaped);
   const { text: t2, codes } = extractInlineCode(t1);
-  return { text: t2, fences, codes };
+  let t3: string;
+  let images: ImageRef[] = [];
+  if (allowExternalMedia) {
+    const img = extractImages(t2);
+    t3 = img.text;
+    images = img.images;
+  } else {
+    t3 = t2;
+  }
+  return { text: t3, fences, codes, images };
 }
 
 // ---------------------------------------------------------------------------
 // Block-level rendering  (works on RAW input for > detection)
 // ---------------------------------------------------------------------------
 
-function renderBlock(block: string, depth: number, key: number, highlight: boolean): ReactNode {
+function renderBlock(
+  block: string,
+  depth: number,
+  key: number,
+  highlight: boolean,
+  allowExternalMedia: boolean,
+): ReactNode {
   if (block.startsWith('> ') || block === '>' || block.startsWith('>\n')) {
-    return renderBlockquote(block, depth, key, highlight);
+    return renderBlockquote(block, depth, key, highlight, allowExternalMedia);
   }
   const listMatch = detectList(block);
   if (listMatch) {
-    return renderList(block, listMatch.ordered, key, highlight);
+    return renderList(block, listMatch.ordered, key, highlight, allowExternalMedia);
   }
-  return renderParagraphBlock(block, key, highlight);
+  return renderParagraphBlock(block, key, highlight, allowExternalMedia);
 }
 
 const UL_RE = /^[-*]\s+/;
@@ -194,7 +242,13 @@ function detectList(block: string): { ordered: boolean } | null {
   return { ordered: false };
 }
 
-function renderList(block: string, ordered: boolean, key: number, highlight: boolean): ReactNode {
+function renderList(
+  block: string,
+  ordered: boolean,
+  key: number,
+  highlight: boolean,
+  allowExternalMedia: boolean,
+): ReactNode {
   const lines = block.split('\n');
   const items: ReactNode[] = [];
   let currentText: string[] = [];
@@ -202,10 +256,10 @@ function renderList(block: string, ordered: boolean, key: number, highlight: boo
   const flushItem = (itemKey: number) => {
     if (currentText.length === 0) return;
     const text = currentText.join('\n');
-    const prepared = prepareBlock(text);
+    const prepared = prepareBlock(text, allowExternalMedia);
     items.push(
       <li key={`li-${itemKey}`}>
-        {renderInlineTokens(prepared.text, prepared.fences, prepared.codes, 0, highlight)}
+        {renderInlineTokens(prepared.text, prepared.fences, prepared.codes, prepared.images, 0, highlight)}
       </li>,
     );
     currentText = [];
@@ -235,13 +289,14 @@ function renderBlockquote(
   depth: number,
   key: number,
   highlight: boolean,
+  allowExternalMedia: boolean,
 ): ReactNode {
   if (depth >= MAX_BLOCKQUOTE_DEPTH) {
     // Depth exceeded — escape and render as paragraph to avoid infinite recursion.
-    const prepared = prepareBlock(block);
+    const prepared = prepareBlock(block, allowExternalMedia);
     return (
       <p key={key}>
-        {renderInlineTokens(prepared.text, prepared.fences, prepared.codes, 0, highlight)}
+        {renderInlineTokens(prepared.text, prepared.fences, prepared.codes, prepared.images, 0, highlight)}
       </p>
     );
   }
@@ -260,19 +315,20 @@ function renderBlockquote(
 
   const body = bodyLines.join('\n');
   // Recursively render the body — may contain nested blockquotes.
-  const inner = renderBlock(body, depth + 1, 0, highlight);
+  const inner = renderBlock(body, depth + 1, 0, highlight, allowExternalMedia);
   return <blockquote key={key}>{inner}</blockquote>;
 }
 
-function renderParagraphBlock(block: string, key: number, highlight: boolean): ReactNode {
-  const prepared = prepareBlock(block);
-  return renderParagraph(prepared.text, prepared.fences, prepared.codes, 0, key, highlight);
+function renderParagraphBlock(block: string, key: number, highlight: boolean, allowExternalMedia: boolean): ReactNode {
+  const prepared = prepareBlock(block, allowExternalMedia);
+  return renderParagraph(prepared.text, prepared.fences, prepared.codes, prepared.images, 0, key, highlight);
 }
 
 function renderParagraph(
   text: string,
   fences: FencedCode[],
   codes: string[],
+  images: ImageRef[],
   depth: number,
   key: number,
   highlight: boolean,
@@ -283,7 +339,7 @@ function renderParagraph(
     const seg = segments[i];
     if (seg === undefined) continue;
     if (i > 0) children.push(<br key={`br-${i}`} />);
-    children.push(renderInlineTokens(seg, fences, codes, depth, highlight));
+    children.push(renderInlineTokens(seg, fences, codes, images, depth, highlight));
   }
   return <p key={key}>{children}</p>;
 }
@@ -296,6 +352,7 @@ function renderInlineTokens(
   text: string,
   fences: FencedCode[],
   codes: string[],
+  images: ImageRef[],
   depth: number,
   highlight: boolean = false,
 ): ReactNode {
@@ -307,7 +364,7 @@ function renderInlineTokens(
 
   while (pos < text.length) {
     // Try placeholders first (opaque — emit as elements, do not recurse).
-    const ph = tryMatchPlaceholder(text, pos, fences, codes);
+    const ph = tryMatchPlaceholder(text, pos, fences, codes, images);
     if (ph !== null) {
       pushToken(tokens, ph.node);
       pos = ph.end;
@@ -323,7 +380,7 @@ function renderInlineTokens(
     }
 
     // Try emphasis in priority: ** > __ > * > _
-    const emph = tryMatchEmphasis(text, pos, fences, codes, depth, highlight);
+    const emph = tryMatchEmphasis(text, pos, fences, codes, images, depth, highlight);
     if (emph !== null) {
       pushToken(tokens, emph.node);
       pos = emph.end;
@@ -342,7 +399,7 @@ function renderInlineTokens(
           tokens,
           <span key={`q${pos}`} style={{ color: 'var(--dialogue)' }}>
             {qChar}
-            {renderInlineTokens(inner, fences, codes, depth, false)}
+            {renderInlineTokens(inner, fences, codes, images, depth, false)}
             {qClose}
           </span>,
         );
@@ -355,7 +412,7 @@ function renderInlineTokens(
           tokens,
           <span key={`q${pos}`} style={{ color: 'var(--dialogue)' }}>
             {qChar}
-            {renderInlineTokens(rest, fences, codes, depth, false)}
+            {renderInlineTokens(rest, fences, codes, images, depth, false)}
           </span>,
         );
         pos = text.length;
@@ -397,9 +454,10 @@ function tryMatchPlaceholder(
   pos: number,
   fences: FencedCode[],
   codes: string[],
+  images: ImageRef[],
 ): { node: ReactNode; end: number } | null {
   if (text.charCodeAt(pos) !== 0) return null;
-  const re = /\x00(FENCE|CODE)(\d+)\x00/g;
+  const re = /\x00(FENCE|CODE|IMG)(\d+)\x00/g;
   re.lastIndex = pos;
   const m = re.exec(text);
   if (m === null || m.index !== pos) return null;
@@ -412,6 +470,22 @@ function tryMatchPlaceholder(
     const fence = fences[idx];
     if (fence === undefined) return { node: m[0], end };
     return { node: <CodeBlock key={`f${idx}`} code={fence.code} language={fence.language} />, end };
+  }
+  if (kind === 'IMG') {
+    const img = images[idx];
+    if (img === undefined) return { node: m[0], end };
+    return {
+      node: (
+        <img
+          key={`img${idx}`}
+          src={img.url}
+          alt={img.alt}
+          loading="lazy"
+          className="max-h-[20em] max-w-full rounded"
+        />
+      ),
+      end,
+    };
   }
   const code = codes[idx];
   if (code === undefined) return { node: m[0], end };
@@ -467,6 +541,7 @@ function tryMatchEmphasis(
   pos: number,
   fences: FencedCode[],
   codes: string[],
+  images: ImageRef[],
   depth: number,
   highlight: boolean = false,
 ): EmphMatch | null {
@@ -478,7 +553,7 @@ function tryMatchEmphasis(
       return {
         node: (
           <strong key={`b${pos}`} data-depth={depth}>
-            {renderInlineTokens(inner, fences, codes, depth + 1, false)}
+            {renderInlineTokens(inner, fences, codes, images, depth + 1, false)}
           </strong>
         ),
         end: boldStar.contentEnd + 2,
@@ -495,7 +570,7 @@ function tryMatchEmphasis(
             <span key={`b${pos}t`} className="md-opening-tag">
               {'**'}
             </span>
-            {renderInlineTokens(content, fences, codes, depth + 1, false)}
+            {renderInlineTokens(content, fences, codes, images, depth + 1, false)}
           </strong>
         ),
         end: text.length,
@@ -515,7 +590,7 @@ function tryMatchEmphasis(
       return {
         node: (
           <strong key={`B${pos}`} data-depth={depth}>
-            {renderInlineTokens(inner, fences, codes, depth + 1, false)}
+            {renderInlineTokens(inner, fences, codes, images, depth + 1, false)}
           </strong>
         ),
         end: boldUnder.contentEnd + 2,
@@ -537,7 +612,7 @@ function tryMatchEmphasis(
             <span key={`B${pos}t`} className="md-opening-tag">
               {'__'}
             </span>
-            {renderInlineTokens(content, fences, codes, depth + 1, false)}
+            {renderInlineTokens(content, fences, codes, images, depth + 1, false)}
           </strong>
         ),
         end: text.length,
@@ -553,7 +628,7 @@ function tryMatchEmphasis(
       return {
         node: (
           <em key={`i${pos}`} data-depth={depth}>
-            {renderInlineTokens(inner, fences, codes, depth + 1, false)}
+            {renderInlineTokens(inner, fences, codes, images, depth + 1, false)}
           </em>
         ),
         end: italStar.contentEnd + 1,
@@ -570,7 +645,7 @@ function tryMatchEmphasis(
             <span key={`i${pos}t`} className="md-opening-tag">
               {'*'}
             </span>
-            {renderInlineTokens(content, fences, codes, depth + 1, false)}
+            {renderInlineTokens(content, fences, codes, images, depth + 1, false)}
           </em>
         ),
         end: text.length,
@@ -586,7 +661,7 @@ function tryMatchEmphasis(
       return {
         node: (
           <em key={`I${pos}`} data-depth={depth}>
-            {renderInlineTokens(inner, fences, codes, depth + 1, false)}
+            {renderInlineTokens(inner, fences, codes, images, depth + 1, false)}
           </em>
         ),
         end: italUnder.contentEnd + 1,
@@ -603,7 +678,7 @@ function tryMatchEmphasis(
             <span key={`I${pos}t`} className="md-opening-tag">
               {'_'}
             </span>
-            {renderInlineTokens(content, fences, codes, depth + 1, false)}
+            {renderInlineTokens(content, fences, codes, images, depth + 1, false)}
           </em>
         ),
         end: text.length,

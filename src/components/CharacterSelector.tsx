@@ -749,6 +749,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
               invalidateKeys={infoInvalidateKeys}
               multiline
               placeholder="no description"
+              renderRich
             />
           </div>
 
@@ -763,6 +764,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
               multiline
               placeholder="no notes"
               className="line-clamp-3"
+              renderRich
             />
           </div>
 
@@ -779,6 +781,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
                 invalidateKeys={infoInvalidateKeys}
                 multiline
                 placeholder="no personality"
+                renderRich
               />
             </div>
             <div>
@@ -790,6 +793,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
                 invalidateKeys={infoInvalidateKeys}
                 multiline
                 placeholder="no scenario"
+                renderRich
               />
             </div>
           </div>
@@ -808,6 +812,7 @@ export function CharacterSelector({ selectedId, onSelect, onToggle }: CharacterS
               placeholder="no first message"
               className="line-clamp-4"
               onSave={handleFirstMesSaved}
+              renderRich
             />
           </div>
 
