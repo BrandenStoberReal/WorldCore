@@ -104,6 +104,8 @@ export function ChatView({ characterId }: ChatViewProps) {
   // sync effect doesn't overwrite our local state with stale server data.
   const localModificationsRef = useRef(false);
   const localModificationsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guard against findExistingChat running while handleNewChat is creating a new session.
+  const isCreatingChatRef = useRef(false);
   // Ref to hold latest analyzeOutfitChanges so stopGeneration doesn't need it in deps.
   const analyzeOutfitChangesRef = useRef<
     ((message: string, charName: string) => Promise<void>) | null
@@ -435,12 +437,13 @@ export function ChatView({ characterId }: ChatViewProps) {
   });
 
   const findExistingChat = useCallback(async () => {
-    if (!character) return;
+    if (!character || isCreatingChatRef.current) return;
     const charName = character.name;
     try {
       const chats = await apiPost<Array<{ file_id: string }>>('/chats/listByCharacter', {
         characterName: charName,
       });
+      if (isCreatingChatRef.current) return;
       if (Array.isArray(chats) && chats.length > 0) {
         const chat = chats[0] as { file_id: string };
         setActiveChat(chat.file_id);
@@ -448,7 +451,9 @@ export function ChatView({ characterId }: ChatViewProps) {
         await createChatMutation.mutateAsync(charName);
       }
     } catch {
-      await createChatMutation.mutateAsync(charName);
+      if (!isCreatingChatRef.current) {
+        await createChatMutation.mutateAsync(charName);
+      }
     }
   }, [character, setActiveChat, createChatMutation]);
 
@@ -1010,6 +1015,7 @@ export function ChatView({ characterId }: ChatViewProps) {
   const handleNewChat = useCallback(() => {
     if (!character) return;
     const oldChatId = activeChatId;
+    isCreatingChatRef.current = true;
     clearChat();
     createChatMutation.mutate(character.name, {
       onSuccess: () => {
@@ -1020,6 +1026,9 @@ export function ChatView({ characterId }: ChatViewProps) {
               console.error('Failed to delete old chat session:', e);
             });
         }
+      },
+      onSettled: () => {
+        isCreatingChatRef.current = false;
       },
     });
   }, [character, clearChat, createChatMutation, activeChatId, queryClient]);
