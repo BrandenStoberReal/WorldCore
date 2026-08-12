@@ -84,6 +84,34 @@ export class ChatService {
     const chatDir = getUserChatPath(userId);
     const filePath = path.join(chatDir, `${fileId}.jsonl`);
     message.send_date = message.send_date || new Date().toISOString();
+
+    // Defense-in-depth against duplicate user-message appends. The client
+    // (ChatView.sendMessage) historically could double-fire under mobile
+    // soft-keyboard "Go" + button tap or touch double-tap; both calls would
+    // reach this dumb-append path and persist two identical rows to the
+    // chat file, leaking the duplicate into every subsequent LLM context.
+    // The client now has a synchronous in-flight guard, but we additionally
+    // collapse exact-equal consecutive appends here so the chat file is never
+    // the source of a duplicate the LLM can read. Match key: text + is_user +
+    // send_date + name. Only the immediate last row is checked — keeps the
+    // guard constant-time (readLastLine) and avoids collapsing legitimate
+    // repeat sends across different turns.
+    const dedupKeys: Array<keyof ChatMessage> = ['mes', 'is_user', 'send_date', 'name'];
+    try {
+      const lastLine = await readLastLine(filePath);
+      if (lastLine) {
+        const parsed = JSON.parse(lastLine) as ChatMetadata | ChatMessage;
+        if (
+          'mes' in parsed &&
+          dedupKeys.every((k) => (parsed as ChatMessage)[k] === message[k])
+        ) {
+          return;
+        }
+      }
+    } catch {
+      // Corrupt or unexpectedly-empty last line: fall through and append.
+    }
+
     await appendJsonlLine(filePath, message);
 
     const current = await db

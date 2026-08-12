@@ -26,6 +26,72 @@ describe('ChatService', () => {
     await chatService.delete(TEST_USER_ID, fileId);
   });
 
+  it('collapses duplicate consecutive appends (dedup guard)', async () => {
+    const fileId = await chatService.save(TEST_USER_ID, 'DupChar', 'User');
+    const sendDate = new Date().toISOString();
+    const identicalMessage = {
+      name: 'User',
+      is_user: true,
+      mes: 'duplicate',
+      send_date: sendDate,
+      extra: {},
+    };
+    // Simulate client double-fire: two identical writes back-to-back.
+    await chatService.appendMessage(TEST_USER_ID, fileId, identicalMessage);
+    await chatService.appendMessage(TEST_USER_ID, fileId, identicalMessage);
+
+    const messages = await chatService.getMessages(TEST_USER_ID, fileId);
+    expect(messages.length).toBe(1);
+    expect(messages[0]!.mes).toBe('duplicate');
+    await chatService.delete(TEST_USER_ID, fileId);
+  });
+
+  it('appends distinct messages with identical text but different send_date', async () => {
+    const fileId = await chatService.save(TEST_USER_ID, 'DupChar2', 'User');
+    await chatService.appendMessage(TEST_USER_ID, fileId, {
+      name: 'User',
+      is_user: true,
+      mes: 'same text',
+      send_date: '2026-01-01T00:00:00.000Z',
+      extra: {},
+    });
+    // Different send_date → legitimate repeat send across turns; must persist.
+    await chatService.appendMessage(TEST_USER_ID, fileId, {
+      name: 'User',
+      is_user: true,
+      mes: 'same text',
+      send_date: '2026-01-02T00:00:00.000Z',
+      extra: {},
+    });
+    const messages = await chatService.getMessages(TEST_USER_ID, fileId);
+    expect(messages.length).toBe(2);
+    await chatService.delete(TEST_USER_ID, fileId);
+  });
+
+  it('appends a message identical to the last when prior append was different', async () => {
+    const fileId = await chatService.save(TEST_USER_ID, 'DupChar3', 'User');
+    const sendDate = new Date().toISOString();
+    await chatService.appendMessage(TEST_USER_ID, fileId, {
+      name: 'User',
+      is_user: true,
+      mes: 'first',
+      send_date: sendDate,
+      extra: {},
+    });
+    // Same send_date as the prior but different content → must persist.
+    await chatService.appendMessage(TEST_USER_ID, fileId, {
+      name: 'User',
+      is_user: true,
+      mes: 'second',
+      send_date: sendDate,
+      extra: {},
+    });
+    const messages = await chatService.getMessages(TEST_USER_ID, fileId);
+    expect(messages.length).toBe(2);
+    expect(messages[1]!.mes).toBe('second');
+    await chatService.delete(TEST_USER_ID, fileId);
+  });
+
   it('edit a message', async () => {
     const fileId = await chatService.save(TEST_USER_ID, 'TestCharacter', 'User');
     await chatService.appendMessage(TEST_USER_ID, fileId, {
