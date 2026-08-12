@@ -106,6 +106,14 @@ export function ChatView({ characterId }: ChatViewProps) {
   const localModificationsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guard against findExistingChat running while handleNewChat is creating a new session.
   const isCreatingChatRef = useRef(false);
+  // Synchronous in-flight guard for sendMessage. The isGenerating state check
+  // in the body only blocks AFTER setIsGenerating(true) — which historically ran
+  // after several awaits (mutation, prompt build, summarization). Double-tap
+  // sends (mobile soft-keyboard "Go" + button tap, or a 1-frame double touch)
+  // could slip through that async gap and append the user message twice to the
+  // server's dumb-append chat file. This ref closes the gap synchronously: set
+  // to true at the top of sendMessage, cleared in its finally.
+  const isSendingRef = useRef(false);
   // Ref to hold latest analyzeOutfitChanges so stopGeneration doesn't need it in deps.
   const analyzeOutfitChangesRef = useRef<
     ((message: string, charName: string) => Promise<void>) | null
@@ -618,7 +626,20 @@ export function ChatView({ characterId }: ChatViewProps) {
 
   const sendMessage = useCallback(
     async (text: string) => {
+      // Synchronous guard against double-fire (mobile soft-keyboard "Go" +
+      // button tap; double-tap on touch; render-batching race). The existing
+      // isGenerating check below only protects AFTER setIsGenerating(true),
+      // which historically ran after several awaits (append, prompt build,
+      // summarization) — leaving a multi-microsecond re-entry window that
+      // allowed a second sendMessage to write a duplicate message to disk. This
+      // ref closes the gap synchronously on the call stack.
       if (!character || !activeChatId || useChatStore.getState().isGenerating) return;
+      if (isSendingRef.current) return;
+      isSendingRef.current = true;
+      // Set isGenerating immediately so the in-flight state is observable
+      // synchronously (also plumbs to ChatInput's disabled guard before any
+      // await), not after several network hops.
+      setIsGenerating(true);
 
       const userName = resolvedPersona.name;
       const userMsg: ChatMessageType = {
@@ -721,7 +742,6 @@ export function ChatView({ characterId }: ChatViewProps) {
       const model = (settings?.chat_completion_model as string) || 'gpt-3.5-turbo';
       const reverseProxy = (settings?.reverse_proxy as string) || undefined;
 
-      setIsGenerating(true);
       emit('generation_started', { characterId });
       setStreamingContent('');
       setStreamingThinking(undefined);
@@ -982,6 +1002,7 @@ export function ChatView({ characterId }: ChatViewProps) {
         setIsGenerating(false);
         emit('generation_stopped', { characterId });
         abortRef.current = null;
+        isSendingRef.current = false;
       }
     },
     [
