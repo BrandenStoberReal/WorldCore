@@ -212,7 +212,7 @@ const TEXT_DEFAULTS = {
   epsilon_cutoff: 0,
   eta_cutoff: 0,
   rep_pen_decay: 0,
-  dry_penalty_last_n: -1,
+  dry_penalty_last_n: 0,
   dry_sequence_breakers: '',
   min_temp: 0,
   max_temp: 0,
