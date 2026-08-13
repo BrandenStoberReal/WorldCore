@@ -47,6 +47,8 @@ export interface AppStore {
   setAllowCharacterExternalMedia: (enabled: boolean) => void;
   embeddedImageSize: EmbeddedImageSize;
   setEmbeddedImageSize: (size: EmbeddedImageSize) => void;
+  browserBlurThumbnails: boolean;
+  setBrowserBlurThumbnails: (enabled: boolean) => void;
   user: User | null;
   setUser: (user: User | null) => void;
   initUser: () => Promise<void>;
@@ -94,6 +96,11 @@ export const useAppStore = create<AppStore>((set) => ({
   setEmbeddedImageSize: (size) => {
     set({ embeddedImageSize: size });
     void saveSettingsPatch({ embeddedImages: { size } }).catch(() => {});
+  },
+  browserBlurThumbnails: false,
+  setBrowserBlurThumbnails: (enabled) => {
+    set({ browserBlurThumbnails: enabled });
+    void saveSettingsPatch({ browserBlurThumbnails: enabled }).catch(() => {});
   },
   user: null,
   setUser: (user) => set({ user }),
@@ -145,6 +152,9 @@ export const useAppStore = create<AppStore>((set) => ({
           if (size === 'small' || size === 'medium' || size === 'large' || size === 'xlarge') {
             set({ embeddedImageSize: size });
           }
+        }
+        if (typeof settings.browserBlurThumbnails === 'boolean') {
+          set({ browserBlurThumbnails: settings.browserBlurThumbnails });
         }
         // Restore generation mode/preset from backend (survives localStorage clear).
         const genMode = settings.generationMode;

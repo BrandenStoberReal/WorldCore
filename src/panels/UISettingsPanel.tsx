@@ -55,6 +55,8 @@ export function UISettingsPanel() {
   const setAllowCharacterExternalMedia = useAppStore((s) => s.setAllowCharacterExternalMedia);
   const embeddedImageSize = useAppStore((s) => s.embeddedImageSize);
   const setEmbeddedImageSize = useAppStore((s) => s.setEmbeddedImageSize);
+  const browserBlurThumbnails = useAppStore((s) => s.browserBlurThumbnails);
+  const setBrowserBlurThumbnails = useAppStore((s) => s.setBrowserBlurThumbnails);
 
   return (
     <div data-panel="ui-settings" className="section-rhythm relative isolate">
@@ -136,6 +138,22 @@ export function UISettingsPanel() {
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="gap-4 py-4">
+          <CardHeader className="px-4">
+            <CardTitle className="text-muted-foreground/60 text-sm font-semibold tracking-wider uppercase">
+              Character Browser
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4">
+            <Toggle
+              checked={browserBlurThumbnails}
+              onChange={setBrowserBlurThumbnails}
+              label="Blur thumbnails"
+              description="Blur character thumbnails in the browser until hovered"
+            />
           </CardContent>
         </Card>
       </div>
