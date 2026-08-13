@@ -53,13 +53,10 @@ export async function appendJsonlLine<T>(filePath: string, record: T): Promise<v
     const dir = path.dirname(filePath);
     await fs.mkdir(dir, { recursive: true });
 
-    let prefix = '\n';
-    try {
-      const { size } = await fs.stat(filePath);
-      if (size === 0) prefix = '';
-    } catch {
-      prefix = '';
-    }
+    // Sync lazy size read saves an async stat syscall per append; treats
+    // non-existent and empty files identically (size 0 → no leading newline).
+    const size = Bun.file(filePath).size;
+    const prefix = size > 0 ? '\n' : '';
 
     await fs.appendFile(filePath, prefix + line, 'utf-8');
   });
