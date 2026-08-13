@@ -101,10 +101,7 @@ export class ChatService {
       const lastLine = await readLastLine(filePath);
       if (lastLine) {
         const parsed = JSON.parse(lastLine) as ChatMetadata | ChatMessage;
-        if (
-          'mes' in parsed &&
-          dedupKeys.every((k) => (parsed as ChatMessage)[k] === message[k])
-        ) {
+        if ('mes' in parsed && dedupKeys.every((k) => (parsed as ChatMessage)[k] === message[k])) {
           return;
         }
       }
@@ -212,44 +209,46 @@ export class ChatService {
   async listByCharacter(userId: string, characterName: string): Promise<ChatInfo[]> {
     const chatDir = getUserChatPath(userId);
     const files = await listFiles(chatDir, '.jsonl');
-    const results: ChatInfo[] = [];
 
-    for (const file of files) {
-      const fileId = path.basename(file, '.jsonl');
-      const filePath = path.join(chatDir, file);
-      const stat = await fs.stat(filePath);
-      const firstLine = await readFirstLine(filePath);
-      if (!firstLine) continue;
+    const entries = await Promise.all(
+      files.map(async (file): Promise<ChatInfo | null> => {
+        const fileId = path.basename(file, '.jsonl');
+        const filePath = path.join(chatDir, file);
+        const stat = await fs.stat(filePath);
+        const firstLine = await readFirstLine(filePath);
+        if (!firstLine) return null;
 
-      let metadata: ChatMetadata;
-      try {
-        metadata = JSON.parse(firstLine) as ChatMetadata;
-      } catch {
-        continue;
-      }
-
-      if (metadata.character_name !== characterName) continue;
-
-      const lastLine = await readLastLine(filePath);
-      let lastMsg: ChatMessage | undefined;
-      if (lastLine) {
+        let metadata: ChatMetadata;
         try {
-          const parsed = JSON.parse(lastLine) as ChatMetadata | ChatMessage;
-          if ('mes' in parsed) lastMsg = parsed as ChatMessage;
-        } catch {}
-      }
+          metadata = JSON.parse(firstLine) as ChatMetadata;
+        } catch {
+          return null;
+        }
 
-      results.push({
-        file_id: fileId,
-        file_name: file,
-        file_size: stat.size,
-        chat_items: [],
-        mes: lastMsg?.mes?.slice(0, 100) || '',
-        last_mes: lastMsg?.send_date || new Date(stat.mtimeMs).toISOString(),
-        chat_metadata: metadata,
-      });
-    }
+        if (metadata.character_name !== characterName) return null;
 
+        const lastLine = await readLastLine(filePath);
+        let lastMsg: ChatMessage | undefined;
+        if (lastLine) {
+          try {
+            const parsed = JSON.parse(lastLine) as ChatMetadata | ChatMessage;
+            if ('mes' in parsed) lastMsg = parsed as ChatMessage;
+          } catch {}
+        }
+
+        return {
+          file_id: fileId,
+          file_name: file,
+          file_size: stat.size,
+          chat_items: [],
+          mes: lastMsg?.mes?.slice(0, 100) || '',
+          last_mes: lastMsg?.send_date || new Date(stat.mtimeMs).toISOString(),
+          chat_metadata: metadata,
+        };
+      }),
+    );
+
+    const results = entries.filter((e): e is ChatInfo => e !== null);
     return results.sort((a, b) => {
       const aDate = new Date(a.last_mes).getTime();
       const bDate = new Date(b.last_mes).getTime();
@@ -260,42 +259,43 @@ export class ChatService {
   async listAll(userId: string): Promise<ChatInfo[]> {
     const chatDir = getUserChatPath(userId);
     const files = await listFiles(chatDir, '.jsonl');
-    const results: ChatInfo[] = [];
 
-    for (const file of files) {
-      const fileId = path.basename(file, '.jsonl');
-      const filePath = path.join(chatDir, file);
-      const stat = await fs.stat(filePath);
-      const firstLine = await readFirstLine(filePath);
+    const entries = await Promise.all(
+      files.map(async (file): Promise<ChatInfo> => {
+        const fileId = path.basename(file, '.jsonl');
+        const filePath = path.join(chatDir, file);
+        const stat = await fs.stat(filePath);
+        const firstLine = await readFirstLine(filePath);
 
-      let metadata: ChatMetadata | undefined;
-      if (firstLine) {
-        try {
-          metadata = JSON.parse(firstLine) as ChatMetadata;
-        } catch {}
-      }
+        let metadata: ChatMetadata | undefined;
+        if (firstLine) {
+          try {
+            metadata = JSON.parse(firstLine) as ChatMetadata;
+          } catch {}
+        }
 
-      const lastLine = await readLastLine(filePath);
-      let lastMsg: ChatMessage | undefined;
-      if (lastLine) {
-        try {
-          const parsed = JSON.parse(lastLine) as ChatMetadata | ChatMessage;
-          if ('mes' in parsed) lastMsg = parsed as ChatMessage;
-        } catch {}
-      }
+        const lastLine = await readLastLine(filePath);
+        let lastMsg: ChatMessage | undefined;
+        if (lastLine) {
+          try {
+            const parsed = JSON.parse(lastLine) as ChatMetadata | ChatMessage;
+            if ('mes' in parsed) lastMsg = parsed as ChatMessage;
+          } catch {}
+        }
 
-      results.push({
-        file_id: fileId,
-        file_name: file,
-        file_size: stat.size,
-        chat_items: [],
-        mes: lastMsg?.mes?.slice(0, 100) || '',
-        last_mes: lastMsg?.send_date || new Date(stat.mtimeMs).toISOString(),
-        chat_metadata: metadata,
-      });
-    }
+        return {
+          file_id: fileId,
+          file_name: file,
+          file_size: stat.size,
+          chat_items: [],
+          mes: lastMsg?.mes?.slice(0, 100) || '',
+          last_mes: lastMsg?.send_date || new Date(stat.mtimeMs).toISOString(),
+          chat_metadata: metadata,
+        };
+      }),
+    );
 
-    return results.sort((a, b) => {
+    return entries.sort((a, b) => {
       const aDate = new Date(a.last_mes).getTime();
       const bDate = new Date(b.last_mes).getTime();
       return bDate - aDate;
@@ -305,44 +305,47 @@ export class ChatService {
   async search(userId: string, query: string): Promise<SearchChatResult[]> {
     const chatDir = getUserChatPath(userId);
     const files = await listFiles(chatDir, '.jsonl');
-    const results: SearchChatResult[] = [];
     const lowerQuery = query.toLowerCase();
 
-    for (const file of files) {
-      const fileId = path.basename(file, '.jsonl');
-      const filePath = path.join(chatDir, file);
-      const stream = await readJsonlStream<ChatMetadata | ChatMessage>(filePath);
+    const entries = await Promise.all(
+      files.map(async (file): Promise<SearchChatResult | null> => {
+        const fileId = path.basename(file, '.jsonl');
+        const filePath = path.join(chatDir, file);
+        const stream = await readJsonlStream<ChatMetadata | ChatMessage>(filePath);
 
-      for await (const record of stream) {
-        if ('mes' in record && (record as ChatMessage).mes.toLowerCase().includes(lowerQuery)) {
-          results.push({
-            file_id: fileId,
-            file_name: file,
-            match: (record as ChatMessage).mes.slice(0, 200),
-          });
-          break;
+        for await (const record of stream) {
+          if ('mes' in record && (record as ChatMessage).mes.toLowerCase().includes(lowerQuery)) {
+            return {
+              file_id: fileId,
+              file_name: file,
+              match: (record as ChatMessage).mes.slice(0, 200),
+            };
+          }
         }
-      }
-    }
+        return null;
+      }),
+    );
 
-    return results;
+    return entries.filter((e): e is SearchChatResult => e !== null);
   }
 
   async getRecent(userId: string, limit: number = 10): Promise<RecentChat[]> {
     const chatDir = getUserChatPath(userId);
     const files = await listFiles(chatDir, '.jsonl');
-    const recent: Array<{ file: string; mtime: number }> = [];
 
-    for (const file of files) {
-      const filePath = path.join(chatDir, file);
-      try {
-        const stat = await fs.stat(filePath);
-        recent.push({ file, mtime: stat.mtimeMs });
-      } catch {
-        // Skip unreadable files
-      }
-    }
+    const stats = await Promise.all(
+      files.map(async (file): Promise<{ file: string; mtime: number } | null> => {
+        const filePath = path.join(chatDir, file);
+        try {
+          const stat = await fs.stat(filePath);
+          return { file, mtime: stat.mtimeMs };
+        } catch {
+          return null;
+        }
+      }),
+    );
 
+    const recent = stats.filter((s): s is { file: string; mtime: number } => s !== null);
     recent.sort((a, b) => b.mtime - a.mtime);
 
     return recent.slice(0, limit).map((r) => {
@@ -457,26 +460,29 @@ export class ChatService {
   async listGroupChats(userId: string, groupId: string): Promise<ChatInfo[]> {
     const groupChatDir = getUserGroupChatPath(userId);
     const files = await listFiles(groupChatDir, '.jsonl');
-    const results: ChatInfo[] = [];
 
-    for (const file of files) {
-      const fileId = path.basename(file, '.jsonl');
-      const filePath = path.join(groupChatDir, file);
-      const stat = await fs.stat(filePath);
-      const firstLine = await readFirstLine(filePath);
+    const entries = await Promise.all(
+      files.map(async (file): Promise<ChatInfo | null> => {
+        const fileId = path.basename(file, '.jsonl');
+        const filePath = path.join(groupChatDir, file);
+        const stat = await fs.stat(filePath);
+        const firstLine = await readFirstLine(filePath);
 
-      let metadata: ChatMetadata | undefined;
-      if (firstLine) {
-        try {
-          metadata = JSON.parse(firstLine) as ChatMetadata;
-        } catch {}
-      }
+        let metadata: ChatMetadata | undefined;
+        if (firstLine) {
+          try {
+            metadata = JSON.parse(firstLine) as ChatMetadata;
+          } catch {}
+        }
 
-      if (
-        metadata &&
-        typeof (metadata as Record<string, unknown>).group === 'string' &&
-        (metadata as Record<string, unknown>).group === groupId
-      ) {
+        if (!(
+          metadata &&
+          typeof (metadata as Record<string, unknown>).group === 'string' &&
+          (metadata as Record<string, unknown>).group === groupId
+        )) {
+          return null;
+        }
+
         const lastLine = await readLastLine(filePath);
         let lastMsg: ChatMessage | undefined;
         if (lastLine) {
@@ -486,7 +492,7 @@ export class ChatService {
           } catch {}
         }
 
-        results.push({
+        return {
           file_id: fileId,
           file_name: file,
           file_size: stat.size,
@@ -494,11 +500,11 @@ export class ChatService {
           mes: lastMsg?.mes?.slice(0, 100) || '',
           last_mes: lastMsg?.send_date || new Date(stat.mtimeMs).toISOString(),
           chat_metadata: metadata,
-        });
-      }
-    }
+        };
+      }),
+    );
 
-    return results;
+    return entries.filter((e): e is ChatInfo => e !== null);
   }
 
   private async getMessagesFromPath(filePath: string): Promise<ChatMessage[]> {
