@@ -49,6 +49,8 @@ export interface AppStore {
   setEmbeddedImageSize: (size: EmbeddedImageSize) => void;
   browserBlurThumbnails: boolean;
   setBrowserBlurThumbnails: (enabled: boolean) => void;
+  browserBlockedTags: string[];
+  setBrowserBlockedTags: (tags: string[]) => void;
   user: User | null;
   setUser: (user: User | null) => void;
   initUser: () => Promise<void>;
@@ -101,6 +103,11 @@ export const useAppStore = create<AppStore>((set) => ({
   setBrowserBlurThumbnails: (enabled) => {
     set({ browserBlurThumbnails: enabled });
     void saveSettingsPatch({ browserBlurThumbnails: enabled }).catch(() => {});
+  },
+  browserBlockedTags: [],
+  setBrowserBlockedTags: (tags) => {
+    set({ browserBlockedTags: tags });
+    void saveSettingsPatch({ browserBlockedTags: tags }).catch(() => {});
   },
   user: null,
   setUser: (user) => set({ user }),
@@ -155,6 +162,9 @@ export const useAppStore = create<AppStore>((set) => ({
         }
         if (typeof settings.browserBlurThumbnails === 'boolean') {
           set({ browserBlurThumbnails: settings.browserBlurThumbnails });
+        }
+        if (Array.isArray(settings.browserBlockedTags)) {
+          set({ browserBlockedTags: settings.browserBlockedTags });
         }
         // Restore generation mode/preset from backend (survives localStorage clear).
         const genMode = settings.generationMode;

@@ -1,8 +1,10 @@
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils';
 import { useAppStore, type EmbeddedImageSize } from '@/lib/stores';
 import { IMAGE_SIZE_CLASSES } from '@/shared/schemas/embedded-images';
+import { X, Plus } from 'lucide-react';
 
 function Toggle({
   checked,
@@ -57,6 +59,50 @@ export function UISettingsPanel() {
   const setEmbeddedImageSize = useAppStore((s) => s.setEmbeddedImageSize);
   const browserBlurThumbnails = useAppStore((s) => s.browserBlurThumbnails);
   const setBrowserBlurThumbnails = useAppStore((s) => s.setBrowserBlurThumbnails);
+  const browserBlockedTags = useAppStore((s) => s.browserBlockedTags);
+  const setBrowserBlockedTags = useAppStore((s) => s.setBrowserBlockedTags);
+
+  const [addingTag, setAddingTag] = useState(false);
+  const [newTag, setNewTag] = useState('');
+  const tagInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (addingTag && tagInputRef.current) {
+      tagInputRef.current.focus();
+    }
+  }, [addingTag]);
+
+  const addTag = useCallback(() => {
+    const trimmed = newTag.trim();
+    if (!trimmed || browserBlockedTags.some((t) => t.toLowerCase() === trimmed.toLowerCase())) {
+      setAddingTag(false);
+      setNewTag('');
+      return;
+    }
+    setBrowserBlockedTags([...browserBlockedTags, trimmed]);
+    setNewTag('');
+    setAddingTag(false);
+  }, [newTag, browserBlockedTags, setBrowserBlockedTags]);
+
+  const removeTag = useCallback(
+    (tag: string) => {
+      setBrowserBlockedTags(browserBlockedTags.filter((t) => t !== tag));
+    },
+    [browserBlockedTags, setBrowserBlockedTags],
+  );
+
+  const handleTagKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addTag();
+      } else if (e.key === 'Escape') {
+        setAddingTag(false);
+        setNewTag('');
+      }
+    },
+    [addTag],
+  );
 
   return (
     <div data-panel="ui-settings" className="section-rhythm relative isolate">
@@ -147,13 +193,65 @@ export function UISettingsPanel() {
               Character Browser
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4">
+          <CardContent className="space-y-3 px-4">
             <Toggle
               checked={browserBlurThumbnails}
               onChange={setBrowserBlurThumbnails}
               label="Blur thumbnails"
               description="Blur character thumbnails in the browser until hovered"
             />
+            <div className="space-y-2">
+              <label className="text-[13px] font-medium">Tag blacklist</label>
+              <p className="text-muted-foreground/55 text-[12px]">
+                Hide characters with these tags from the browser. Extensions can also use this list
+                for filtering.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {browserBlockedTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="group/tag inline-flex items-center gap-1 rounded-md border border-border/60 bg-muted/50 px-2 py-1 text-sm"
+                  >
+                    <span>{tag}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      title={`Remove tag: ${tag}`}
+                      aria-label={`Remove tag ${tag}`}
+                      className="text-muted-foreground/50 rounded transition-colors hover:text-destructive opacity-0 group-hover/tag:opacity-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+
+                {addingTag ? (
+                  <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/50 px-2 py-1">
+                    <input
+                      ref={tagInputRef}
+                      type="text"
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      onKeyDown={handleTagKeyDown}
+                      onBlur={addTag}
+                      placeholder="type a tag…"
+                      className="w-24 bg-transparent text-sm outline-none"
+                    />
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAddingTag(true)}
+                    title="Add blocked tag"
+                    aria-label="Add blocked tag"
+                    className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-muted/30 px-2 py-1 text-sm text-muted-foreground transition-colors hover:border-ember/40 hover:text-ember"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add tag
+                  </button>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

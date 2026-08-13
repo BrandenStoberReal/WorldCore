@@ -170,6 +170,17 @@ function chipColor(index: number): string {
 export function CharacterBrowserPanel() {
   const queryClient = useQueryClient();
   const blurThumbnails = useAppStore((s) => s.browserBlurThumbnails);
+  const browserBlockedTags = useAppStore((s) => s.browserBlockedTags);
+
+  /* ── case-insensitive blocked tag lookup ── */
+  const blockedTagSet = useMemo(
+    () => new Set(browserBlockedTags.map((t) => t.toLowerCase())),
+    [browserBlockedTags],
+  );
+
+  function isBlockedByTag(r: CardListing): boolean {
+    return blockedTagSet.size > 0 && r.tags.some((t) => blockedTagSet.has(t.toLowerCase()));
+  }
 
   /* ── registry (external store) ── */
   const sources = useSyncExternalStore(
@@ -195,7 +206,6 @@ export function CharacterBrowserPanel() {
   const [cardDetails, setCardDetails] = useState<CardDetails | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [hideInstalled, setHideInstalled] = useState(false);
-  const consumedKeysRef = useRef(new Set<string>());
   const resultsRef = useRef<CardListing[]>([]);
   const sourceCursorsRef = useRef<Map<string, string>>(new Map());
   const bufferRef = useRef<CardListing[]>([]);
@@ -356,30 +366,31 @@ export function CharacterBrowserPanel() {
   const GRID_COLS = 5;
 
   const visibleResults = useMemo(() => {
-    if (!hideInstalled) return results;
-    return results.filter((r) => {
-      const state = cardState(r);
-      if (state === 'done') {
-        consumedKeysRef.current.add(`${r.sourceId}::${r.cardId}`);
-        return false;
-      }
-      return true;
-    });
-  }, [results, hideInstalled, dedupKeys, persistentInstalledKeys, downloadState]);
+    let items = results.filter((r) => !isBlockedByTag(r));
+
+    if (hideInstalled) {
+      items = items.filter((r) => cardState(r) !== 'done');
+    }
+
+    return items;
+  }, [results, hideInstalled, dedupKeys, persistentInstalledKeys, downloadState, blockedTagSet]);
 
   const displayedResults = useMemo(() => {
-    if (!hideInstalled || bufferRef.current.length === 0) return visibleResults;
-    const remainder = visibleResults.length % GRID_COLS;
-    if (remainder === 0) return visibleResults;
+    const raw = visibleResults;
+    if (bufferRef.current.length === 0) return raw;
+    const remainder = raw.length % GRID_COLS;
+    if (remainder === 0) return raw;
     const needed = GRID_COLS - remainder;
     const filler = bufferRef.current
-      .filter((r) => {
-        const key = `${r.sourceId}::${r.cardId}`;
-        return !consumedKeysRef.current.has(key) && !visibleResults.some((v) => v.sourceId === r.sourceId && v.cardId === r.cardId);
-      })
+      .filter(
+        (r) =>
+          !isBlockedByTag(r) &&
+          cardState(r) !== 'done' &&
+          !raw.some((v) => v.sourceId === r.sourceId && v.cardId === r.cardId),
+      )
       .slice(0, needed);
-    return filler.length > 0 ? [...visibleResults, ...filler] : visibleResults;
-  }, [visibleResults, bufferVersion, hideInstalled]);
+    return filler.length > 0 ? [...raw, ...filler] : raw;
+  }, [visibleResults, bufferVersion, blockedTagSet, dedupKeys, persistentInstalledKeys, downloadState]);
 
   const allInLibrary =
     results.length > 0 && results.every((r) => cardState(r) === 'done');
@@ -389,10 +400,18 @@ export function CharacterBrowserPanel() {
   const targetVisible = Math.ceil(batch_size / GRID_COLS) * GRID_COLS || GRID_COLS;
 
   useEffect(() => {
-    if (!hideInstalled || isSearching) return;
+    if (isSearching) return;
+
+    const currentConsumed = new Set<string>();
+    for (const r of resultsRef.current) {
+      if (cardState(r) === 'done') currentConsumed.add(`${r.sourceId}::${r.cardId}`);
+    }
 
     const bufferedVisible = bufferRef.current.filter(
-      (r) => !consumedKeysRef.current.has(`${r.sourceId}::${r.cardId}`),
+      (r) =>
+        !currentConsumed.has(`${r.sourceId}::${r.cardId}`) &&
+        !isBlockedByTag(r) &&
+        cardState(r) !== 'done',
     ).length;
     const totalAvailable = visibleResults.length + bufferedVisible;
 
@@ -403,7 +422,7 @@ export function CharacterBrowserPanel() {
       }
       for (const item of bufferRef.current) {
         const key = `${item.sourceId}::${item.cardId}`;
-        if (hideInstalled && consumedKeysRef.current.has(key)) continue;
+        if (isBlockedByTag(item) || cardState(item) === 'done') continue;
         appended.set(key, item);
       }
       bufferRef.current = [];
@@ -467,7 +486,7 @@ export function CharacterBrowserPanel() {
     });
 
     return () => { stale = true; };
-  }, [visibleResults.length, hideInstalled, isSearching, sourceCursors.size, sortBy]);
+  }, [visibleResults.length, hideInstalled, isSearching, sourceCursors.size, sortBy, blockedTagSet]);
 
   /* ── download (serialised) ── */
   async function downloadSingle(listing: CardListing): Promise<void> {
@@ -564,7 +583,7 @@ export function CharacterBrowserPanel() {
       }
       for (const item of bufferRef.current) {
         const key = `${item.sourceId}::${item.cardId}`;
-        if (hideInstalled && consumedKeysRef.current.has(key)) continue;
+        if (isBlockedByTag(item) || cardState(item) === 'done') continue;
         appended.set(key, item);
       }
       bufferRef.current = [];
@@ -617,7 +636,7 @@ export function CharacterBrowserPanel() {
       for (const { sourceId, items, nextCursor } of sourceResults) {
         for (const item of items) {
           const key = `${sourceId}::${item.cardId}`;
-          if (hideInstalled && consumedKeysRef.current.has(key)) continue;
+          if (isBlockedByTag(item) || cardState(item) === 'done') continue;
           appended.set(key, item);
         }
         if (nextCursor) nextCursors.set(sourceId, nextCursor);
@@ -668,12 +687,7 @@ export function CharacterBrowserPanel() {
         </div>
         <button
           type="button"
-          onClick={() => {
-            setHideInstalled((prev) => {
-              if (!prev) consumedKeysRef.current.clear();
-              return !prev;
-            });
-          }}
+          onClick={() => setHideInstalled((prev) => !prev)}
           className={cn(
             'inline-flex h-8 items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium transition-colors',
             hideInstalled
