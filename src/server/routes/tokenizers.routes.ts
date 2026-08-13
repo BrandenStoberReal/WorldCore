@@ -3,6 +3,19 @@ import { TokenizeRequestSchema, TokenizeResponseSchema } from '@/shared/schemas/
 import { TiktokenTokenizer } from '@/server/tokenizers/tiktoken';
 import { ValidationError } from '@/server/errors';
 
+// `get_encoding` (inside `new TiktokenTokenizer`) loads WASM + BPE ranks;
+// caching the constructed tokenizer per model name avoids that cost per request.
+const tokenizerCache = new Map<string, TiktokenTokenizer>();
+
+function getTokenizer(model: string): TiktokenTokenizer {
+  let tokenizer = tokenizerCache.get(model);
+  if (tokenizer === undefined) {
+    tokenizer = new TiktokenTokenizer(model);
+    tokenizerCache.set(model, tokenizer);
+  }
+  return tokenizer;
+}
+
 export const tokenizersRoutes = {
   count: errorGuard(async (req: Request): Promise<Response> => {
     const body = (await req.json()) as Record<string, unknown>;
@@ -10,7 +23,7 @@ export const tokenizersRoutes = {
     if (!parsed.success) {
       throw new ValidationError(parsed.error.errors);
     }
-    const tokenizer = new TiktokenTokenizer(parsed.data.model);
+    const tokenizer = getTokenizer(parsed.data.model);
     const count = tokenizer.countTokens(parsed.data.text);
     return Response.json({ count });
   }),
@@ -21,7 +34,7 @@ export const tokenizersRoutes = {
     if (!parsed.success) {
       throw new ValidationError(parsed.error.errors);
     }
-    const tokenizer = new TiktokenTokenizer(parsed.data.model);
+    const tokenizer = getTokenizer(parsed.data.model);
     const tokens = tokenizer.encode(parsed.data.text);
     const result = TokenizeResponseSchema.parse({
       tokens,
@@ -38,7 +51,7 @@ export const tokenizersRoutes = {
     if (!model || !Array.isArray(tokens)) {
       throw new ValidationError([{ message: 'model and tokens are required' }]);
     }
-    const tokenizer = new TiktokenTokenizer(model);
+    const tokenizer = getTokenizer(model);
     const text = tokenizer.decode(tokens as number[]);
     return Response.json({ text, count: (tokens as number[]).length });
   }),
