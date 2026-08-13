@@ -70,7 +70,7 @@ export class LlamaCppAdapter implements TextCompletionAdapter {
     const repPenDecay = num('rep_pen_decay');
     if (repPenDecay !== undefined) body.repeat_penalty_decay = repPenDecay;
     const dryPenaltyLastN = num('dry_penalty_last_n');
-    if (dryPenaltyLastN !== undefined) body.dry_penalty_last_n = dryPenaltyLastN;
+    if (dryPenaltyLastN !== undefined) body.dry_penalty_last_n = Math.max(0, dryPenaltyLastN);
     const minTemp = num('min_temp');
     if (minTemp !== undefined) body.min_temp = minTemp;
     const maxTemp = num('max_temp');
