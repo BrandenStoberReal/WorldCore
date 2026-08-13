@@ -11,11 +11,13 @@ import {
   ChevronDown,
   ChevronRight,
   ArrowLeft,
+  EyeOff,
 } from 'lucide-react';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { emit } from '@/lib/extensionEventBus';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
+import { useAppStore } from '@/lib/stores';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -167,6 +169,7 @@ function chipColor(index: number): string {
 
 export function CharacterBrowserPanel() {
   const queryClient = useQueryClient();
+  const blurThumbnails = useAppStore((s) => s.browserBlurThumbnails);
 
   /* ── registry (external store) ── */
   const sources = useSyncExternalStore(
@@ -187,9 +190,16 @@ export function CharacterBrowserPanel() {
   >(new Map());
   const [sourceCursors, setSourceCursors] = useState<Map<string, string>>(new Map());
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const isGapFillingRef = useRef(false);
   const [selectedCard, setSelectedCard] = useState<CardListing | null>(null);
   const [cardDetails, setCardDetails] = useState<CardDetails | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [hideInstalled, setHideInstalled] = useState(false);
+  const consumedKeysRef = useRef(new Set<string>());
+  const resultsRef = useRef<CardListing[]>([]);
+  const sourceCursorsRef = useRef<Map<string, string>>(new Map());
+  const bufferRef = useRef<CardListing[]>([]);
+  const [bufferVersion, setBufferVersion] = useState(0);
 
   const downloadChainRef = useRef(Promise.resolve());
 
@@ -264,6 +274,7 @@ export function CharacterBrowserPanel() {
     let stale = false;
     setIsSearching(true);
     setSourceCursors(new Map());
+    bufferRef.current = [];
 
     const activeSources = sources.filter(
       (s) => (activeSourceIds.size === 0 || activeSourceIds.has(s.id)) && (s.search || s.browse),
@@ -319,6 +330,144 @@ export function CharacterBrowserPanel() {
       stale = true;
     };
   }, [debouncedQuery, activeSourceIds, sources, sortBy]);
+
+  useEffect(() => {
+    resultsRef.current = results;
+  }, [results]);
+
+  useEffect(() => {
+    sourceCursorsRef.current = sourceCursors;
+  }, [sourceCursors]);
+
+  /* ── derived ── */
+  const hasQuery = debouncedQuery.trim().length > 0;
+  const noSources = sources.length === 0;
+
+  function cardState(listing: CardListing): 'idle' | 'downloading' | 'done' | 'error' {
+    const key = `${listing.sourceId}::${listing.cardId}`;
+    const explicit = downloadState.get(key);
+    if (explicit) return explicit;
+    if (persistentInstalledKeys.has(key)) return 'done';
+    if (dedupKeys.has(dedupKey(listing.name, listing.creator))) return 'done';
+    return 'idle';
+  }
+
+  /* ── visible results: filter installed when toggle is on ── */
+  const GRID_COLS = 5;
+
+  const visibleResults = useMemo(() => {
+    if (!hideInstalled) return results;
+    return results.filter((r) => {
+      const state = cardState(r);
+      if (state === 'done') {
+        consumedKeysRef.current.add(`${r.sourceId}::${r.cardId}`);
+        return false;
+      }
+      return true;
+    });
+  }, [results, hideInstalled, dedupKeys, persistentInstalledKeys, downloadState]);
+
+  const displayedResults = useMemo(() => {
+    if (!hideInstalled || bufferRef.current.length === 0) return visibleResults;
+    const remainder = visibleResults.length % GRID_COLS;
+    if (remainder === 0) return visibleResults;
+    const needed = GRID_COLS - remainder;
+    const filler = bufferRef.current
+      .filter((r) => {
+        const key = `${r.sourceId}::${r.cardId}`;
+        return !consumedKeysRef.current.has(key) && !visibleResults.some((v) => v.sourceId === r.sourceId && v.cardId === r.cardId);
+      })
+      .slice(0, needed);
+    return filler.length > 0 ? [...visibleResults, ...filler] : visibleResults;
+  }, [visibleResults, bufferVersion, hideInstalled]);
+
+  const allInLibrary =
+    results.length > 0 && results.every((r) => cardState(r) === 'done');
+
+  /* ── gap-filling: fetch into buffer, flush when we have enough or pages exhausted ── */
+  const batch_size = results.length;
+  const targetVisible = Math.ceil(batch_size / GRID_COLS) * GRID_COLS || GRID_COLS;
+
+  useEffect(() => {
+    if (!hideInstalled || isSearching) return;
+
+    const bufferedVisible = bufferRef.current.filter(
+      (r) => !consumedKeysRef.current.has(`${r.sourceId}::${r.cardId}`),
+    ).length;
+    const totalAvailable = visibleResults.length + bufferedVisible;
+
+    if (bufferRef.current.length > 0 && (totalAvailable >= targetVisible || sourceCursors.size === 0)) {
+      const appended = new Map<string, CardListing>();
+      for (const item of resultsRef.current) {
+        appended.set(`${item.sourceId}::${item.cardId}`, item);
+      }
+      for (const item of bufferRef.current) {
+        const key = `${item.sourceId}::${item.cardId}`;
+        if (hideInstalled && consumedKeysRef.current.has(key)) continue;
+        appended.set(key, item);
+      }
+      bufferRef.current = [];
+      setBufferVersion((v) => v + 1);
+      setResults([...appended.values()]);
+      return;
+    }
+
+    if (totalAvailable >= targetVisible || sourceCursors.size === 0) return;
+    if (isGapFillingRef.current) return;
+
+    let stale = false;
+    isGapFillingRef.current = true;
+
+    const activeSources = sources.filter(
+      (s) =>
+        (activeSourceIds.size === 0 || activeSourceIds.has(s.id)) &&
+        (s.search || s.browse) &&
+        sourceCursorsRef.current.has(s.id),
+    );
+
+    const hasQuery = debouncedQuery.trim().length > 0;
+
+    Promise.all(
+      activeSources.map(async (source) => {
+        const cursor = sourceCursorsRef.current.get(source.id);
+        if (!cursor) return { sourceId: source.id, items: [] as CardListing[] };
+        const opts = { sort: sortBy, cursor };
+        try {
+          let result: CardSearchResult;
+          if (hasQuery) {
+            result = source.search
+              ? await source.search(debouncedQuery.trim(), opts)
+              : { items: [] as CardListing[] };
+          } else if (source.browse) {
+            result = await source.browse(opts);
+          } else {
+            return { sourceId: source.id, items: [] as CardListing[] };
+          }
+          const { items, nextCursor } = await normalizeResult(result);
+          return { sourceId: source.id, items, nextCursor };
+        } catch {
+          return { sourceId: source.id, items: [] as CardListing[] };
+        }
+      }),
+    ).then((sourceResults) => {
+      if (stale) return;
+      isGapFillingRef.current = false;
+      const nextCursors = new Map(sourceCursorsRef.current);
+      const newBuffer = [...bufferRef.current];
+      for (const { sourceId, items, nextCursor } of sourceResults) {
+        for (const item of items) {
+          newBuffer.push(item);
+        }
+        if (nextCursor) nextCursors.set(sourceId, nextCursor);
+        else nextCursors.delete(sourceId);
+      }
+      bufferRef.current = newBuffer;
+      setBufferVersion((v) => v + 1);
+      setSourceCursors(nextCursors);
+    });
+
+    return () => { stale = true; };
+  }, [visibleResults.length, hideInstalled, isSearching, sourceCursors.size, sortBy]);
 
   /* ── download (serialised) ── */
   async function downloadSingle(listing: CardListing): Promise<void> {
@@ -406,14 +555,31 @@ export function CharacterBrowserPanel() {
 
   /* ── pagination: load more ── */
   async function loadMore() {
-    if (isLoadingMore || sourceCursors.size === 0) return;
+    if (isLoadingMore) return;
+
+    if (bufferRef.current.length > 0) {
+      const appended = new Map<string, CardListing>();
+      for (const item of resultsRef.current) {
+        appended.set(`${item.sourceId}::${item.cardId}`, item);
+      }
+      for (const item of bufferRef.current) {
+        const key = `${item.sourceId}::${item.cardId}`;
+        if (hideInstalled && consumedKeysRef.current.has(key)) continue;
+        appended.set(key, item);
+      }
+      bufferRef.current = [];
+      setResults([...appended.values()]);
+      return;
+    }
+
+    if (sourceCursorsRef.current.size === 0) return;
     setIsLoadingMore(true);
 
     const activeSources = sources.filter(
       (s) =>
         (activeSourceIds.size === 0 || activeSourceIds.has(s.id)) &&
         (s.search || s.browse) &&
-        sourceCursors.has(s.id),
+        sourceCursorsRef.current.has(s.id),
     );
 
     const hasQuery = debouncedQuery.trim().length > 0;
@@ -421,9 +587,8 @@ export function CharacterBrowserPanel() {
     try {
       const sourceResults = await Promise.all(
         activeSources.map(async (source) => {
-          const cursor = sourceCursors.get(source.id);
+          const cursor = sourceCursorsRef.current.get(source.id);
           if (!cursor) return { sourceId: source.id, items: [] as CardListing[] };
-          console.log(`[browser] loadMore: source="${source.id}" cursor="${cursor}"`);
           const opts = { sort: sortBy, cursor };
           try {
             let result: CardSearchResult;
@@ -437,55 +602,33 @@ export function CharacterBrowserPanel() {
               return { sourceId: source.id, items: [] as CardListing[] };
             }
             const { items, nextCursor } = await normalizeResult(result);
-            console.log(
-              `[browser] loadMore: source="${source.id}" got ${items.length} items, nextCursor="${nextCursor}"`,
-            );
             return { sourceId: source.id, items, nextCursor };
-          } catch (err) {
-            console.error(`[browser] loadMore error from "${source.id}":`, err);
+          } catch {
             return { sourceId: source.id, items: [] as CardListing[] };
           }
         }),
       );
 
       const appended = new Map<string, CardListing>();
-      for (const item of results) {
+      for (const item of resultsRef.current) {
         appended.set(`${item.sourceId}::${item.cardId}`, item);
       }
-      const nextCursors = new Map(sourceCursors);
-      let newCount = 0;
+      const nextCursors = new Map(sourceCursorsRef.current);
       for (const { sourceId, items, nextCursor } of sourceResults) {
         for (const item of items) {
           const key = `${sourceId}::${item.cardId}`;
-          if (!appended.has(key)) newCount++;
+          if (hideInstalled && consumedKeysRef.current.has(key)) continue;
           appended.set(key, item);
         }
         if (nextCursor) nextCursors.set(sourceId, nextCursor);
         else nextCursors.delete(sourceId);
       }
-      console.log(`[browser] loadMore: ${newCount} new items, ${appended.size} total`);
       setResults([...appended.values()]);
       setSourceCursors(nextCursors);
-    } catch (err) {
-      console.error('[browser] loadMore failed:', err);
+    } catch {
     } finally {
       setIsLoadingMore(false);
     }
-  }
-
-  /* ── derived ── */
-  const hasQuery = debouncedQuery.trim().length > 0;
-  const noSources = sources.length === 0;
-  const allInLibrary =
-    results.length > 0 && results.every((r) => dedupKeys.has(dedupKey(r.name, r.creator)));
-
-  function cardState(listing: CardListing): 'idle' | 'downloading' | 'done' | 'error' {
-    const key = `${listing.sourceId}::${listing.cardId}`;
-    const explicit = downloadState.get(key);
-    if (explicit) return explicit;
-    if (persistentInstalledKeys.has(key)) return 'done';
-    if (dedupKeys.has(dedupKey(listing.name, listing.creator))) return 'done';
-    return 'idle';
   }
 
   /* ────────────────────────────────────────────
@@ -523,6 +666,25 @@ export function CharacterBrowserPanel() {
           </select>
           <ChevronDown className="text-muted-foreground/50 pointer-events-none absolute top-1/2 right-1.5 h-3 w-3 -translate-y-1/2" />
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            setHideInstalled((prev) => {
+              if (!prev) consumedKeysRef.current.clear();
+              return !prev;
+            });
+          }}
+          className={cn(
+            'inline-flex h-8 items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium transition-colors',
+            hideInstalled
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              : 'border-border/60 bg-background/80 text-muted-foreground hover:bg-background hover:text-foreground',
+          )}
+          title={hideInstalled ? 'Show installed cards' : 'Hide installed cards'}
+        >
+          <EyeOff className="h-3.5 w-3.5" />
+          Hide Installed
+        </button>
       </header>
 
       {/* ── Source filter chips ── */}
@@ -595,11 +757,38 @@ export function CharacterBrowserPanel() {
         )}
 
         {/* Empty state 3 — all results already in library */}
-        {!noSources && !isSearching && allInLibrary && (
+        {!noSources && !isSearching && allInLibrary && !hideInstalled && (
           <EmptyState
             icon={<Check className="text-muted-foreground/55 h-4 w-4" />}
             title="All cards in this view are already in your library"
             description="Switch sources or search for something new."
+          />
+        )}
+
+        {/* Empty state 4 — hide installed on, all visible results filtered */}
+        {!noSources && !isSearching && hideInstalled && visibleResults.length === 0 && results.length > 0 && (
+          <EmptyState
+            icon={<EyeOff className="text-muted-foreground/55 h-4 w-4" />}
+            title="All cards in this view are already installed"
+            description="Load more results or turn off the hide installed filter."
+            action={
+              sourceCursors.size > 0 ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1"
+                  disabled={isLoadingMore}
+                  onClick={loadMore}
+                >
+                  {isLoadingMore ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" />
+                  )}
+                  {isLoadingMore ? 'Loading…' : 'Load More'}
+                </Button>
+              ) : undefined
+            }
           />
         )}
 
@@ -620,9 +809,9 @@ export function CharacterBrowserPanel() {
         )}
 
         {/* Card grid */}
-        {!noSources && !isSearching && results.length > 0 && !allInLibrary && !selectedCard && (
+        {!noSources && !isSearching && displayedResults.length > 0 && !allInLibrary && !selectedCard && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {results.map((listing) => {
+            {displayedResults.map((listing) => {
               const state = cardState(listing);
               return (
                 <div
@@ -647,7 +836,10 @@ export function CharacterBrowserPanel() {
                       src={listing.avatarUrl}
                       alt={listing.name}
                       loading="lazy"
-                      className="mb-2 aspect-square w-full rounded object-cover"
+                      className={cn(
+                        'mb-2 aspect-square w-full rounded object-cover transition-all duration-200',
+                        blurThumbnails && 'blur-md hover:blur-none',
+                      )}
                       onError={(e) => {
                         e.currentTarget.hidden = true;
                         e.currentTarget.nextElementSibling?.classList.remove('hidden');
@@ -752,7 +944,7 @@ export function CharacterBrowserPanel() {
         {!noSources &&
           !isSearching &&
           sourceCursors.size > 0 &&
-          results.length > 0 &&
+          visibleResults.length > 0 &&
           !allInLibrary &&
           !selectedCard && (
             <div className="mt-4 flex justify-center">
