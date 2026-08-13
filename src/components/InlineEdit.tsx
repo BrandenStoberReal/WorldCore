@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { renderMarkdown } from '@/lib/markdown';
 import { useAppStore } from '@/lib/stores';
+import { IMAGE_SIZE_CLASSES } from '@/shared/schemas/embedded-images';
 import { toastInfo } from '@/lib/toast';
 
 interface InlineEditProps {
@@ -42,6 +43,7 @@ export function InlineEdit({
   const hasNotifiedMedia = useRef(false);
   const renderCharacterHtml = useAppStore((s) => s.renderCharacterHtml);
   const allowCharacterExternalMedia = useAppStore((s) => s.allowCharacterExternalMedia);
+  const embeddedImageSize = useAppStore((s) => s.embeddedImageSize);
 
   const containsHtml = useMemo(
     () => !!(renderRich && value && /<[a-z][\s\S]*>/i.test(value)),
@@ -211,7 +213,7 @@ export function InlineEdit({
         <span className="display-host text-[16px] leading-tight">{value || placeholder}</span>
       ) : renderRich && value && renderCharacterHtml ? (
         <div className="text-foreground/70 text-[12px] leading-relaxed break-words">
-          {renderMarkdown(value, { allowExternalMedia: allowCharacterExternalMedia })}
+          {renderMarkdown(value, { allowExternalMedia: allowCharacterExternalMedia, imageMaxHeight: IMAGE_SIZE_CLASSES[embeddedImageSize] })}
         </div>
       ) : (
         <span className="text-foreground/70 text-[12px] leading-relaxed break-words whitespace-pre-wrap">

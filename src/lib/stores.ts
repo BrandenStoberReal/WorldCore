@@ -14,6 +14,7 @@ import { emit } from '@/lib/extensionEventBus';
 
 export type Theme = 'light' | 'dark' | 'system';
 export type MobileNavPosition = 'top' | 'bottom';
+export type EmbeddedImageSize = 'small' | 'medium' | 'large' | 'xlarge';
 
 export interface User {
   id: string;
@@ -44,6 +45,8 @@ export interface AppStore {
   setRenderCharacterHtml: (enabled: boolean) => void;
   allowCharacterExternalMedia: boolean;
   setAllowCharacterExternalMedia: (enabled: boolean) => void;
+  embeddedImageSize: EmbeddedImageSize;
+  setEmbeddedImageSize: (size: EmbeddedImageSize) => void;
   user: User | null;
   setUser: (user: User | null) => void;
   initUser: () => Promise<void>;
@@ -87,6 +90,11 @@ export const useAppStore = create<AppStore>((set) => ({
     set({ allowCharacterExternalMedia: enabled });
     void saveSettingsPatch({ allowCharacterExternalMedia: enabled }).catch(() => {});
   },
+  embeddedImageSize: 'small',
+  setEmbeddedImageSize: (size) => {
+    set({ embeddedImageSize: size });
+    void saveSettingsPatch({ embeddedImages: { size } }).catch(() => {});
+  },
   user: null,
   setUser: (user) => set({ user }),
   initUser: async () => {
@@ -127,6 +135,16 @@ export const useAppStore = create<AppStore>((set) => ({
         }
         if (typeof settings.allowCharacterExternalMedia === 'boolean') {
           set({ allowCharacterExternalMedia: settings.allowCharacterExternalMedia });
+        }
+        if (
+          settings.embeddedImages &&
+          typeof settings.embeddedImages === 'object' &&
+          'size' in settings.embeddedImages
+        ) {
+          const size = (settings.embeddedImages as { size: unknown }).size;
+          if (size === 'small' || size === 'medium' || size === 'large' || size === 'xlarge') {
+            set({ embeddedImageSize: size });
+          }
         }
         // Restore generation mode/preset from backend (survives localStorage clear).
         const genMode = settings.generationMode;

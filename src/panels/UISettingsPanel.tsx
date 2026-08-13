@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/lib/stores';
+import { useAppStore, type EmbeddedImageSize } from '@/lib/stores';
+import { IMAGE_SIZE_CLASSES } from '@/shared/schemas/embedded-images';
 
 function Toggle({
   checked,
@@ -52,6 +53,8 @@ export function UISettingsPanel() {
   const setRenderCharacterHtml = useAppStore((s) => s.setRenderCharacterHtml);
   const allowCharacterExternalMedia = useAppStore((s) => s.allowCharacterExternalMedia);
   const setAllowCharacterExternalMedia = useAppStore((s) => s.setAllowCharacterExternalMedia);
+  const embeddedImageSize = useAppStore((s) => s.embeddedImageSize);
+  const setEmbeddedImageSize = useAppStore((s) => s.setEmbeddedImageSize);
 
   return (
     <div data-panel="ui-settings" className="section-rhythm relative isolate">
@@ -108,6 +111,31 @@ export function UISettingsPanel() {
               label="Allow external media"
               description="Allow character cards to load images from external URLs (may have privacy implications)"
             />
+            {allowCharacterExternalMedia && (
+              <div className="space-y-2">
+                <label className="text-[13px] font-medium">Embedded image size</label>
+                <div className="flex gap-2">
+                  {(['small', 'medium', 'large', 'xlarge'] as const).map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setEmbeddedImageSize(size)}
+                      className={cn(
+                        'rounded-md border px-3 py-1.5 text-[13px] transition-colors',
+                        embeddedImageSize === size
+                          ? 'border-ember bg-ember/10 text-ember'
+                          : 'border-border bg-background/40 hover:bg-accent/30 text-muted-foreground',
+                      )}
+                    >
+                      {size === 'small' ? 'Small' : size === 'medium' ? 'Medium' : size === 'large' ? 'Large' : 'Extra Large'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-muted-foreground/55 text-[12px]">
+                  Default: Small (20em). Larger sizes may affect chat layout.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

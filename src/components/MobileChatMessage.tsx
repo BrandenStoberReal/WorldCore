@@ -4,6 +4,7 @@ import { cn, estimateTokens } from '@/lib/utils';
 import { substituteMacros, type MacroContext } from '@/lib/macros';
 import { renderMarkdown } from '@/lib/markdown';
 import { useAppStore } from '@/lib/stores';
+import { IMAGE_SIZE_CLASSES } from '@/shared/schemas/embedded-images';
 import { ChevronDown, Copy, Pencil, RotateCcw, Check, Trash2 } from 'lucide-react';
 
 function formatThinkingDuration(ms: number): string {
@@ -77,6 +78,7 @@ export const MobileChatMessage = memo(function MobileChatMessage({
   const [liveThinkingElapsed, setLiveThinkingElapsed] = useState<number | null>(null);
   const thinkingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const allowExternalMedia = useAppStore((s) => s.allowCharacterExternalMedia);
+  const embeddedImageSize = useAppStore((s) => s.embeddedImageSize);
 
   useEffect(() => {
     if (isStreaming) {
@@ -139,8 +141,8 @@ export const MobileChatMessage = memo(function MobileChatMessage({
     [msg.mes, macroContext],
   );
   const renderedContent = useMemo(
-    () => renderMarkdown(processedText, { highlightOpeningTags: true, allowExternalMedia }),
-    [processedText, allowExternalMedia],
+    () => renderMarkdown(processedText, { highlightOpeningTags: true, allowExternalMedia, imageMaxHeight: IMAGE_SIZE_CLASSES[embeddedImageSize] }),
+    [processedText, allowExternalMedia, embeddedImageSize],
   );
 
   const thinkingContent =

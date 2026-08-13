@@ -43,16 +43,22 @@ export interface RenderMarkdownOptions {
    * Default: false
    */
   allowExternalMedia?: boolean;
+  /**
+   * Tailwind class for maximum image height (e.g., 'max-h-[20em]', 'max-h-[30em]').
+   * When undefined, defaults to 'max-h-[20em]'.
+   */
+  imageMaxHeight?: string;
 }
 
 export function renderMarkdown(input: string, options?: RenderMarkdownOptions): ReactNode {
   if (input.length === 0) return null;
   const highlight = options?.highlightOpeningTags === true;
   const allowExternalMedia = options?.allowExternalMedia === true;
+  const imageMaxHeight = options?.imageMaxHeight ?? 'max-h-[20em]';
 
   const fullListKind = isListBlock(input);
   if (fullListKind !== null) {
-    return renderList(input, fullListKind, 0, highlight, allowExternalMedia);
+    return renderList(input, fullListKind, 0, highlight, allowExternalMedia, imageMaxHeight);
   }
 
   const blocks = input.split(/\n{2,}/);
@@ -82,10 +88,10 @@ export function renderMarkdown(input: string, options?: RenderMarkdownOptions): 
         }
       }
       const combined = merged.join('\n\n');
-      out.push(renderList(combined, listKind, i, highlight, allowExternalMedia));
+      out.push(renderList(combined, listKind, i, highlight, allowExternalMedia, imageMaxHeight));
       i = j;
     } else {
-      out.push(renderBlock(block, 0, i, highlight, allowExternalMedia));
+      out.push(renderBlock(block, 0, i, highlight, allowExternalMedia, imageMaxHeight));
       i++;
     }
   }
@@ -262,11 +268,12 @@ function renderBlock(
   key: number,
   highlight: boolean,
   allowExternalMedia: boolean,
+  imageMaxHeight: string,
 ): ReactNode {
   if (block.startsWith('> ') || block === '>' || block.startsWith('>\n')) {
-    return renderBlockquote(block, depth, key, highlight, allowExternalMedia);
+    return renderBlockquote(block, depth, key, highlight, allowExternalMedia, imageMaxHeight);
   }
-  return renderParagraphBlock(block, key, highlight, allowExternalMedia);
+  return renderParagraphBlock(block, key, highlight, allowExternalMedia, imageMaxHeight);
 }
 
 const UL_RE = /^[-*]\s+/;
@@ -299,6 +306,7 @@ function renderList(
   key: number,
   highlight: boolean,
   allowExternalMedia: boolean,
+  imageMaxHeight: string,
 ): ReactNode {
   const lines = block.split('\n');
   const items: ReactNode[] = [];
@@ -317,6 +325,7 @@ function renderList(
           prepared.images,
           0,
           highlight,
+          imageMaxHeight,
         )}
       </li>,
     );
@@ -347,6 +356,7 @@ function renderBlockquote(
   key: number,
   highlight: boolean,
   allowExternalMedia: boolean,
+  imageMaxHeight: string,
 ): ReactNode {
   if (depth >= MAX_BLOCKQUOTE_DEPTH) {
     // Depth exceeded — escape and render as paragraph to avoid infinite recursion.
@@ -360,6 +370,7 @@ function renderBlockquote(
           prepared.images,
           0,
           highlight,
+          imageMaxHeight,
         )}
       </p>
     );
@@ -379,7 +390,7 @@ function renderBlockquote(
 
   const body = bodyLines.join('\n');
   // Recursively render the body — may contain nested blockquotes.
-  const inner = renderBlock(body, depth + 1, 0, highlight, allowExternalMedia);
+  const inner = renderBlock(body, depth + 1, 0, highlight, allowExternalMedia, imageMaxHeight);
   return <blockquote key={key}>{inner}</blockquote>;
 }
 
@@ -388,6 +399,7 @@ function renderParagraphBlock(
   key: number,
   highlight: boolean,
   allowExternalMedia: boolean,
+  imageMaxHeight: string,
 ): ReactNode {
   const prepared = prepareBlock(block, allowExternalMedia);
   return renderParagraph(
@@ -398,6 +410,7 @@ function renderParagraphBlock(
     0,
     key,
     highlight,
+    imageMaxHeight,
   );
 }
 
@@ -409,6 +422,7 @@ function renderParagraph(
   depth: number,
   key: number,
   highlight: boolean,
+  imageMaxHeight: string,
 ): ReactNode {
   const segments = text.split('\n');
   const children: ReactNode[] = [];
@@ -416,7 +430,7 @@ function renderParagraph(
     const seg = segments[i];
     if (seg === undefined) continue;
     if (i > 0) children.push(<br key={`br-${i}`} />);
-    children.push(renderInlineTokens(seg, fences, codes, images, depth, highlight));
+    children.push(renderInlineTokens(seg, fences, codes, images, depth, highlight, imageMaxHeight));
   }
   return <p key={key}>{children}</p>;
 }
@@ -432,6 +446,7 @@ function renderInlineTokens(
   images: ImageRef[],
   depth: number,
   highlight: boolean = false,
+  imageMaxHeight: string = 'max-h-[20em]',
 ): ReactNode {
   if (depth >= MAX_INLINE_DEPTH) return text;
   if (text.length === 0) return '';
@@ -441,7 +456,7 @@ function renderInlineTokens(
 
   while (pos < text.length) {
     // Try placeholders first (opaque — emit as elements, do not recurse).
-    const ph = tryMatchPlaceholder(text, pos, fences, codes, images);
+    const ph = tryMatchPlaceholder(text, pos, fences, codes, images, imageMaxHeight);
     if (ph !== null) {
       pushToken(tokens, ph.node);
       pos = ph.end;
@@ -457,7 +472,7 @@ function renderInlineTokens(
     }
 
     // Try emphasis in priority: ** > __ > * > _
-    const emph = tryMatchEmphasis(text, pos, fences, codes, images, depth, highlight);
+    const emph = tryMatchEmphasis(text, pos, fences, codes, images, depth, highlight, imageMaxHeight);
     if (emph !== null) {
       pushToken(tokens, emph.node);
       pos = emph.end;
@@ -476,7 +491,7 @@ function renderInlineTokens(
           tokens,
           <span key={`q${pos}`} style={{ color: 'var(--dialogue)' }}>
             {qChar}
-            {renderInlineTokens(inner, fences, codes, images, depth, false)}
+            {renderInlineTokens(inner, fences, codes, images, depth, false, imageMaxHeight)}
             {qClose}
           </span>,
         );
@@ -489,7 +504,7 @@ function renderInlineTokens(
           tokens,
           <span key={`q${pos}`} style={{ color: 'var(--dialogue)' }}>
             {qChar}
-            {renderInlineTokens(rest, fences, codes, images, depth, false)}
+            {renderInlineTokens(rest, fences, codes, images, depth, false, imageMaxHeight)}
           </span>,
         );
         pos = text.length;
@@ -532,6 +547,7 @@ function tryMatchPlaceholder(
   fences: FencedCode[],
   codes: string[],
   images: ImageRef[],
+  imageMaxHeight: string = 'max-h-[20em]',
 ): { node: ReactNode; end: number } | null {
   if (text.charCodeAt(pos) !== 0) return null;
   const re = /\x00(FENCE|CODE|IMG)(\d+)\x00/g;
@@ -559,7 +575,7 @@ function tryMatchPlaceholder(
           src={src}
           alt={img.alt}
           loading="lazy"
-          className="max-h-[20em] max-w-full rounded"
+          className={`${imageMaxHeight} max-w-full rounded`}
         />
       ),
       end,
@@ -622,6 +638,7 @@ function tryMatchEmphasis(
   images: ImageRef[],
   depth: number,
   highlight: boolean = false,
+  imageMaxHeight: string = 'max-h-[20em]',
 ): EmphMatch | null {
   // Priority 1: **bold**
   const boldStar = matchDelim(text, pos, '**');
@@ -631,7 +648,7 @@ function tryMatchEmphasis(
       return {
         node: (
           <strong key={`b${pos}`} data-depth={depth}>
-            {renderInlineTokens(inner, fences, codes, images, depth + 1, false)}
+            {renderInlineTokens(inner, fences, codes, images, depth + 1, false, imageMaxHeight)}
           </strong>
         ),
         end: boldStar.contentEnd + 2,
@@ -648,7 +665,7 @@ function tryMatchEmphasis(
             <span key={`b${pos}t`} className="md-opening-tag">
               {'**'}
             </span>
-            {renderInlineTokens(content, fences, codes, images, depth + 1, false)}
+            {renderInlineTokens(content, fences, codes, images, depth + 1, false, imageMaxHeight)}
           </strong>
         ),
         end: text.length,
@@ -668,7 +685,7 @@ function tryMatchEmphasis(
       return {
         node: (
           <strong key={`B${pos}`} data-depth={depth}>
-            {renderInlineTokens(inner, fences, codes, images, depth + 1, false)}
+            {renderInlineTokens(inner, fences, codes, images, depth + 1, false, imageMaxHeight)}
           </strong>
         ),
         end: boldUnder.contentEnd + 2,
@@ -690,7 +707,7 @@ function tryMatchEmphasis(
             <span key={`B${pos}t`} className="md-opening-tag">
               {'__'}
             </span>
-            {renderInlineTokens(content, fences, codes, images, depth + 1, false)}
+            {renderInlineTokens(content, fences, codes, images, depth + 1, false, imageMaxHeight)}
           </strong>
         ),
         end: text.length,
@@ -706,7 +723,7 @@ function tryMatchEmphasis(
       return {
         node: (
           <em key={`i${pos}`} data-depth={depth}>
-            {renderInlineTokens(inner, fences, codes, images, depth + 1, false)}
+            {renderInlineTokens(inner, fences, codes, images, depth + 1, false, imageMaxHeight)}
           </em>
         ),
         end: italStar.contentEnd + 1,
@@ -723,7 +740,7 @@ function tryMatchEmphasis(
             <span key={`i${pos}t`} className="md-opening-tag">
               {'*'}
             </span>
-            {renderInlineTokens(content, fences, codes, images, depth + 1, false)}
+            {renderInlineTokens(content, fences, codes, images, depth + 1, false, imageMaxHeight)}
           </em>
         ),
         end: text.length,
@@ -739,7 +756,7 @@ function tryMatchEmphasis(
       return {
         node: (
           <em key={`I${pos}`} data-depth={depth}>
-            {renderInlineTokens(inner, fences, codes, images, depth + 1, false)}
+            {renderInlineTokens(inner, fences, codes, images, depth + 1, false, imageMaxHeight)}
           </em>
         ),
         end: italUnder.contentEnd + 1,
@@ -756,7 +773,7 @@ function tryMatchEmphasis(
             <span key={`I${pos}t`} className="md-opening-tag">
               {'_'}
             </span>
-            {renderInlineTokens(content, fences, codes, images, depth + 1, false)}
+            {renderInlineTokens(content, fences, codes, images, depth + 1, false, imageMaxHeight)}
           </em>
         ),
         end: text.length,
