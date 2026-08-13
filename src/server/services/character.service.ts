@@ -785,15 +785,14 @@ export class CharacterService {
     if (!alreadyHadMetadata) {
       await writeCharacterCard(effectivePngData, rewrittenJsonWithDates, destPath);
     } else {
-      const outDir = path.dirname(destPath);
-      await import('node:fs/promises').then((fs) => fs.mkdir(outDir, { recursive: true }));
-      await import('node:fs/promises').then((fs) => fs.writeFile(destPath, effectivePngData));
+      await writeFile(destPath, effectivePngData);
     }
 
     const destFile = Bun.file(destPath);
+    const destExists = await destFile.exists();
     console.debug('[import] after writeCharacterCard', {
-      destExists: await destFile.exists(),
-      destSize: (await destFile.exists()) ? destFile.size : 0,
+      destExists,
+      destSize: destExists ? destFile.size : 0,
     });
     await writeCharacterThumbnail(destPath, userId, fileName).catch((err) =>
       console.debug('[character] thumbnail op skipped', { op: 'import', userId, fileName, err }),
