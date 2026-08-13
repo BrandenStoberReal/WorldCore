@@ -100,7 +100,7 @@ export const characterRoutes = {
           { status: 404 },
         );
       }
-      return new Response(file.stream(), {
+      return new Response(file, {
         headers: { 'Content-Type': 'image/png' },
       });
     }),
@@ -130,7 +130,7 @@ export const characterRoutes = {
           { status: 404 },
         );
       }
-      return new Response(file.stream(), {
+      return new Response(file, {
         headers: { 'Content-Type': 'image/png' },
       });
     }),

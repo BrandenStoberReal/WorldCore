@@ -129,7 +129,7 @@ async function handleRequest(req: Request): Promise<Response> {
   }
   const file = Bun.file(safePath);
   if (await file.exists()) {
-    return new Response(file.stream(), {
+    return new Response(file, {
       headers: {
         'Content-Type': resolveMimeType(safePath),
         'Cache-Control': 'no-cache, no-store, must-revalidate',

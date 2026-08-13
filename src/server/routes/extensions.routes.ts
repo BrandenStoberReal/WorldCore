@@ -298,7 +298,7 @@ export const extensionsRoutes = {
           'Cache-Control': 'no-cache',
           'X-Content-Type-Options': 'nosniff',
         };
-        return new Response(Bun.file(built.abs).stream(), { headers });
+        return new Response(Bun.file(built.abs), { headers });
       }
 
       const safeAbs = safeExtensionPath(dir, relPath);
@@ -317,7 +317,7 @@ export const extensionsRoutes = {
       } else {
         Object.assign(headers, securityHeaders);
       }
-      return new Response(file.stream(), { headers });
+      return new Response(file, { headers });
     }),
   ),
 };
